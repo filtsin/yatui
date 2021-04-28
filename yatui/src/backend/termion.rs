@@ -1,16 +1,16 @@
 use crate::backend::Backend;
 use crate::error::Result;
 
-use termion::raw::{RawTerminal, IntoRawMode};
 use termion::input::MouseTerminal;
+use termion::raw::{IntoRawMode, RawTerminal};
 
-use termion::cursor;
 use termion::clear;
+use termion::cursor;
 
 use std::io::BufWriter;
 
-use std::io::{Read, Write, Stdout};
 use std::fs::File;
+use std::io::{Read, Stdout, Write};
 
 pub struct Termion<W: Write> {
     output: RawTerminal<BufWriter<W>>,
@@ -19,7 +19,7 @@ pub struct Termion<W: Write> {
 impl<W: Write> Termion<W> {
     pub fn new(output: W) -> Result<Termion<W>> {
         let output = BufWriter::with_capacity(5_000_000, output).into_raw_mode()?;
-        Ok(Termion { output } )
+        Ok(Termion { output })
     }
 }
 

@@ -1,44 +1,42 @@
 //! Application structure
-mod logic;
+mod compositor;
 
+use self::compositor::Compositor;
 use crate::backend::{Backend, Termion};
-use crate::error::{Result, Error};
+use crate::error::{Error, Result};
 use crate::widget::Widget;
-use logic::AppLogic;
 
-use std::sync::Mutex;
 use once_cell::sync::OnceCell;
+use std::sync::Mutex;
 use std::time::Duration;
 
 pub struct App {
     backend: Mutex<Option<Box<dyn Backend>>>,
-    logic: Mutex<AppLogic>
+    compositor: Mutex<Compositor>,
 }
 
 pub struct AppInstance {
-    inner: &'static App
+    inner: &'static App,
 }
 
 impl App {
     fn new() -> Self {
         Self {
             backend: Mutex::new(None),
-            logic: Mutex::new(AppLogic::new())
+            compositor: Mutex::new(Compositor::new()),
         }
     }
     /// Get an wrapper for reference to global application instance
     pub fn instance() -> AppInstance {
         static INSTANCE: OnceCell<App> = OnceCell::new();
-        let app = INSTANCE.get_or_init(|| {
-           App::new()
-        });
+        let app = INSTANCE.get_or_init(|| App::new());
         AppInstance { inner: app }
     }
     fn run(&'static self) {
         loop {
-            let logic = self.logic.lock().unwrap();
+            let compositor = self.compositor.lock().unwrap();
             let mut backend = self.backend.lock().unwrap();
-            logic.step(backend.as_mut().unwrap().as_mut());
+            compositor.step(backend.as_mut().unwrap().as_mut());
             std::thread::sleep(Duration::from_secs(2));
         }
     }
@@ -67,7 +65,6 @@ impl AppInstance {
     /// Add widget
     /// Temporary function
     pub fn add_widget(&self, widget: Box<dyn Widget>) {
-        self.inner.logic.lock().unwrap().add_widget(widget);
+        self.inner.compositor.lock().unwrap().add_widget(widget);
     }
 }
-

@@ -1,11 +1,11 @@
 pub struct Style {
     background: Option<Color>,
-    text: Option<Color>
+    text: Option<Color>,
 }
 
 pub enum Color {
     Black,
-    White
+    White,
 }
 
 impl Style {
@@ -18,7 +18,7 @@ impl Default for Style {
     fn default() -> Self {
         Self {
             background: None,
-            text: None
+            text: None,
         }
     }
 }

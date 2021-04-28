@@ -7,5 +7,5 @@ pub enum Error {
     #[error("IO error")]
     IoError(#[from] std::io::Error),
     #[error("Application is not initialized")]
-    AppNotInit
+    AppNotInit,
 }

@@ -2,13 +2,13 @@ use crate::widget::Style;
 use crate::widget::Widget;
 
 pub struct Example {
-    style: Style
+    style: Style,
 }
 
 impl Example {
     pub fn new() -> Self {
         Self {
-            style: Style::default()
+            style: Style::default(),
         }
     }
 }
@@ -26,4 +26,3 @@ impl Widget for Example {
         true
     }
 }
-

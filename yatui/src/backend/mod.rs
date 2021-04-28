@@ -3,6 +3,6 @@
 mod backend;
 mod termion;
 
-pub use backend::Backend;
 pub use self::termion::Termion;
-use std::io::{Write, Result};
+pub use backend::Backend;
+use std::io::{Result, Write};

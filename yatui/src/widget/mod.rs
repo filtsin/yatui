@@ -1,6 +1,6 @@
+pub mod example;
 /// Widget trait
 pub mod style;
-pub mod example;
 
 use style::Style;
 
