@@ -3,14 +3,11 @@ use crate::error::Result;
 
 use termion::input::MouseTerminal;
 use termion::raw::{IntoRawMode, RawTerminal};
-
 use termion::clear;
 use termion::cursor;
 
-use std::io::BufWriter;
-
 use std::fs::File;
-use std::io::{Read, Stdout, Write};
+use std::io::{BufWriter, Read, Write};
 
 pub struct Termion<W: Write> {
     output: RawTerminal<BufWriter<W>>,

@@ -26,7 +26,7 @@ impl App {
             compositor: Mutex::new(Compositor::new()),
         }
     }
-    /// Get an wrapper for reference to global application instance
+    /// Get a wrapper for reference to global application instance
     pub fn instance() -> AppInstance {
         static INSTANCE: OnceCell<App> = OnceCell::new();
         let app = INSTANCE.get_or_init(|| App::new());

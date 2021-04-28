@@ -18,11 +18,11 @@ impl Widget for Example {
         &self.style
     }
 
-    fn draw(&self) -> String {
-        String::from("Hello world!")
-    }
-
     fn is_show(&self) -> bool {
         true
+    }
+
+    fn draw(&self) -> String {
+        String::from("❤️")
     }
 }
