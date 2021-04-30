@@ -1,4 +1,5 @@
 use super::region::Region;
+use crate::terminal::cursor::{Index, Cursor};
 
 /// Global buffer for terminal
 pub struct Buffer {
@@ -30,6 +31,14 @@ impl Buffer {
         self.data.resize_with(region.area() as usize, || ' ');
         self.region = region;
     }
+    /// Write `c` in specified `position`
+    pub fn write_in(&mut self, c: char, position: Cursor) {
+        let index = self.get_index(&position);
+        self.data[index] = c;
+    }
+    fn get_index(&self, cursor: &Cursor) -> usize {
+        self.region.width() as usize * cursor.row() as usize + cursor.column() as usize
+    }
 }
 
 impl<'a> MappedBuffer<'a> {
@@ -38,12 +47,12 @@ impl<'a> MappedBuffer<'a> {
         Self { buffer, mapped_region }
     }
     /// Converts local row to the global
-    fn global_row(&self, local_row: u8) -> u8 {
-        todo!()
+    fn global_row(&self, local_row: Index) -> Index {
+        local_row + self.mapped_region.left_top.row()
     }
     /// Converts local column to the global
-    fn global_column(&self, local_column: u8) -> u8 {
-        todo!()
+    fn global_column(&self, local_column: Index) -> Index {
+        local_column + self.mapped_region.left_top.column()
     }
 }
 

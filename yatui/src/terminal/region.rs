@@ -1,9 +1,9 @@
-use super::cursor::Cursor;
+use super::cursor::{Cursor, Index};
 
 /// Region represents an area in the terminal
 pub struct Region {
-    left_top: Cursor,
-    right_bottom: Cursor
+    pub left_top: Cursor,
+    pub right_bottom: Cursor
 }
 
 impl Region {
@@ -16,15 +16,15 @@ impl Region {
         Self { left_top, right_bottom }
     }
     /// Count of columns in the region
-    pub fn width(&self) -> u8 {
+    pub fn width(&self) -> Index {
         self.right_bottom.column() - self.left_top.column()
     }
     /// Count of rows in the region
-    pub fn height(&self) -> u8 {
+    pub fn height(&self) -> Index {
         self.right_bottom.row() - self.left_top.row()
     }
     /// Count of rows multiplied to count of columns in the region
-    pub fn area(&self) -> u16 {
-        self.width() as u16 * self.height() as u16
+    pub fn area(&self) -> usize {
+        self.width() as usize * self.height() as usize
     }
 }
