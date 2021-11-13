@@ -8,7 +8,10 @@ use crate::widget::Widget;
 
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
-use std::time::Duration;
+
+use tokio::runtime::Runtime;
+use tokio::task::LocalSet;
+use tokio::time::{sleep, Duration};
 
 pub struct App {
     backend: Mutex<Option<Box<dyn Backend>>>,
@@ -32,13 +35,16 @@ impl App {
         let app = INSTANCE.get_or_init(|| App::new());
         AppInstance { inner: app }
     }
-    fn run(&'static self) {
-        loop {
-            let compositor = self.compositor.lock().unwrap();
-            let mut backend = self.backend.lock().unwrap();
-            compositor.step(backend.as_mut().unwrap().as_mut());
-            std::thread::sleep(Duration::from_secs(2));
-        }
+    fn run(&'static self, rt: &Runtime) {
+        let local = LocalSet::new();
+        local.block_on(rt, async {
+            loop {
+                let compositor = self.compositor.lock().unwrap();
+                let mut backend = self.backend.lock().unwrap();
+                compositor.step(backend.as_mut().unwrap().as_mut());
+                sleep(Duration::from_millis(1)).await;
+            }
+        });
     }
 }
 
@@ -54,12 +60,12 @@ impl AppInstance {
         Ok(())
     }
     /// Run an event loop
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, rt: &Runtime) -> Result<()> {
         let instance = self.inner;
         if instance.backend.lock().unwrap().is_none() {
             return Err(Error::AppNotInit);
         }
-        instance.run();
+        instance.run(rt);
         Ok(())
     }
     /// Add widget

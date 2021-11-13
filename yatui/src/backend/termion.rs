@@ -1,10 +1,10 @@
 use crate::backend::Backend;
 use crate::error::Result;
 
-use termion::input::MouseTerminal;
-use termion::raw::{IntoRawMode, RawTerminal};
 use termion::clear;
 use termion::cursor;
+use termion::input::MouseTerminal;
+use termion::raw::{IntoRawMode, RawTerminal};
 
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};

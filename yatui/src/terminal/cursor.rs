@@ -7,7 +7,7 @@ pub type Index = u8;
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
 pub struct Cursor {
     row: Index,
-    column: Index
+    column: Index,
 }
 
 impl Cursor {

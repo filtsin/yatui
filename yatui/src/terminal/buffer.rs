@@ -1,29 +1,26 @@
 use super::region::Region;
-use crate::terminal::cursor::{Index, Cursor};
+use crate::terminal::cursor::{Cursor, Index};
 
 /// Global buffer for terminal
 pub struct Buffer {
     /// Chars for every column and row, size should be = `region`.width() * `region`.height()
     data: Vec<char>,
     /// Current terminal region
-    region: Region
+    region: Region,
 }
 
 /// Mapped buffer to some position of terminal
 /// Converts local coordinates of widget to global coordinates of terminal
 pub struct MappedBuffer<'a> {
     buffer: &'a mut Buffer,
-    mapped_region: Region
+    mapped_region: Region,
 }
 
 impl Buffer {
     /// Creates a new buffer for `region`
     pub fn new(region: Region) -> Self {
         let mut data = vec![' '; region.area() as usize];
-        Self {
-            data,
-            region
-        }
+        Self { data, region }
     }
     /// Updates `region` for current buffer.
     /// Useful for updating buffer in place when resizing terminal
@@ -44,7 +41,10 @@ impl Buffer {
 impl<'a> MappedBuffer<'a> {
     /// Creates a new mapped buffer
     pub fn new(buffer: &'a mut Buffer, mapped_region: Region) -> Self {
-        Self { buffer, mapped_region }
+        Self {
+            buffer,
+            mapped_region,
+        }
     }
     /// Converts local row to the global
     fn global_row(&self, local_row: Index) -> Index {
@@ -55,4 +55,3 @@ impl<'a> MappedBuffer<'a> {
         local_column + self.mapped_region.left_top.column()
     }
 }
-
