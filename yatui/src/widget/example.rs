@@ -1,5 +1,4 @@
-use crate::widget::Style;
-use crate::widget::Widget;
+use crate::widget::{Style, Widget};
 
 pub struct Example {
     style: Style,
@@ -7,9 +6,7 @@ pub struct Example {
 
 impl Example {
     pub fn new() -> Self {
-        Self {
-            style: Style::default(),
-        }
+        Self { style: Style::default() }
     }
 }
 

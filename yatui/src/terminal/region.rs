@@ -13,10 +13,7 @@ impl Region {
     /// Panic if `right_bottom` < `left_top`
     pub fn new(left_top: Cursor, right_bottom: Cursor) -> Self {
         assert!(right_bottom >= left_top);
-        Self {
-            left_top,
-            right_bottom,
-        }
+        Self { left_top, right_bottom }
     }
     /// Count of columns in the region
     pub fn width(&self) -> Index {

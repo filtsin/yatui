@@ -1,5 +1,4 @@
-use crate::backend::Backend;
-use crate::widget::Widget;
+use crate::{backend::Backend, widget::Widget};
 use std::rc::Rc;
 
 pub(crate) struct Compositor {

@@ -16,9 +16,6 @@ impl Style {
 
 impl Default for Style {
     fn default() -> Self {
-        Self {
-            background: None,
-            text: None,
-        }
+        Self { background: None, text: None }
     }
 }

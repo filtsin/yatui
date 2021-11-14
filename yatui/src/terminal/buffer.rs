@@ -41,10 +41,7 @@ impl Buffer {
 impl<'a> MappedBuffer<'a> {
     /// Creates a new mapped buffer
     pub fn new(buffer: &'a mut Buffer, mapped_region: Region) -> Self {
-        Self {
-            buffer,
-            mapped_region,
-        }
+        Self { buffer, mapped_region }
     }
     /// Converts local row to the global
     fn global_row(&self, local_row: Index) -> Index {

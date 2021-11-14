@@ -1,13 +1,15 @@
-use crate::backend::Backend;
-use crate::error::Result;
+use crate::{backend::Backend, error::Result};
 
-use termion::clear;
-use termion::cursor;
-use termion::input::MouseTerminal;
-use termion::raw::{IntoRawMode, RawTerminal};
+use termion::{
+    clear, cursor,
+    input::MouseTerminal,
+    raw::{IntoRawMode, RawTerminal},
+};
 
-use std::fs::File;
-use std::io::{BufWriter, Read, Write};
+use std::{
+    fs::File,
+    io::{BufWriter, Read, Write},
+};
 
 pub struct Termion<W: Write> {
     output: RawTerminal<BufWriter<W>>,
