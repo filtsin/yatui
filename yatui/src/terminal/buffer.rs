@@ -19,7 +19,7 @@ pub struct MappedBuffer<'a> {
 impl Buffer {
     /// Creates a new buffer for `region`
     pub fn new(region: Region) -> Self {
-        let mut data = vec![' '; region.area() as usize];
+        let data = vec![' '; region.area() as usize];
         Self { data, region }
     }
     /// Updates `region` for current buffer.

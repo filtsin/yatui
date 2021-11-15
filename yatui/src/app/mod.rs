@@ -3,12 +3,7 @@ mod compositor;
 
 use crate::backend::{Backend, Termion};
 use once_cell::sync::OnceCell;
-use tokio::{
-    runtime::Runtime,
-    sync::Mutex,
-    task::LocalSet,
-    time::{sleep, Duration},
-};
+use tokio::{runtime::Runtime, sync::Mutex, task::LocalSet};
 
 pub struct App {
     backend: Mutex<Box<dyn Backend>>,
