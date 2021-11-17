@@ -1,10 +1,10 @@
 use std::cmp::Ord;
 
-/// For row and column indexing (u8 should be enough?)
-pub type Index = u8;
+/// For row and column indexing (u16 should be enough?)
+pub type Index = u16;
 
 /// Cursor points to a row and column of terminal
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct Cursor {
     row: Index,
     column: Index,

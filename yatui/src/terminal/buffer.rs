@@ -2,6 +2,7 @@ use super::region::Region;
 use crate::terminal::cursor::{Cursor, Index};
 
 /// Global buffer for terminal
+#[derive(Debug)]
 pub struct Buffer {
     /// Chars for every column and row, size should be = `region`.width() * `region`.height()
     data: Vec<char>,
@@ -11,6 +12,7 @@ pub struct Buffer {
 
 /// Mapped buffer to some position of terminal
 /// Converts local coordinates of widget to global coordinates of terminal
+#[derive(Debug)]
 pub struct MappedBuffer<'a> {
     buffer: &'a mut Buffer,
     mapped_region: Region,

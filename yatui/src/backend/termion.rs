@@ -1,15 +1,11 @@
-use crate::{backend::Backend, error::Result};
+use crate::{backend::Backend, error::Result, terminal::cursor::Index};
 
 use termion::{
     clear, cursor,
-    input::MouseTerminal,
     raw::{IntoRawMode, RawTerminal},
 };
 
-use std::{
-    fs::File,
-    io::{BufWriter, Read, Write},
-};
+use std::io::{BufWriter, Write};
 
 pub struct Termion<W: Write> {
     output: RawTerminal<BufWriter<W>>,
@@ -23,11 +19,11 @@ impl<W: Write> Termion<W> {
 }
 
 impl<W: Write + Send> Backend for Termion<W> {
-    fn get_size(&self) -> Result<(u16, u16)> {
+    fn get_size(&self) -> Result<(Index, Index)> {
         termion::terminal_size().map_err(|e| e.into())
     }
 
-    fn move_cursor(&mut self, pos: (u16, u16)) {
+    fn move_cursor(&mut self, pos: (Index, Index)) {
         write!(self.output, "{}", cursor::Goto(pos.0, pos.1)).unwrap();
     }
 
