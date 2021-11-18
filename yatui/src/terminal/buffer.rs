@@ -1,11 +1,11 @@
-use super::region::Region;
+use super::{character::Character, region::Region};
 use crate::terminal::cursor::{Cursor, Index};
 
 /// Global buffer for terminal
 #[derive(Debug)]
 pub struct Buffer {
     /// Chars for every column and row, size should be = `region`.width() * `region`.height()
-    data: Vec<char>,
+    data: Vec<Character>,
     /// Current terminal region
     region: Region,
 }
@@ -21,19 +21,19 @@ pub struct MappedBuffer<'a> {
 impl Buffer {
     /// Creates a new buffer for `region`
     pub fn new(region: Region) -> Self {
-        let data = vec![' '; region.area() as usize];
+        let data = vec![Character::default(); region.area() as usize];
         Self { data, region }
     }
     /// Updates `region` for current buffer.
     /// Useful for updating buffer in place when resizing terminal
     pub fn update_region(&mut self, region: Region) {
-        self.data.resize_with(region.area() as usize, || ' ');
+        self.data.resize_with(region.area() as usize, Character::default);
         self.region = region;
     }
     /// Write `c` in specified `position`
-    pub fn write_in(&mut self, c: char, position: Cursor) {
+    pub fn write_in(&mut self, cell: Character, position: Cursor) {
         let index = self.get_index(&position);
-        self.data[index] = c;
+        self.data[index] = cell;
     }
     fn get_index(&self, cursor: &Cursor) -> usize {
         self.region.width() as usize * cursor.row() as usize + cursor.column() as usize
