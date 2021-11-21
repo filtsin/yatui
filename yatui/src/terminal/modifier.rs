@@ -4,7 +4,7 @@ use bitflags::bitflags;
 #[derive(Debug, Copy, Clone, Default)]
 pub struct Modifier {
     color: Option<Color>,
-    // just for prototype, TODO: replace it for applying multiple styles
+    background: Option<Color>,
     style: Style,
 }
 
