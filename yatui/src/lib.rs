@@ -3,5 +3,6 @@
 pub mod app;
 pub mod backend;
 pub mod error;
+pub mod layout;
 pub mod terminal;
 pub mod widget;

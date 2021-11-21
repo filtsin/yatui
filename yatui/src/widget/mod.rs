@@ -1,11 +1,9 @@
-pub mod example;
 /// Widget trait
-pub mod style;
+use crate::terminal::{buffer::MappedBuffer, cursor::Index};
 
-use style::Style;
-
-pub trait Widget: Send {
-    fn get_style(&self) -> &Style;
+pub trait Widget {
+    fn draw(&self, buf: MappedBuffer<'_>);
+    fn need_size(&self) -> (Index, Index);
+    fn min_size(&self) -> (Index, Index);
     fn is_show(&self) -> bool;
-    fn draw(&self) -> String;
 }

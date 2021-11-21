@@ -1,5 +1,9 @@
-use super::{character::Character, region::Region};
-use crate::terminal::cursor::{Cursor, Index};
+use super::{
+    character::Character,
+    cursor::{Cursor, Index},
+    modifier::Modifier,
+    region::Region,
+};
 
 /// Global buffer for terminal
 #[derive(Debug)]
@@ -48,6 +52,21 @@ impl<'a> MappedBuffer<'a> {
     /// Creates a new mapped buffer
     pub fn new(buffer: &'a mut Buffer, mapped_region: Region) -> Self {
         Self { buffer, mapped_region, cursor: None }
+    }
+
+    // write from `cursor` start position
+    pub fn write_text(&mut self, text: &str) -> usize {
+        todo!()
+    }
+
+    // border with specified character. return buffer inside this border
+    pub fn draw_border(self, c: Character) -> MappedBuffer<'a> {
+        todo!()
+    }
+
+    // style for all characters
+    pub fn set_style(&mut self, style: Modifier) {
+        todo!()
     }
 
     /// Converts local row to the global

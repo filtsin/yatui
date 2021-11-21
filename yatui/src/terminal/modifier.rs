@@ -18,7 +18,7 @@ pub enum Color {
 
 bitflags! {
     #[derive(Default)]
-    pub struct Style : u32 {
+    pub struct Style : u16 {
         const BOLD = 0b00000001;
         const ITALIC = 0b00000010;
         const UNDERLINE = 0b00000100;
