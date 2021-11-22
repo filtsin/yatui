@@ -1,4 +1,6 @@
 /// Widget trait
+pub mod textline;
+
 use crate::terminal::{buffer::MappedBuffer, cursor::Index};
 
 /// Widget should implement this trait for drawing. It is also implemented

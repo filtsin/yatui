@@ -15,14 +15,19 @@ pub struct Buffer {
 }
 
 /// Mapped buffer is a safe abstraction over `Buffer`. It contains only specified in `mapped_region`
-/// region. You can not write to other positions which not be mapped. Contains cursor inside
-/// which points to the position where last writing happened.
+/// region. You can not write to other positions which not be mapped.
 /// Converts local coordinates of widget to global coordinates of terminal.
 #[derive(Debug)]
 pub struct MappedBuffer<'a> {
     buffer: &'a mut Buffer,
     mapped_region: Region,
-    cursor: Option<usize>,
+}
+
+/// Mapped buffer with state
+#[derive(Debug)]
+pub struct MappedStateBuffer<'a> {
+    buffer: MappedBuffer<'a>,
+    state: usize,
 }
 
 impl Buffer {
@@ -51,21 +56,29 @@ impl Buffer {
 impl<'a> MappedBuffer<'a> {
     /// Creates a new mapped buffer
     pub fn new(buffer: &'a mut Buffer, mapped_region: Region) -> Self {
-        Self { buffer, mapped_region, cursor: None }
+        Self { buffer, mapped_region }
     }
 
-    // write from `cursor` start position
-    pub fn write_text(&mut self, text: &str) -> usize {
+    pub fn with_state(self, state: usize) -> MappedStateBuffer<'a> {
+        // TODO: Check state for overflow region
+        MappedStateBuffer { buffer: self, state }
+    }
+
+    pub fn with_state_spec(self, row: Index, column: Index) -> MappedStateBuffer<'a> {
         todo!()
     }
 
     // border with specified character. return buffer inside this border
-    pub fn draw_border(self, c: Character) -> MappedBuffer<'a> {
+    pub fn draw_border(self, size: usize, c: Character) -> MappedBuffer<'a> {
         todo!()
     }
 
     // style for all characters
     pub fn set_style(&mut self, style: Modifier) {
+        todo!()
+    }
+
+    pub fn write_character(&mut self, row: Index, column: Index, c: Character) {
         todo!()
     }
 
@@ -76,5 +89,23 @@ impl<'a> MappedBuffer<'a> {
     /// Converts local column to the global
     fn global_column(&self, local_column: Index) -> Index {
         local_column + self.mapped_region.left_top.column()
+    }
+}
+
+impl<'a> MappedStateBuffer<'a> {
+    pub fn without_state(self) -> MappedBuffer<'a> {
+        self.buffer
+    }
+    pub fn write_text(&mut self, text: &str) -> Self {
+        todo!()
+    }
+    pub fn write_text_overflow(&mut self, text: &str, overflow: &str) -> Self {
+        todo!()
+    }
+    pub fn next_row(&mut self) -> Self {
+        todo!()
+    }
+    pub fn next_column(&mut self) -> Self {
+        todo!()
     }
 }

@@ -18,11 +18,25 @@ pub enum LayoutType {
 }
 
 pub struct Layout {
-    data: Vec<Box<dyn Widget>>,
+    data: Vec<Box<dyn Widget + Send>>,
+    direction: LayoutDirection,
+    ltype: LayoutType,
+}
+
+impl Layout {
+    pub fn new(direction: LayoutDirection, ltype: LayoutType) -> Self {
+        Self { data: vec![], direction, ltype }
+    }
+    pub fn add_widget(&mut self, widget: Box<dyn Widget + Send>) {
+        self.data.push(widget);
+    }
 }
 
 impl Widget for Layout {
     fn draw(&mut self, buf: MappedBuffer<'_>) {
-        todo!()
+        // just prototype
+        if self.data.len() == 1 {
+            self.data[0].draw(buf);
+        }
     }
 }
