@@ -1,7 +1,11 @@
 //! Application structure
-pub mod event;
+pub(crate) mod event;
+pub mod page;
 
-use self::event::Event;
+use self::{
+    event::Event,
+    page::{Id, Page},
+};
 use crate::compositor::Compositor;
 use once_cell::sync::OnceCell;
 use std::sync::RwLock;
@@ -20,13 +24,13 @@ pub struct App<B> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Queue {
+pub struct Handle {
     sender: Option<UnboundedSender<Event>>,
 }
 
 impl<B> App<B> {
     pub fn new(backend: B) -> Self {
-        let mut queue = Queue::mut_instance().write().unwrap();
+        let mut queue = Handle::mut_instance().write().unwrap();
 
         let (tx, rx) = unbounded_channel();
 
@@ -38,38 +42,48 @@ impl<B> App<B> {
         let local = LocalSet::new();
         local.block_on(rt, async {});
     }
+    async fn main_loop(self) {}
 }
 
-impl Queue {
+impl Handle {
+    /// Returns `Id` of new page. If it is the first call of function, then the `set_active` will be
+    /// call on the result.
+    /// # Panics
+    /// Panics if `App` is not created
+    pub async fn add_page(page: Page) -> Id {
+        let (tx, rx) = channel();
+
+        Handle::send(Event::AddPage(page, tx));
+
+        rx.await.unwrap()
+    }
+
+    /// It is ok to call `set_active` in current active page and continue work
+    /// after that on this page that will be inactive in compositor
+    /// # Panics
+    /// Panics if `App` is not created or id is not registered by `add_page` function
+    pub async fn set_active(id: Id) {
+        Handle::send(Event::SetActive(id));
+    }
+}
+
+impl Handle {
     const fn new() -> Self {
         Self { sender: None }
     }
 
     fn instance() -> Self {
-        Queue::mut_instance().read().unwrap().clone()
+        Handle::mut_instance().read().unwrap().clone()
     }
 
-    /// # Panics
-    /// Panics if `App` is not created
-    pub fn send(event: Event) {
+    fn send(event: Event) {
         // Other side of channel is always open while programm is alive
         Self::instance().sender.unwrap().send(event).unwrap();
     }
 
-    /// # Panics
-    /// Panics if `App` is not created
-    pub async fn async_send(event: Event) {
-        let (tx, rx) = channel();
+    fn mut_instance() -> &'static RwLock<Self> {
+        static INSTANCE: OnceCell<RwLock<Handle>> = OnceCell::new();
 
-        Queue::send(Event::__AsyncEvent(Box::new(event), tx));
-
-        // Sender should not be dropped by App
-        rx.await.unwrap()
-    }
-
-    fn mut_instance() -> &'static RwLock<Queue> {
-        static INSTANCE: OnceCell<RwLock<Queue>> = OnceCell::new();
-
-        INSTANCE.get_or_init(|| RwLock::new(Queue::new()))
+        INSTANCE.get_or_init(|| RwLock::new(Self::new()))
     }
 }

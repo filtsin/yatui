@@ -23,6 +23,15 @@ pub struct Layout {
     ltype: LayoutType,
 }
 
+impl std::fmt::Debug for Layout {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Layout")
+            .field("direction", &self.direction)
+            .field("ltype", &self.ltype)
+            .finish()
+    }
+}
+
 impl Layout {
     pub fn new(direction: LayoutDirection, ltype: LayoutType) -> Self {
         Self { data: vec![], direction, ltype }
