@@ -1,55 +1,75 @@
 //! Application structure
-use crate::{
-    backend::{Backend, Termion},
-    layout::{Layout, LayoutDirection, LayoutType},
-    terminal::{
-        buffer::{Buffer, MappedBuffer},
-        cursor::Cursor,
-        region::Region,
-    },
-    widget::Widget,
-};
-use once_cell::sync::OnceCell;
-use tokio::{runtime::Runtime, sync::Mutex, task::LocalSet};
+pub mod event;
 
-// TODO: Remove send
-pub struct App {
-    backend: Mutex<Box<dyn Backend + Send>>,
-    main: Mutex<Box<dyn Widget + Send>>,
+use self::event::Event;
+use crate::compositor::Compositor;
+use once_cell::sync::OnceCell;
+use std::sync::RwLock;
+use tokio::{
+    runtime::Runtime,
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        oneshot::channel,
+    },
+    task::LocalSet,
+};
+
+pub struct App<B> {
+    compositor: Compositor<B>,
+    queue: UnboundedReceiver<Event>,
 }
 
-impl App {
-    fn new(backend: Box<dyn Backend + Send>) -> Self {
-        Self {
-            backend: Mutex::new(backend),
-            main: Mutex::new(Box::new(Layout::new(
-                LayoutDirection::Horizontal,
-                LayoutType::Content,
-            ))),
-        }
+#[derive(Debug, Clone)]
+pub struct Queue {
+    sender: Option<UnboundedSender<Event>>,
+}
+
+impl<B> App<B> {
+    pub fn new(backend: B) -> Self {
+        let mut queue = Queue::mut_instance().write().unwrap();
+
+        let (tx, rx) = unbounded_channel();
+
+        queue.sender = Some(tx);
+
+        App { compositor: Compositor::new(backend), queue: rx }
     }
-    /// Get a wrapper for reference to global application instance
-    pub fn instance() -> &'static App {
-        static INSTANCE: OnceCell<App> = OnceCell::new();
-        INSTANCE.get_or_init(|| {
-            // TODO: Change output
-            let default_backend = Termion::new(std::io::stdout()).unwrap();
-            App::new(Box::new(default_backend))
-        })
+    pub fn run(self, rt: &Runtime) {
+        let local = LocalSet::new();
+        local.block_on(rt, async {});
+    }
+}
+
+impl Queue {
+    const fn new() -> Self {
+        Self { sender: None }
     }
 
-    pub fn run(&'static self, rt: &Runtime) {
-        let local = LocalSet::new();
-        let mut buffer = Buffer::new(Region::new(Cursor::new(0, 0), Cursor::new(100, 100)));
-        local.block_on(rt, async {
-            loop {
-                let mut main_lock = self.main.lock().await;
-                main_lock.draw(MappedBuffer::new(
-                    &mut buffer,
-                    Region::new(Cursor::new(0, 0), Cursor::new(100, 100)),
-                ));
-                // Main actions here
-            }
-        });
+    fn instance() -> Self {
+        Queue::mut_instance().read().unwrap().clone()
+    }
+
+    /// # Panics
+    /// Panics if `App` is not created
+    pub fn send(event: Event) {
+        // Other side of channel is always open while programm is alive
+        Self::instance().sender.unwrap().send(event).unwrap();
+    }
+
+    /// # Panics
+    /// Panics if `App` is not created
+    pub async fn async_send(event: Event) {
+        let (tx, rx) = channel();
+
+        Queue::send(Event::__AsyncEvent(Box::new(event), tx));
+
+        // Sender should not be dropped by App
+        rx.await.unwrap()
+    }
+
+    fn mut_instance() -> &'static RwLock<Queue> {
+        static INSTANCE: OnceCell<RwLock<Queue>> = OnceCell::new();
+
+        INSTANCE.get_or_init(|| RwLock::new(Queue::new()))
     }
 }
