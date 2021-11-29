@@ -1,12 +1,11 @@
 //! Application structure
-pub(crate) mod event;
 pub mod page;
 
-use self::{
-    event::Event,
-    page::{Id, Page},
+use self::page::{Id, Page};
+use crate::{
+    backend::Backend,
+    compositor::{event::Event, Compositor},
 };
-use crate::compositor::Compositor;
 use once_cell::sync::OnceCell;
 use std::sync::RwLock;
 use tokio::{
@@ -16,6 +15,7 @@ use tokio::{
         oneshot::channel,
     },
     task::LocalSet,
+    time::{sleep, Duration},
 };
 
 pub struct App<B> {
@@ -38,11 +38,20 @@ impl<B> App<B> {
 
         App { compositor: Compositor::new(backend), queue: rx }
     }
-    pub fn run(self, rt: &Runtime) {
+}
+
+impl<B> App<B>
+where
+    B: Backend,
+{
+    pub fn run(mut self, rt: &Runtime) {
         let local = LocalSet::new();
-        local.block_on(rt, async {});
+        local.block_on(rt, self.main_loop());
     }
-    async fn main_loop(self) {}
+    async fn main_loop(&mut self) {
+        self.compositor.draw();
+        sleep(Duration::from_millis(100)).await;
+    }
 }
 
 impl Handle {

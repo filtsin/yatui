@@ -1,7 +1,7 @@
 use super::cursor::{Cursor, Index};
 
 /// Region represents an area in the terminal
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Region {
     pub left_top: Cursor,
     pub right_bottom: Cursor,

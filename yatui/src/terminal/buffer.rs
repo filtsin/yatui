@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::{
     character::Character,
     cursor::{Cursor, Index},
@@ -10,7 +12,7 @@ use super::{
 pub struct Buffer {
     /// Chars for every column and row, size should be = `region`.width() * `region`.height()
     data: Vec<Character>,
-    /// Current terminal region
+    /// Current terminal region, left_top is always 0
     region: Region,
 }
 
@@ -31,14 +33,16 @@ pub struct MappedStateBuffer<'a> {
 }
 
 impl Buffer {
-    /// Creates a new buffer for `region`
-    pub fn new(region: Region) -> Self {
+    /// Creates a new buffer from `last_pos`
+    pub fn new(last_pos: Cursor) -> Self {
+        let region = Region::new(Cursor::default(), last_pos);
         let data = vec![Character::default(); region.area() as usize];
         Self { data, region }
     }
     /// Updates `region` for current buffer.
     /// Useful for updating buffer in place when resizing terminal
-    pub fn update_region(&mut self, region: Region) {
+    pub fn update_size(&mut self, last_pos: Cursor) {
+        let region = Region::new(Cursor::default(), last_pos);
         self.data.resize_with(region.area(), Character::default);
         self.region = region;
     }
@@ -46,6 +50,10 @@ impl Buffer {
     pub fn write_in(&mut self, cell: Character, position: Cursor) {
         let index = self.get_index(&position);
         self.data[index] = cell;
+    }
+    /// Returns current size of buffer
+    pub fn get_size(&mut self) -> (Index, Index) {
+        (self.region.width(), self.region.height())
     }
     // get index for `data` vec for specified `cursor`
     fn get_index(&self, cursor: &Cursor) -> usize {
@@ -107,5 +115,14 @@ impl<'a> MappedStateBuffer<'a> {
     }
     pub fn next_column(&mut self) -> Self {
         todo!()
+    }
+}
+
+impl Display for Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        while let Some(c) = self.data.iter().next() {
+            write!(f, "{}", c)?;
+        }
+        Ok(())
     }
 }

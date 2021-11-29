@@ -1,4 +1,8 @@
-use crate::{backend::Backend, error::Result, terminal::cursor::Index};
+use crate::{
+    backend::Backend,
+    error::Result,
+    terminal::{buffer::Buffer, cursor::Index},
+};
 
 use termion::{
     clear, cursor,
@@ -32,8 +36,8 @@ impl<W: Write + Send> Backend for Termion<W> {
         self.move_cursor((1, 1));
     }
 
-    fn draw(&mut self, str: &str) {
-        write!(self.output, "{}", str).unwrap();
+    fn draw(&mut self, buffer: Buffer) {
+        write!(self.output, "{}", buffer).unwrap();
     }
 
     fn flush(&mut self) {

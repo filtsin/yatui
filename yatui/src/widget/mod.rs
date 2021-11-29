@@ -10,13 +10,14 @@ pub trait Widget {
     /// cycle of rendering by AppInstance.
     fn draw(&mut self, buf: MappedBuffer<'_>);
     /// Size hint for `[crate::layout::Layout]`
-    fn size_hint(&self) -> Option<SizeHint> {
+    fn size_hint(&mut self) -> Option<SizeHint> {
         None
     }
     /// Allows hide the widget
-    fn is_show(&self) -> bool {
+    fn is_show(&mut self) -> bool {
         true
     }
+    fn take_focus(&mut self) {}
 }
 
 /// Hint for [`Layout`](crate::layout::Layout). [`Layout`](crate::layout::Layout) should not ignore this value
