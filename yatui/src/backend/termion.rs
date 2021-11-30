@@ -36,7 +36,7 @@ impl<W: Write + Send> Backend for Termion<W> {
         self.move_cursor((1, 1));
     }
 
-    fn draw(&mut self, buffer: Buffer) {
+    fn draw(&mut self, buffer: &Buffer) {
         write!(self.output, "{}", buffer).unwrap();
     }
 

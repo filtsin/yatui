@@ -11,7 +11,7 @@ use super::{
 #[derive(Debug)]
 pub struct Buffer {
     /// Chars for every column and row, size should be = `region`.width() * `region`.height()
-    data: Vec<Character>,
+    pub data: Vec<Character>,
     /// Current terminal region, left_top is always 0
     region: Region,
 }
@@ -47,9 +47,9 @@ impl Buffer {
         self.region = region;
     }
     /// Write `c` in specified `position`
-    pub fn write_in(&mut self, cell: Character, position: Cursor) {
+    pub fn write_in(&mut self, c: Character, position: Cursor) {
         let index = self.get_index(&position);
-        self.data[index] = cell;
+        self.data[index] = c;
     }
     /// Returns current size of buffer
     pub fn get_size(&mut self) -> (Index, Index) {
@@ -86,15 +86,15 @@ impl<'a> MappedBuffer<'a> {
         todo!()
     }
 
-    pub fn write_character(&mut self, row: Index, column: Index, c: Character) {
-        todo!()
+    pub fn write_character(&mut self, c: Character, cursor: Cursor) {
+        self.buffer.write_in(c, cursor);
     }
 
-    /// Converts local row to the global
+    // Converts local row to the global
     fn global_row(&self, local_row: Index) -> Index {
         local_row + self.mapped_region.left_top.row()
     }
-    /// Converts local column to the global
+    // Converts local column to the global
     fn global_column(&self, local_column: Index) -> Index {
         local_column + self.mapped_region.left_top.column()
     }
@@ -104,8 +104,16 @@ impl<'a> MappedStateBuffer<'a> {
     pub fn without_state(self) -> MappedBuffer<'a> {
         self.buffer
     }
-    pub fn write_text(&mut self, text: &str) -> Self {
-        todo!()
+    pub fn write_text(mut self, text: &str) -> Self {
+        // TODO: Now it is ncorrect version just for debug
+        let mut cursor = Cursor::default();
+        for c in text.chars() {
+            let character = Character::new(c);
+            self.buffer.write_character(character, cursor);
+            cursor = cursor.next_column();
+        }
+
+        self
     }
     pub fn write_text_overflow(&mut self, text: &str, overflow: &str) -> Self {
         todo!()
@@ -120,7 +128,7 @@ impl<'a> MappedStateBuffer<'a> {
 
 impl Display for Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        while let Some(c) = self.data.iter().next() {
+        for c in self.data.iter() {
             write!(f, "{}", c)?;
         }
         Ok(())

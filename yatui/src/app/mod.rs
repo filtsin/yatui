@@ -1,7 +1,7 @@
 //! Application structure
 pub mod page;
 
-use self::page::{Id, Page};
+use self::page::Id;
 use crate::{
     backend::Backend,
     compositor::{event::Event, Compositor},
@@ -17,6 +17,8 @@ use tokio::{
     task::LocalSet,
     time::{sleep, Duration},
 };
+
+pub use page::Page;
 
 pub struct App<B> {
     compositor: Compositor<B>,
@@ -49,8 +51,13 @@ where
         local.block_on(rt, self.main_loop());
     }
     async fn main_loop(&mut self) {
-        self.compositor.draw();
-        sleep(Duration::from_millis(100)).await;
+        loop {
+            self.compositor.draw();
+            sleep(Duration::from_millis(100)).await;
+        }
+    }
+    pub fn add_page(&mut self, page: Page) -> Id {
+        self.compositor.add_page(page)
     }
 }
 

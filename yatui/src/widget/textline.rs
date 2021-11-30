@@ -20,7 +20,7 @@ impl TextLine {
 
 impl Widget for TextLine {
     fn draw(&mut self, buf: MappedBuffer<'_>) {
-        buf.with_state(0).write_text_overflow(&self.text, "...");
+        buf.with_state(0).write_text(&self.text);
     }
     fn size_hint(&mut self) -> Option<SizeHint> {
         let widget_size = WidgetSize::new(Index::MAX, 1);

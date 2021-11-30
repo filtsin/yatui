@@ -9,6 +9,12 @@ pub struct Character {
     modifier: Modifier,
 }
 
+impl Character {
+    pub fn new(symbol: char) -> Self {
+        Self { symbol, modifier: Modifier::default() }
+    }
+}
+
 impl Display for Character {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // TODO: Modifiers

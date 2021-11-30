@@ -4,7 +4,7 @@ use std::cmp::Ord;
 pub type Index = u16;
 
 /// Cursor points to a row and column of terminal
-#[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Default)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Default, Clone, Copy)]
 pub struct Cursor {
     row: Index,
     column: Index,
@@ -19,5 +19,11 @@ impl Cursor {
     }
     pub fn column(&self) -> Index {
         self.column
+    }
+    pub fn next_row(&self) -> Cursor {
+        Cursor { row: self.row() + 1, ..*self }
+    }
+    pub fn next_column(&self) -> Cursor {
+        Cursor { column: self.column() + 1, ..*self }
     }
 }

@@ -32,7 +32,7 @@ impl<B> Compositor<B> {
             pages: HashMap::new(),
             active: None,
             next_id: 0,
-            buffer: Buffer::new(Cursor::default()),
+            buffer: Buffer::new(Cursor::new(20, 20)),
         }
     }
 }
@@ -49,6 +49,10 @@ where
 
             let page = self.pages.get_mut(&id).unwrap();
             page.layout.draw(mapped_buffer);
+
+            self.backend.clear_screen();
+            self.backend.draw(&self.buffer);
+            self.backend.flush();
         }
     }
     pub(crate) async fn process_event(&mut self, event: Event) {
@@ -60,11 +64,15 @@ where
         };
     }
 
-    fn add_page(&mut self, page: Page) -> Id {
+    pub(crate) fn add_page(&mut self, page: Page) -> Id {
         let id = Id::new(self.next_id);
         self.next_id += 1;
 
-        self.pages.insert(id, page).unwrap();
+        self.pages.insert(id, page);
+
+        if self.active.is_none() {
+            self.active = Some(id);
+        }
 
         id
     }

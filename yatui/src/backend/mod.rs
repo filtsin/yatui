@@ -14,6 +14,6 @@ pub trait Backend {
     fn move_cursor(&mut self, pos: (Index, Index));
     fn clear_screen(&mut self);
 
-    fn draw(&mut self, buffer: Buffer);
+    fn draw(&mut self, buffer: &Buffer);
     fn flush(&mut self);
 }

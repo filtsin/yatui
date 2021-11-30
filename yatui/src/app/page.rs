@@ -2,7 +2,7 @@ use crate::layout::Layout;
 
 #[derive(Debug)]
 pub struct Page {
-    pub(crate) layout: Layout,
+    pub layout: Layout,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
