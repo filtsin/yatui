@@ -50,6 +50,7 @@ where
             let page = self.pages.get_mut(&id).unwrap();
             page.layout.draw(mapped_buffer);
 
+            self.backend.hide_cursor();
             self.backend.clear_screen();
             self.backend.draw(&self.buffer);
             self.backend.flush();

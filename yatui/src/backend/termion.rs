@@ -31,6 +31,14 @@ impl<W: Write + Send> Backend for Termion<W> {
         write!(self.output, "{}", cursor::Goto(pos.0, pos.1)).unwrap();
     }
 
+    fn hide_cursor(&mut self) {
+        write!(self.output, "{}", cursor::Hide).unwrap()
+    }
+
+    fn show_cursor(&mut self) {
+        write!(self.output, "{}", cursor::Show).unwrap()
+    }
+
     fn clear_screen(&mut self) {
         write!(self.output, "{}", clear::All).unwrap();
         self.move_cursor((1, 1));
