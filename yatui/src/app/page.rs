@@ -1,8 +1,14 @@
 use crate::layout::Layout;
+use std::fmt::Debug;
 
-#[derive(Debug)]
 pub struct Page {
-    pub layout: Layout,
+    pub layout: Box<dyn Layout + Send>,
+}
+
+impl Debug for Page {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{layout}}")
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]

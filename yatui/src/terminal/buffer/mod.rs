@@ -4,11 +4,7 @@ mod state;
 pub use map::MappedBuffer;
 pub use state::MappedStateBuffer;
 
-use crate::terminal::{
-    character::Character,
-    cursor::{Cursor, Index},
-    region::Region,
-};
+use crate::terminal::{character::Character, cursor::Cursor, region::Region};
 
 /// Global buffer for terminal
 #[derive(Debug)]
@@ -39,8 +35,8 @@ impl Buffer {
         self.data[index] = c;
     }
     /// Returns current size of buffer
-    pub fn get_size(&mut self) -> (Index, Index) {
-        (self.region.width(), self.region.height())
+    pub fn get_size(&mut self) -> Cursor {
+        Cursor::new(self.region.width(), self.region.height())
     }
     // get index for `data` vec for specified `cursor`
     fn get_index(&self, cursor: &Cursor) -> usize {

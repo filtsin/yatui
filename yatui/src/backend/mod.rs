@@ -4,14 +4,14 @@ mod termion;
 
 use crate::{
     error::Result,
-    terminal::{buffer::Buffer, cursor::Index},
+    terminal::{buffer::Buffer, cursor::Cursor},
 };
 
 pub use self::termion::Termion;
 
 pub trait Backend {
-    fn get_size(&self) -> Result<(Index, Index)>;
-    fn move_cursor(&mut self, pos: (Index, Index));
+    fn get_size(&self) -> Result<Cursor>;
+    fn move_cursor(&mut self, pos: Cursor);
     fn hide_cursor(&mut self);
     fn show_cursor(&mut self);
     fn clear_screen(&mut self);

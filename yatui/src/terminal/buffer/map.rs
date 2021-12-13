@@ -7,7 +7,7 @@ use crate::terminal::{
     region::Region,
 };
 
-/// Mapped buffer is a safe abstraction over `Buffer`. It contains only specified in `mapped_region`
+/// Mapped buffer is a safe abstraction over `Buffer`. It contain only specified in `mapped_region`
 /// region. You can not write to other positions which not be mapped.
 /// Converts local coordinates of widget to global coordinates of terminal.
 #[derive(Debug)]
@@ -43,6 +43,10 @@ impl<'a> MappedBuffer<'a> {
 
     pub fn write_character(&mut self, c: Character, cursor: Cursor) {
         self.buffer.write_in(c, cursor);
+    }
+
+    pub fn region(&self) -> Region {
+        self.mapped_region
     }
 
     // Converts local row to the global

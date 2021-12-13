@@ -1,13 +1,14 @@
 use crate::{
     app::page::{Id, Page},
-    terminal::cursor::Index,
+    terminal::cursor::Cursor,
 };
+use std::fmt::Debug;
 use tokio::sync::oneshot::Sender;
 
 #[derive(Debug)]
 pub(crate) enum Event {
     Draw,
-    ChangeSize((Index, Index)),
+    ChangeSize(Cursor),
     SetActive(Id),
     AddPage(Page, Sender<Id>),
 }

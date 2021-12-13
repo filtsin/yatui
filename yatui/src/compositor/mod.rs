@@ -43,12 +43,13 @@ where
 {
     pub(crate) fn draw(&mut self) {
         if let Some(id) = self.active {
-            let (w, h) = self.buffer.get_size();
+            let size = self.buffer.get_size();
+            let (w, h) = (size.row(), size.column());
             let mapped_region = Region::new(Cursor::default(), Cursor::new(w, h));
             let mapped_buffer = MappedBuffer::new(&mut self.buffer, mapped_region);
 
             let page = self.pages.get_mut(&id).unwrap();
-            page.layout.draw(mapped_buffer);
+            page.layout.layout(mapped_buffer);
 
             self.backend.hide_cursor();
             self.backend.clear_screen();
@@ -87,7 +88,7 @@ where
         panic!("No widget with {:?} id", id);
     }
 
-    fn change_size(&mut self, (w, h): (Index, Index)) {
-        self.buffer.update_size(Cursor::new(w, h));
+    fn change_size(&mut self, size: Cursor) {
+        self.buffer.update_size(size);
     }
 }
