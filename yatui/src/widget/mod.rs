@@ -10,18 +10,25 @@ pub trait Widget {
     /// cycle of rendering by AppInstance.
     fn draw(&mut self, buf: MappedBuffer<'_>);
     /// Size hint for `[crate::layout::Layout]`
-    fn size_hint(&mut self) -> Option<SizeHint> {
-        None
+    fn size_hint(&self) -> SizeHint {
+        SizeHint::Min(WidgetSize::new(1, 1))
     }
     /// Allows hide the widget
     fn is_show(&mut self) -> bool {
         true
     }
+
     fn take_focus(&mut self) {}
+
+    // If sizes is not changing, widget can say that his content is not changed
+    // from last draw, and we can not waste time on draw
+    fn need_redraw(&self) -> bool {
+        true
+    }
 }
 
 /// Hint for [`Layout`](crate::layout::Layout). [`Layout`](crate::layout::Layout) should not ignore this value
-/// and should take into account the wishes of [`Widget`]
+/// and should take into account the wishes of [`Widget`] if required size is present
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum SizeHint {

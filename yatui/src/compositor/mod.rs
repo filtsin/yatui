@@ -49,7 +49,7 @@ where
             let mapped_buffer = MappedBuffer::new(&mut self.buffer, mapped_region);
 
             let page = self.pages.get_mut(&id).unwrap();
-            page.layout.layout(mapped_buffer);
+            page.main_widget.draw(mapped_buffer);
 
             self.backend.hide_cursor();
             self.backend.clear_screen();

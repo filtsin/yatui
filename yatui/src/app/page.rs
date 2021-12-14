@@ -1,8 +1,9 @@
-use crate::layout::Layout;
 use std::fmt::Debug;
 
+use crate::widget::Widget;
+
 pub struct Page {
-    pub layout: Box<dyn Layout + Send>,
+    pub main_widget: Box<dyn Widget + Send>,
 }
 
 impl Debug for Page {

@@ -1,58 +1,84 @@
-use super::{Cursor, Layout};
-use crate::{terminal::buffer::MappedBuffer, widget::Widget};
+use std::marker::PhantomData;
 
-pub struct CommonLayout {
+use crate::{
+    terminal::{buffer::MappedBuffer, region::Region},
+    widget::{SizeHint, Widget, WidgetSize},
+};
+
+pub struct DefaultLayout<T> {
     childs: Vec<Child>,
-    direction: LayoutDirection,
+    last_region: Region,
+
+    marker: PhantomData<T>,
 }
 
-//#[derive(Debug)]
-pub enum Child {
-    Widget(Box<dyn Widget + Send>),
-    Layout(Box<dyn Layout + Send>),
+pub trait CommonLayout {
+    fn layout(region: Region, childs: &mut [Child]);
 }
 
-#[derive(Debug)]
-pub enum LayoutDirection {
-    Vertical,
-    Horizontal,
+pub struct Child {
+    widget: Box<dyn Widget + Send>,
+    region: Region,
 }
 
-impl CommonLayout {
-    pub fn horizontal() -> Self {
-        CommonLayout { childs: vec![], direction: LayoutDirection::Horizontal }
-    }
-
-    pub fn vertical() -> Self {
-        CommonLayout { childs: vec![], direction: LayoutDirection::Vertical }
-    }
-
-    pub fn add_child(mut self, child: Child) -> Self {
-        self.childs.push(child);
-        self
-    }
-
-    pub fn add_widget<T>(self, widget: T) -> Self
+impl Child {
+    pub fn new<T>(widget: T) -> Self
     where
         T: Widget + Send + 'static,
     {
-        self.add_child(Child::Widget(Box::new(widget)))
+        Child { widget: Box::new(widget), region: Region::default() }
     }
 
-    pub fn add_layout<T>(self, layout: T) -> Self
-    where
-        T: Layout + Send + 'static,
-    {
-        self.add_child(Child::Layout(Box::new(layout)))
+    pub fn update_region(&mut self, region: Region) {
+        self.region = region
     }
 }
 
-impl Layout for CommonLayout {
-    fn layout(&mut self, buf: MappedBuffer) {
+impl<T> DefaultLayout<T> {
+    pub fn new() -> Self {
+        Self { childs: vec![], last_region: Region::default(), marker: PhantomData }
+    }
+    pub fn add_widget<U>(mut self, widget: U) -> Self
+    where
+        U: Widget + Send + 'static,
+    {
+        self.childs.push(Child::new(widget));
+        // We added new child, so we need to relayout content
+        self.last_region = Region::default();
+        self
+    }
+}
+
+impl<T> Default for DefaultLayout<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Widget for DefaultLayout<T>
+where
+    T: CommonLayout,
+{
+    fn draw(&mut self, buf: MappedBuffer<'_>) {
+        // If the region has changed
+        if buf.region() != self.last_region {
+            self.last_region = buf.region();
+            T::layout(buf.region(), self.childs.as_mut_slice());
+        }
         todo!()
     }
 
-    fn size(&self) -> Cursor {
-        todo!()
+    fn size_hint(&self) -> SizeHint {
+        SizeHint::Min(WidgetSize::new(1, 1))
+    }
+
+    fn is_show(&mut self) -> bool {
+        true
+    }
+
+    fn take_focus(&mut self) {}
+
+    fn need_redraw(&self) -> bool {
+        true
     }
 }
