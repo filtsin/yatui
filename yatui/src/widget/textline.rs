@@ -24,6 +24,6 @@ impl Widget for TextLine {
     }
     fn size_hint(&self) -> SizeHint {
         let widget_size = WidgetSize::new(Index::MAX, 1);
-        SizeHint::Max(widget_size)
+        SizeHint::new_max(widget_size)
     }
 }

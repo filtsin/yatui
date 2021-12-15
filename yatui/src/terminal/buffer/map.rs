@@ -27,7 +27,7 @@ impl<'a> MappedBuffer<'a> {
         MappedStateBuffer::new(self, state)
     }
 
-    pub fn with_state_spec(self, row: Index, column: Index) -> MappedStateBuffer<'a> {
+    pub fn with_state_cursor(self, cursor: Cursor) -> MappedStateBuffer<'a> {
         todo!()
     }
 
@@ -47,6 +47,10 @@ impl<'a> MappedBuffer<'a> {
 
     pub fn region(&self) -> Region {
         self.mapped_region
+    }
+
+    pub fn padding(self, padding: Index) -> MappedBuffer<'a> {
+        todo!()
     }
 
     // Converts local row to the global

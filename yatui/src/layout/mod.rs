@@ -1,15 +1,13 @@
-pub mod common;
+pub mod auto;
+pub mod wrapper;
 
-use std::ops::{Deref, DerefMut};
+use crate::{
+    terminal::region::Region,
+    widget::{SizeHint, Widget, WidgetSize},
+};
 
-use crate::terminal::region::Region;
-use common::{Child, CommonLayout, DefaultLayout};
-
-// Layout is just `Widget` for another Widgets. It is known how to place it's childs
-pub struct Layout {
-    direction: LayoutDirection,
-
-    inner: DefaultLayout<Layout>,
+pub trait Layout {
+    fn layout(&self, region: Region, childs: &mut [Child]);
 }
 
 #[derive(Debug)]
@@ -18,32 +16,28 @@ pub enum LayoutDirection {
     Horizontal,
 }
 
-impl Layout {
-    pub fn horizontal() -> Self {
-        Layout { direction: LayoutDirection::Horizontal, inner: DefaultLayout::default() }
-    }
-
-    pub fn vertical() -> Self {
-        Layout { direction: LayoutDirection::Vertical, inner: DefaultLayout::default() }
-    }
+pub struct Child {
+    widget: Box<dyn Widget + Send>,
+    region: Region,
 }
 
-impl Deref for Layout {
-    type Target = DefaultLayout<Layout>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+impl Child {
+    pub fn new<T>(widget: T) -> Self
+    where
+        T: Widget + Send + 'static,
+    {
+        Child { widget: Box::new(widget), region: Region::default() }
     }
-}
 
-impl DerefMut for Layout {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
+    pub fn update_region(&mut self, region: Region) {
+        self.region = region
     }
-}
 
-impl CommonLayout for Layout {
-    fn layout(region: Region, childs: &mut [Child]) {
-        todo!()
+    pub fn size(&self) -> SizeHint {
+        if self.widget.is_show() {
+            self.widget.size_hint()
+        } else {
+            SizeHint::new_max(WidgetSize::new(0, 0))
+        }
     }
 }
