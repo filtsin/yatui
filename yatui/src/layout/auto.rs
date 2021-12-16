@@ -1,6 +1,6 @@
 use crate::{layout::wrapper::LayoutWrapper, terminal::region::Region};
 
-use super::{Child, Layout, LayoutDirection};
+use super::{Child, Layout, LayoutDirection, LayoutInfo};
 
 // TODO: change name
 pub struct AutoLayoutInner {
@@ -22,7 +22,7 @@ impl AutoLayout {
 }
 
 impl Layout for AutoLayoutInner {
-    fn layout(&self, region: Region, childs: &mut [Child]) {
+    fn layout(&self, region: Region, info: LayoutInfo) {
         todo!()
     }
 }

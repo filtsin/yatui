@@ -34,6 +34,10 @@ impl SizeHint {
         Self::new(WidgetSize::min(), max)
     }
 
+    pub fn zero() -> Self {
+        Self::default()
+    }
+
     pub fn min(&self) -> WidgetSize {
         self.min
     }

@@ -1,13 +1,15 @@
 pub mod auto;
 pub mod wrapper;
 
+use std::cell::Cell;
+
 use crate::{
-    terminal::region::Region,
+    terminal::{cursor::Index, region::Region},
     widget::{SizeHint, Widget, WidgetSize},
 };
 
 pub trait Layout {
-    fn layout(&self, region: Region, childs: &mut [Child]);
+    fn layout(&self, region: Region, info: LayoutInfo<'_>);
 }
 
 #[derive(Debug)]
@@ -19,6 +21,12 @@ pub enum LayoutDirection {
 pub struct Child {
     widget: Box<dyn Widget + Send>,
     region: Region,
+    size: Cell<SizeHint>,
+}
+
+pub struct LayoutInfo<'a> {
+    childs: &'a mut [Child],
+    cached_size: SizeHint,
 }
 
 impl Child {
@@ -26,18 +34,40 @@ impl Child {
     where
         T: Widget + Send + 'static,
     {
-        Child { widget: Box::new(widget), region: Region::default() }
+        let size_hint = widget.size_hint();
+        Child { widget: Box::new(widget), region: Region::default(), size: Cell::new(size_hint) }
     }
 
     pub fn update_region(&mut self, region: Region) {
-        self.region = region
+        self.region = region;
+    }
+
+    pub(crate) fn update_size(&self) -> SizeHint {
+        if self.size_changed() {
+            self.size.replace(self.widget.size_hint());
+        }
+        self.size.get()
+    }
+
+    pub(crate) fn size_changed(&self) -> bool {
+        self.widget.size_changed()
+    }
+
+    pub(crate) fn cached_size(&self) -> SizeHint {
+        self.size.get()
+    }
+}
+
+impl<'a> LayoutInfo<'a> {
+    pub fn new(childs: &'a mut [Child], size: SizeHint) -> Self {
+        Self { childs, cached_size: size }
+    }
+
+    pub fn childs(&mut self) -> &mut [Child] {
+        self.childs
     }
 
     pub fn size(&self) -> SizeHint {
-        if self.widget.is_show() {
-            self.widget.size_hint()
-        } else {
-            SizeHint::new_max(WidgetSize::new(0, 0))
-        }
+        self.cached_size
     }
 }
