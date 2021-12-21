@@ -1,40 +1,28 @@
 //! Application structure
-pub mod page;
 
-use self::page::Id;
 use crate::{
     backend::Backend,
     compositor::{event::Event, Compositor},
 };
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use once_cell::sync::OnceCell;
 use std::sync::RwLock;
-use tokio::{
-    runtime::Runtime,
-    sync::{
-        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-        oneshot::channel,
-    },
-    task::LocalSet,
-    time::{sleep, Duration},
-};
-
-pub use page::Page;
 
 pub struct App<B> {
     compositor: Compositor<B>,
-    queue: UnboundedReceiver<Event>,
+    queue: Receiver<Event>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Handle {
-    sender: Option<UnboundedSender<Event>>,
+    sender: Option<Sender<Event>>,
 }
 
 impl<B> App<B> {
     pub fn new(backend: B) -> Self {
         let mut queue = Handle::mut_instance().write().unwrap();
 
-        let (tx, rx) = unbounded_channel();
+        let (tx, rx) = unbounded();
 
         queue.sender = Some(tx);
 
@@ -46,42 +34,15 @@ impl<B> App<B>
 where
     B: Backend,
 {
-    pub fn run(mut self, rt: &Runtime) {
-        let local = LocalSet::new();
-        local.block_on(rt, self.main_loop());
-    }
-    async fn main_loop(&mut self) {
+    fn main_loop(&mut self) {
         loop {
             self.compositor.draw();
-            sleep(Duration::from_millis(100)).await;
+            // get events from queue
         }
     }
-    pub fn add_page(&mut self, page: Page) -> Id {
-        self.compositor.add_page(page)
-    }
 }
 
-impl Handle {
-    /// Returns `Id` of new page. If it is the first call of function, then the `set_active` will be
-    /// call on the result.
-    /// # Panics
-    /// Panics if `App` is not created
-    pub async fn add_page(page: Page) -> Id {
-        let (tx, rx) = channel();
-
-        Handle::send(Event::AddPage(page, tx));
-
-        rx.await.unwrap()
-    }
-
-    /// It is ok to call `set_active` in current active page and continue work
-    /// after that on this page that will be inactive in compositor
-    /// # Panics
-    /// Panics if `App` is not created or id is not registered by `add_page` function
-    pub async fn set_active(id: Id) {
-        Handle::send(Event::SetActive(id));
-    }
-}
+impl Handle {}
 
 impl Handle {
     const fn new() -> Self {
@@ -94,7 +55,6 @@ impl Handle {
 
     fn send(event: Event) {
         // Other side of channel is always open while programm is alive
-        Self::instance().sender.unwrap().send(event).unwrap();
     }
 
     fn mut_instance() -> &'static RwLock<Self> {

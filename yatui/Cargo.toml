@@ -8,9 +8,9 @@ edition = "2021"
 
 [dependencies]
 yatui-macros = { version = "0.1.0", path = "../yatui-macros" }
-tokio = { version = "1.13", features = ["rt", "time", "sync"] }
 termion = "1.5.6"
 thiserror = "1.0.24"
 once_cell = "1.7.2"
 bitflags = "1.3.2"
 derive_more = "0.99.17"
+crossbeam-channel = "0.5.1"
