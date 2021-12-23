@@ -4,7 +4,7 @@
 pub mod app;
 pub mod backend;
 pub mod component;
-pub(crate) mod compositor;
+pub mod compositor;
 pub mod error;
 pub mod state;
 pub mod terminal;

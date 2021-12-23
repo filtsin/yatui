@@ -15,15 +15,15 @@ pub(crate) enum ControllerEvent {
 }
 
 pub(crate) struct ControllerAdd {
-    id: usize,
-    data: Data,
-    destructor: CallBack,
+    pub(crate) id: usize,
+    pub(crate) data: Data,
+    pub(crate) destructor: CallBack,
 }
 
 unsafe impl Send for ControllerAdd {}
 
 impl ControllerAdd {
-    pub fn new<T, F>(value: T, id: usize) -> Self
+    pub(crate) fn new<T>(value: T, id: usize) -> Self
     where
         T: Send,
     {

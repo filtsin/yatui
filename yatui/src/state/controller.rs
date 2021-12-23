@@ -26,7 +26,7 @@ struct ControllerContent {
 }
 
 pub struct ControllerRef<'a> {
-    data: NonNull<u8>,
+    pub(crate) data: NonNull<u8>,
     marker: PhantomData<&'a ()>,
 }
 

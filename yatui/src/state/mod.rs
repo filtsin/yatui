@@ -1,14 +1,28 @@
 pub mod controller;
 
-use std::marker::PhantomData;
+use std::{
+    marker::PhantomData,
+    sync::atomic::{AtomicUsize, Ordering::Relaxed},
+};
 
-use self::controller::reserve_id;
+use crate::{
+    app::Handle,
+    compositor::event::{ControllerAdd, ControllerEvent},
+};
+
 pub use controller::Controller;
+
+static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+
+#[inline]
+pub fn reserve_id() -> usize {
+    NEXT_ID.fetch_add(1, Relaxed)
+}
 
 #[derive(Debug)]
 pub enum State<T> {
     Value(T),
-    Ref(ControllerPointer<T>),
+    Pointer(ControllerPointer<T>),
 }
 
 #[derive(Debug)]
@@ -17,13 +31,54 @@ pub struct ControllerPointer<T> {
     marker: PhantomData<T>,
 }
 
-pub fn mut_state<T>(value: T) -> State<T> {
+impl<T> Clone for ControllerPointer<T> {
+    fn clone(&self) -> Self {
+        Self { id: self.id.clone(), marker: self.marker.clone() }
+    }
+}
+
+pub fn mut_state<T>(value: T) -> State<T>
+where
+    T: Send,
+{
     let my_id = reserve_id();
-    State::Ref(ControllerPointer::new(my_id))
+
+    let event = ControllerAdd::new(value, my_id);
+    Handle::state_event(ControllerEvent::Add(event));
+
+    State::Pointer(ControllerPointer::new(my_id))
 }
 
 impl<T> ControllerPointer<T> {
     pub fn new(id: usize) -> Self {
         Self { id, marker: PhantomData }
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
+    }
+}
+
+impl<T> State<T> {
+    pub fn set(&mut self, v: T)
+    where
+        T: Send,
+    {
+        match self {
+            State::Value(_) => *self = State::Value(v),
+            State::Pointer(pointer) => {
+                let event = ControllerAdd::new(v, pointer.id);
+                Handle::state_event(ControllerEvent::Set(event));
+            }
+        }
+    }
+}
+
+impl<T> Clone for State<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Value(arg0) => panic!("Can not clone state with value"),
+            Self::Pointer(pointer) => Self::Pointer(pointer.clone()),
+        }
     }
 }
