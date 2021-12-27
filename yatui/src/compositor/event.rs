@@ -10,7 +10,9 @@ pub(crate) enum ControllerEvent {
     Add(ControllerAdd),
     Set(ControllerAdd),
 
+    // Inc ref counter
     Subscribe(usize),
+    // Dec ref counter
     Unsubscribe(usize),
 }
 

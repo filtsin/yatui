@@ -4,8 +4,6 @@ use crate::terminal::cursor::Index;
 
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 
-/// Hint for [`Layout`](crate::layout::Layout). [`Layout`](crate::layout::Layout) should not ignore this value
-/// and should take into account the wishes of [`Widget`]
 #[derive(
     Debug, Eq, PartialEq, PartialOrd, Ord, Default, Copy, Clone, Add, AddAssign, Sub, SubAssign,
 )]

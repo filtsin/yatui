@@ -1,5 +1,6 @@
 use crate::state::{Controller, State};
 
+#[derive(Clone, Copy)]
 pub struct Context<'a> {
     controller: &'a Controller,
 }
@@ -9,7 +10,7 @@ impl<'a> Context<'a> {
         Self { controller }
     }
 
-    pub fn get<'b: 'a, T>(&'a self, state: &'b State<T>) -> &'a T {
+    pub fn get<'b: 'a, T>(self, state: &'b State<T>) -> &'a T {
         match state {
             State::Value(v) => v,
             State::Pointer(pointer) => {

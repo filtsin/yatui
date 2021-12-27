@@ -1,16 +1,4 @@
-use std::{
-    collections::HashMap,
-    marker::PhantomData,
-    ptr::NonNull,
-    sync::atomic::{AtomicUsize, Ordering::Relaxed},
-};
-
-static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
-
-#[inline]
-pub fn reserve_id() -> usize {
-    NEXT_ID.fetch_add(1, Relaxed)
-}
+use std::{collections::HashMap, marker::PhantomData, ptr::NonNull};
 
 pub type Data = NonNull<u8>;
 pub type CallBack = Box<dyn FnOnce(Data) + Send>;
@@ -26,7 +14,7 @@ struct ControllerContent {
 }
 
 pub struct ControllerRef<'a> {
-    pub(crate) data: NonNull<u8>,
+    pub data: NonNull<u8>,
     marker: PhantomData<&'a ()>,
 }
 
@@ -38,6 +26,7 @@ impl Controller {
     /// # Safety
     /// 1. `data` must be a valid pointer for both reads and writes
     /// 2. `data` must be properly aligned
+    /// 3. `data` must outlive `self` if no `remove` called
     /// # Panics
     /// Panics if `id` already exists in `Controller`
     pub unsafe fn insert(&mut self, id: usize, data: Data, destructor: CallBack) {

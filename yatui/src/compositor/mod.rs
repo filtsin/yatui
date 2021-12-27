@@ -54,13 +54,17 @@ where
             let context = Context::new(&self.controller);
 
             match component {
-                Component::Canvas(c) => c.draw(mapped_buffer, &context),
-                Component::Layout(_) => todo!(),
+                Component::Canvas(c) => c.draw(mapped_buffer, context),
+                Component::Layout(l) => {
+                    l.layout(mapped_region, context);
+                }
             }
 
             self.backend.hide_cursor();
             self.backend.clear_screen();
+
             self.backend.move_cursor(Cursor::new(0, 0));
+
             self.backend.draw(&self.buffer);
             self.backend.flush();
         }

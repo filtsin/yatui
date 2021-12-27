@@ -10,7 +10,7 @@ use crate::{
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use once_cell::sync::OnceCell;
-use std::{sync::RwLock, thread::sleep_ms};
+use std::{sync::RwLock, thread::sleep, time::Duration};
 
 pub struct App<B> {
     compositor: Compositor<B>,
@@ -52,7 +52,7 @@ where
                 self.compositor.process_event(event);
             }
             self.compositor.draw();
-            sleep_ms(10);
+            sleep(Duration::from_millis(10));
             // get events from queue
         }
     }
@@ -72,8 +72,7 @@ impl Handle {
     }
 
     fn send(event: Event) {
-        // Other side of channel is always open while programm is alive
-        Handle::instance().sender.unwrap().send(event);
+        Handle::instance().sender.unwrap().send(event).unwrap()
     }
 
     fn mut_instance() -> &'static RwLock<Self> {

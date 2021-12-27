@@ -28,3 +28,9 @@ impl Cursor {
         Cursor { column: self.column() + 1, ..*self }
     }
 }
+
+impl From<(Index, Index)> for Cursor {
+    fn from((row, column): (Index, Index)) -> Self {
+        Self::new(row, column)
+    }
+}
