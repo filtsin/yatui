@@ -12,7 +12,7 @@ use crate::{
 
 pub use controller::Controller;
 
-pub fn mut_state<T>(value: T) -> State<T>
+pub fn mut_state<T>(value: T) -> ControllerPointer<T>
 where
     T: Send,
 {
@@ -21,7 +21,7 @@ where
     let event = ControllerAdd::new(value, my_id);
     Handle::state_event(ControllerEvent::Add(event));
 
-    State::Pointer(ControllerPointer::new(my_id))
+    ControllerPointer::new(my_id)
 }
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
@@ -51,6 +51,14 @@ impl<T> ControllerPointer<T> {
     pub fn id(&self) -> usize {
         self.id
     }
+
+    pub fn set(&mut self, v: T)
+    where
+        T: Send,
+    {
+        let event = ControllerAdd::new(v, self.id);
+        Handle::state_event(ControllerEvent::Set(event));
+    }
 }
 
 impl<T> State<T> {
@@ -66,26 +74,22 @@ impl<T> State<T> {
             }
         }
     }
+}
 
-    pub fn try_clone(&self) -> Option<State<T>> {
-        match self {
-            Self::Value(_) => None,
-            Self::Pointer(_) => Some(self.clone()),
-        }
+impl<T> From<ControllerPointer<T>> for State<T> {
+    fn from(v: ControllerPointer<T>) -> Self {
+        Self::Pointer(v)
+    }
+}
+
+impl<T> From<T> for State<T> {
+    fn from(v: T) -> Self {
+        Self::Value(v)
     }
 }
 
 impl<T> Clone for ControllerPointer<T> {
     fn clone(&self) -> Self {
         Self { id: self.id, marker: self.marker }
-    }
-}
-
-impl<T> Clone for State<T> {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Value(_) => panic!("Can not clone state with value"),
-            Self::Pointer(pointer) => Self::Pointer(pointer.clone()),
-        }
     }
 }

@@ -45,10 +45,15 @@ impl Canvas {
 }
 
 // Example
-pub fn text(content: State<String>) -> Component {
+pub fn text<S, U>(content: S) -> Component
+where
+    S: Into<State<U>>,
+    U: AsRef<str> + 'static,
+{
+    let state = content.into();
     let canvas = Canvas::new(move |buf: MappedBuffer<'_>, context: Context<'_>| {
-        let content = context.get(&content);
-        buf.with_state(0).write_text(content);
+        let content = context.get(&state);
+        buf.with_state(0).write_text(content.as_ref());
     });
 
     canvas.into()
