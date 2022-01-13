@@ -1,4 +1,4 @@
-pub mod controller;
+pub(crate) mod controller;
 
 use std::{
     marker::PhantomData,
@@ -10,7 +10,7 @@ use crate::{
     compositor::event::{ControllerAdd, ControllerEvent},
 };
 
-pub use controller::Controller;
+pub(crate) use controller::Controller;
 
 pub fn mut_state<T>(value: T) -> ControllerPointer<T>
 where

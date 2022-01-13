@@ -13,10 +13,7 @@ impl<'a> Context<'a> {
     pub fn get<'b: 'a, T>(self, state: &'b State<T>) -> &'a T {
         match state {
             State::Value(v) => v,
-            State::Pointer(pointer) => {
-                let reference = self.controller.get(pointer.id());
-                unsafe { &*(reference.data.as_ptr() as *const T) }
-            }
+            State::Pointer(pointer) => self.controller.get(pointer.id()).map::<T>(),
         }
     }
 }

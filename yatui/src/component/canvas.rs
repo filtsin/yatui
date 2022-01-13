@@ -51,6 +51,7 @@ where
     U: AsRef<str> + 'static,
 {
     let state = content.into();
+
     let canvas = Canvas::new(move |buf: MappedBuffer<'_>, context: Context<'_>| {
         let content = context.get(&state);
         buf.with_state(0).write_text(content.as_ref());
