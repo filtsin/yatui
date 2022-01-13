@@ -1,8 +1,6 @@
 pub mod context;
 pub(crate) mod event;
 
-use std::collections::HashMap;
-
 use self::{context::Context, event::Event};
 use crate::{
     backend::Backend,
@@ -10,7 +8,7 @@ use crate::{
     state::Controller,
     terminal::{
         buffer::{Buffer, MappedBuffer},
-        cursor::{Cursor, Index},
+        cursor::Cursor,
         region::Region,
     },
 };

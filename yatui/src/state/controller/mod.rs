@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests;
 
+pub mod pointer;
+
 use std::{collections::HashMap, marker::PhantomData, ptr::NonNull};
 
 pub type Id = usize;

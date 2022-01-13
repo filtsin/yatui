@@ -36,6 +36,10 @@ impl<B> App<B> {
     pub fn mount(&mut self, root: Component) {
         self.compositor.change_root(root);
     }
+
+    pub fn receiver(self) -> Receiver<Event> {
+        self.queue
+    }
 }
 
 impl<B> App<B>
