@@ -5,7 +5,7 @@ pub use self::{controller::pointer::Pointer, create::mut_state};
 
 pub(crate) use controller::Controller;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum State<T> {
     Value(T),
     Pointer(Pointer<T>),

@@ -4,6 +4,7 @@ use crate::{
     backend::Backend,
     component::Component,
     compositor::{
+        context::Context,
         event::{ControllerEvent, Event},
         Compositor,
     },
@@ -37,8 +38,8 @@ impl<B> App<B> {
         self.compositor.change_root(root);
     }
 
-    pub fn receiver(self) -> Receiver<Event> {
-        self.queue
+    pub fn context(&self) -> Context<'_> {
+        self.compositor.context()
     }
 }
 
@@ -50,14 +51,17 @@ where
         self.main_loop();
     }
 
+    pub fn process_event(&mut self) {
+        while let Ok(event) = self.queue.try_recv() {
+            self.compositor.process_event(event);
+        }
+        self.compositor.draw();
+    }
+
     fn main_loop(&mut self) {
         loop {
-            while let Ok(event) = self.queue.try_recv() {
-                self.compositor.process_event(event);
-            }
-            self.compositor.draw();
+            self.process_event();
             sleep(Duration::from_millis(10));
-            // get events from queue
         }
     }
 }

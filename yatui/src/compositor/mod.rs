@@ -36,6 +36,10 @@ impl<B> Compositor<B> {
     pub(crate) fn change_root(&mut self, root: Component) {
         self.root = Some(root);
     }
+
+    pub(crate) fn context(&self) -> Context<'_> {
+        Context::new(&self.controller)
+    }
 }
 
 impl<B> Compositor<B>

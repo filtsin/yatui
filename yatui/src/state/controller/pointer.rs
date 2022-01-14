@@ -47,3 +47,11 @@ impl<T> Drop for Pointer<T> {
         Handle::state_event(ControllerEvent::Unsubscribe(self.id()));
     }
 }
+
+impl<T> PartialEq for Pointer<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl<T> Eq for Pointer<T> {}

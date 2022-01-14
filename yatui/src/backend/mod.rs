@@ -1,5 +1,6 @@
 //! Backend trait
 
+mod string;
 mod termion;
 
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
     terminal::{buffer::Buffer, cursor::Cursor},
 };
 
-pub use self::termion::Termion;
+pub use self::{string::StringB, termion::Termion};
 
 pub trait Backend {
     fn get_size(&self) -> Result<Cursor>;
