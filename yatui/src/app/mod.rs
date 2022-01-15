@@ -1,5 +1,4 @@
 //! Application structure
-
 use crate::{
     backend::Backend,
     component::Component,
@@ -53,6 +52,7 @@ where
 
     pub fn process_event(&mut self) {
         while let Ok(event) = self.queue.try_recv() {
+            println!("Process 1 event");
             self.compositor.process_event(event);
         }
         self.compositor.draw();

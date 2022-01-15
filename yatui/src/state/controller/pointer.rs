@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     app::Handle,
-    compositor::event::{ControllerAdd, ControllerEvent},
+    compositor::event::{ControllerAdd, ControllerEvent, ControllerUpdate},
 };
 
 #[derive(Debug)]
@@ -33,6 +33,14 @@ impl<T> Pointer<T> {
         let event = ControllerAdd::new(v, self.id);
         Handle::state_event(ControllerEvent::Set(event));
     }
+
+    pub fn update<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut T) + Send + 'static,
+    {
+        let event = ControllerUpdate::new(f, self.id);
+        Handle::state_event(ControllerEvent::Update(event));
+    }
 }
 
 impl<T> Clone for Pointer<T> {
@@ -44,7 +52,7 @@ impl<T> Clone for Pointer<T> {
 
 impl<T> Drop for Pointer<T> {
     fn drop(&mut self) {
-        Handle::state_event(ControllerEvent::Unsubscribe(self.id()));
+        println!("Unsubscribe");
     }
 }
 

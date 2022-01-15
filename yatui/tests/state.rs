@@ -2,8 +2,9 @@ use std::mem::size_of;
 
 use yatui::{
     app::App,
-    backend::StringB,
+    backend::Raw,
     state::{mut_state, Pointer, State},
+    terminal::cursor::Cursor,
 };
 
 #[test]
@@ -12,12 +13,17 @@ fn mut_state_has_pointer_size() {
 }
 
 #[test]
+fn mut_state_pointer_changes() {
+    mut_state_change_value();
+    mut_state_update_value();
+}
+
 fn mut_state_change_value() {
-    let backend = StringB::new();
+    let backend = Raw::new(Cursor::default());
     let mut app = App::new(backend);
 
     let mut state = mut_state(0);
-    state.set(4);
+    state.set(1);
 
     app.process_event();
 
@@ -25,7 +31,23 @@ fn mut_state_change_value() {
     let state = State::Pointer(state);
     let result = context.get(&state);
 
-    assert_eq!(4, *result);
+    assert_eq!(1, *result);
+}
+
+fn mut_state_update_value() {
+    let backend = Raw::new(Cursor::default());
+    let mut app = App::new(backend);
+
+    let mut state = mut_state(0);
+    state.update(|v| *v = 1);
+
+    app.process_event();
+
+    let context = app.context();
+    let state = State::Pointer(state);
+    let result = context.get(&state);
+
+    assert_eq!(1, *result);
 }
 
 #[test]

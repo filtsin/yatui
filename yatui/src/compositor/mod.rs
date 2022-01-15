@@ -81,6 +81,10 @@ where
                     self.controller.remove(v.id);
                     self.controller.insert(v.id, v.data, v.destructor);
                 },
+                event::ControllerEvent::Update(v) => {
+                    let old = self.controller.get_raw(v.id);
+                    (v.callback)(old);
+                }
                 event::ControllerEvent::Subscribe(_) => todo!(),
                 event::ControllerEvent::Unsubscribe(_) => todo!(),
             },

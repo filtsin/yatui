@@ -21,6 +21,16 @@ impl<T> State<T> {
             State::Pointer(pointer) => pointer.set(v),
         }
     }
+
+    pub fn update<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut T) + Send + 'static,
+    {
+        match self {
+            State::Value(v) => f(v),
+            State::Pointer(pointer) => pointer.update(f),
+        }
+    }
 }
 
 impl<T> From<Pointer<T>> for State<T> {

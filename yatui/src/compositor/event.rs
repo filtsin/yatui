@@ -9,6 +9,7 @@ pub enum Event {
 pub enum ControllerEvent {
     Add(ControllerAdd),
     Set(ControllerAdd),
+    Update(ControllerUpdate),
 
     // Inc ref counter
     Subscribe(usize),
@@ -22,6 +23,11 @@ pub struct ControllerAdd {
     pub destructor: CallBack,
 }
 
+pub struct ControllerUpdate {
+    pub id: usize,
+    pub callback: CallBack,
+}
+
 // SAFETY: `ControllerAdd` created by `Send` object and we do not copy result in multiple threads
 // (using it only in ui thread)
 unsafe impl Send for ControllerAdd {}
@@ -33,10 +39,23 @@ impl ControllerAdd {
     {
         let data = NonNull::new(Box::into_raw(Box::new(value)) as *mut u8).unwrap();
 
-        let destructor = Box::new(|v: NonNull<u8>| unsafe {
+        let destructor = Box::new(|v: Data| unsafe {
             Box::from_raw(v.cast::<T>().as_ptr());
         });
 
         Self { id, data, destructor }
+    }
+}
+
+impl ControllerUpdate {
+    pub fn new<T, F>(callback: F, id: usize) -> Self
+    where
+        F: FnOnce(&mut T) + Send + 'static,
+    {
+        let callback = Box::new(|v: Data| unsafe {
+            callback(v.cast::<T>().as_mut());
+        });
+
+        Self { id, callback }
     }
 }

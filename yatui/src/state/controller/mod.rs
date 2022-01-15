@@ -79,6 +79,10 @@ impl Controller {
     pub fn get(&self, id: usize) -> ControllerRef<'_> {
         ControllerRef { data: self.data.get(&id).unwrap().data, marker: PhantomData }
     }
+
+    pub fn get_raw(&mut self, id: usize) -> Data {
+        self.data.get(&id).unwrap().data
+    }
 }
 
 impl ControllerContent {
