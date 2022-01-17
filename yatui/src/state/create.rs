@@ -17,3 +17,11 @@ where
     let my_id = reserve_id();
     Pointer::new(value, my_id)
 }
+
+pub fn mut_state_with<F, T>(f: F) -> Pointer<T>
+where
+    F: FnOnce() -> T + Send + 'static,
+{
+    let my_id = reserve_id();
+    Pointer::new_with(f, my_id)
+}

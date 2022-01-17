@@ -45,6 +45,22 @@ impl Controller {
         }
     }
 
+    /// Replace exists value in `Controller`
+    ///
+    /// # Safety
+    /// 1. `data` must be a valid pointer for both reads and writes
+    /// 2. `data` must be properly aligned
+    /// 3. `data` must outlive `self` if no `remove` called
+    /// # Panics
+    /// Panics if `id` already exists in `Controller`
+    pub unsafe fn set(&mut self, id: usize, data: Data, destructor: CallBack) {
+        let ref_count = self.ref_count(id);
+
+        self.remove(id);
+        self.insert(id, data, destructor);
+        self.data.get_mut(&id).unwrap().count = ref_count;
+    }
+
     /// Remove value with `id` in `Controller` ignoring its ref counter
     ///
     /// # Panics
@@ -77,11 +93,19 @@ impl Controller {
     /// # Panics
     /// Panics if `id` is not exists in `Controller`
     pub fn get(&self, id: usize) -> ControllerRef<'_> {
-        ControllerRef { data: self.data.get(&id).unwrap().data, marker: PhantomData }
+        ControllerRef { data: self.content(id).data, marker: PhantomData }
     }
 
     pub fn get_raw(&mut self, id: usize) -> Data {
-        self.data.get(&id).unwrap().data
+        self.content(id).data
+    }
+
+    pub fn ref_count(&self, id: usize) -> usize {
+        self.content(id).count
+    }
+
+    fn content(&self, id: usize) -> &ControllerContent {
+        self.data.get(&id).unwrap()
     }
 }
 

@@ -1,7 +1,13 @@
 pub mod context;
 pub(crate) mod event;
 
-use self::{context::Context, event::Event};
+use self::{
+    context::Context,
+    event::{
+        controller::{self, Action, Insert, Update},
+        Event,
+    },
+};
 use crate::{
     backend::Backend,
     component::Component,
@@ -73,21 +79,43 @@ where
     }
     pub(crate) fn process_event(&mut self, event: Event) {
         match event {
-            Event::Controller(event) => match event {
-                event::ControllerEvent::Add(v) => unsafe {
-                    self.controller.insert(v.id, v.data, v.destructor);
-                },
-                event::ControllerEvent::Set(v) => unsafe {
-                    self.controller.remove(v.id);
-                    self.controller.insert(v.id, v.data, v.destructor);
-                },
-                event::ControllerEvent::Update(v) => {
-                    let old = self.controller.get_raw(v.id);
-                    (v.callback)(old);
-                }
-                event::ControllerEvent::Subscribe(_) => todo!(),
-                event::ControllerEvent::Unsubscribe(_) => todo!(),
-            },
+            Event::Controller(controller::Event { id, action }) => {
+                self.controller_action(id, action)
+            }
         };
+    }
+
+    pub(crate) fn controller_action(&mut self, id: usize, action: Action) {
+        match action {
+            Action::Insert(v) => self.controller_insert(id, v),
+            Action::Set(v) => self.controller_set(id, v),
+            Action::Update(v) => self.controller_update(id, v),
+            Action::Subscribe(id) => self.controller.subscribe(id),
+            Action::Unsubscribe(id) => self.controller.unsubscribe(id),
+        }
+    }
+
+    pub(crate) fn controller_insert(&mut self, id: usize, insert: Insert) {
+        match insert {
+            Insert::Obj(obj) => unsafe { self.controller.insert(id, obj.data, obj.destructor) },
+            Insert::Func(func) => unsafe {
+                self.controller.insert(id, (func.callback)(), func.destructor)
+            },
+        }
+    }
+
+    pub(crate) fn controller_set(&mut self, id: usize, insert: Insert) {
+        match insert {
+            Insert::Obj(obj) => unsafe { self.controller.set(id, obj.data, obj.destructor) },
+            Insert::Func(func) => unsafe {
+                self.controller.set(id, (func.callback)(), func.destructor)
+            },
+        }
+    }
+
+    pub(crate) fn controller_update(&mut self, id: usize, update: Update) {
+        let old = self.controller.get_raw(id);
+
+        (update.callback)(old)
     }
 }

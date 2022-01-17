@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     app::Handle,
-    compositor::event::{ControllerAdd, ControllerEvent, ControllerUpdate},
+    compositor::event::controller::{Action, Event, Func, Insert, Obj, Update},
 };
 
 #[derive(Debug)]
@@ -16,43 +16,75 @@ impl<T> Pointer<T> {
     where
         T: Send,
     {
-        let event = ControllerAdd::new(value, id);
-        Handle::state_event(ControllerEvent::Add(event));
+        Self::new_inner(Obj::new(value), id)
+    }
 
-        Self { id, marker: PhantomData }
+    pub(crate) fn new_with<F>(f: F, id: usize) -> Self
+    where
+        F: FnOnce() -> T + Send + 'static,
+    {
+        Self::new_inner(Func::new(f), id)
     }
 
     pub fn id(&self) -> usize {
         self.id
     }
 
-    pub fn set(&mut self, v: T)
+    pub fn set(&self, v: T)
     where
         T: Send,
     {
-        let event = ControllerAdd::new(v, self.id);
-        Handle::state_event(ControllerEvent::Set(event));
+        self.set_inner(Obj::new(v));
     }
 
-    pub fn update<F>(&mut self, f: F)
+    pub fn set_with<F>(&self, f: F)
+    where
+        F: FnOnce() -> T + Send + 'static,
+    {
+        self.set_inner(Func::new(f));
+    }
+
+    pub fn update<F>(&self, f: F)
     where
         F: FnOnce(&mut T) + Send + 'static,
     {
-        let event = ControllerUpdate::new(f, self.id);
-        Handle::state_event(ControllerEvent::Update(event));
+        let action = Action::update(Update::new(f));
+        self.send_event(action);
+    }
+
+    fn new_inner<U>(v: U, id: usize) -> Self
+    where
+        U: Into<Insert>,
+    {
+        let action = Action::insert(v.into());
+        Handle::state_event(Event::new(id, action));
+
+        Self { id, marker: PhantomData }
+    }
+
+    fn set_inner<U>(&self, v: U)
+    where
+        U: Into<Insert>,
+    {
+        let action = Action::set(v.into());
+        self.send_event(action);
+    }
+
+    fn send_event(&self, action: Action) {
+        Handle::state_event(Event::new(self.id(), action));
     }
 }
 
 impl<T> Clone for Pointer<T> {
     fn clone(&self) -> Self {
-        Handle::state_event(ControllerEvent::Subscribe(self.id()));
+        self.send_event(Action::subscribe(self.id()));
         Self { id: self.id, marker: self.marker }
     }
 }
 
 impl<T> Drop for Pointer<T> {
     fn drop(&mut self) {
-        println!("Unsubscribe");
+        self.send_event(Action::unsubscribe(self.id()));
     }
 }
 

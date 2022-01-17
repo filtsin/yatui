@@ -16,4 +16,11 @@ impl<'a> Context<'a> {
             State::Pointer(pointer) => self.controller.get(pointer.id()).map::<T>(),
         }
     }
+
+    pub fn ref_count<T>(self, state: &'_ State<T>) -> usize {
+        match state {
+            State::Value(_) => 1,
+            State::Pointer(pointer) => self.controller.ref_count(pointer.id()),
+        }
+    }
 }

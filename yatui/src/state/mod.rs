@@ -1,7 +1,10 @@
 pub(crate) mod controller;
 mod create;
 
-pub use self::{controller::pointer::Pointer, create::mut_state};
+pub use self::{
+    controller::pointer::Pointer,
+    create::{mut_state, mut_state_with},
+};
 
 pub(crate) use controller::Controller;
 

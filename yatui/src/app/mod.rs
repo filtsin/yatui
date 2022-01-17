@@ -4,7 +4,7 @@ use crate::{
     component::Component,
     compositor::{
         context::Context,
-        event::{ControllerEvent, Event},
+        event::{controller, Event},
         Compositor,
     },
 };
@@ -52,7 +52,6 @@ where
 
     pub fn process_event(&mut self) {
         while let Ok(event) = self.queue.try_recv() {
-            println!("Process 1 event");
             self.compositor.process_event(event);
         }
         self.compositor.draw();
@@ -71,7 +70,7 @@ impl Handle {
         Self { sender: None }
     }
 
-    pub(crate) fn state_event(event: ControllerEvent) {
+    pub(crate) fn state_event(event: controller::Event) {
         Handle::send(Event::Controller(event));
     }
 
