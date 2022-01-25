@@ -27,7 +27,8 @@ impl Child {
         self.region = region;
     }
 
-    pub fn update_size(&mut self, context: Context<'_>) {
+    pub(crate) fn update_size(&mut self, context: Context<'_>) -> SizeHint {
         self.size = self.component.size_hint(context);
+        self.size
     }
 }

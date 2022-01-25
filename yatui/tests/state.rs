@@ -154,6 +154,30 @@ fn mut_state_update_no_changes_ref_counter() {
 }
 
 #[test]
+#[serial]
+fn mut_state_changes_watcher() {
+    let backend = Raw::new(Cursor::default());
+    let mut app = App::new(backend);
+
+    let state = mut_state(0);
+    state.set(1);
+
+    let state2 = mut_state(0);
+    state2.update(|v| *v = 1);
+
+    let state3 = mut_state(0);
+    state3.set_with(|| 1);
+
+    app.process_event();
+
+    let context = app.context();
+
+    assert!(context.is_changed(&State::Pointer(state)));
+    assert!(context.is_changed(&State::Pointer(state2)));
+    assert!(context.is_changed(&State::Pointer(state3)));
+}
+
+#[test]
 fn state_change_value_without_controller() {
     let mut state: State<i32> = 0.into();
     state.set(1);

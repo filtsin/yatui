@@ -1,5 +1,6 @@
 pub mod context;
 pub(crate) mod event;
+pub(crate) mod watcher;
 
 use self::{
     context::Context,
@@ -7,6 +8,7 @@ use self::{
         controller::{self, Action, Insert, Update},
         Event,
     },
+    watcher::Watcher,
 };
 use crate::{
     backend::Backend,
@@ -25,6 +27,7 @@ pub(crate) struct Compositor<B> {
 
     root: Option<Component>,
     controller: Controller,
+    watcher: Watcher,
 }
 
 impl<B> Compositor<B> {
@@ -34,6 +37,7 @@ impl<B> Compositor<B> {
             buffer: Buffer::new(Cursor::new(20, 20)),
             root: None,
             controller: Controller::new(),
+            watcher: Watcher::default(),
         }
     }
 }
@@ -44,7 +48,7 @@ impl<B> Compositor<B> {
     }
 
     pub(crate) fn context(&self) -> Context<'_> {
-        Context::new(&self.controller)
+        Context::new(&self.controller, &self.watcher)
     }
 }
 
@@ -59,12 +63,13 @@ where
             let mapped_region = Region::new(Cursor::default(), Cursor::new(w, h));
             let mapped_buffer = MappedBuffer::new(&mut self.buffer, mapped_region);
 
-            let context = Context::new(&self.controller);
+            let context = Context::new(&self.controller, &self.watcher);
 
             match component {
                 Component::Canvas(c) => c.draw(mapped_buffer, context),
                 Component::Layout(l) => {
                     l.layout(mapped_region, context);
+                    l.draw(mapped_buffer, context);
                 }
             }
 
@@ -75,8 +80,11 @@ where
 
             self.backend.draw(&self.buffer);
             self.backend.flush();
+
+            self.watcher.remove_all();
         }
     }
+
     pub(crate) fn process_event(&mut self, event: Event) {
         match event {
             Event::Controller(controller::Event { id, action }) => {
@@ -96,6 +104,8 @@ where
     }
 
     pub(crate) fn controller_insert(&mut self, id: usize, insert: Insert) {
+        self.watcher.add(id);
+
         match insert {
             Insert::Obj(obj) => unsafe { self.controller.insert(id, obj.data, obj.destructor) },
             Insert::Func(func) => unsafe {
@@ -105,6 +115,8 @@ where
     }
 
     pub(crate) fn controller_set(&mut self, id: usize, insert: Insert) {
+        self.watcher.add(id);
+
         match insert {
             Insert::Obj(obj) => unsafe { self.controller.set(id, obj.data, obj.destructor) },
             Insert::Func(func) => unsafe {
@@ -114,6 +126,8 @@ where
     }
 
     pub(crate) fn controller_update(&mut self, id: usize, update: Update) {
+        self.watcher.add(id);
+
         let old = self.controller.get_raw(id);
 
         (update.callback)(old)

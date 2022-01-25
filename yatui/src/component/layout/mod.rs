@@ -16,6 +16,7 @@ pub struct Layout {
     childs: Vec<Child>,
 
     layout_fn: Box<LayoutFn>,
+    size: SizeHint,
 }
 
 pub struct LayoutInfo<'a> {
@@ -28,7 +29,7 @@ impl Layout {
     where
         F: Fn(Region, LayoutInfo<'_>, Context<'_>) + 'static,
     {
-        Self { childs, layout_fn: Box::new(layout_fn) }
+        Self { childs, layout_fn: Box::new(layout_fn), size: SizeHint::new_max(WidgetSize::min()) }
     }
 
     pub fn layout(&mut self, region: Region, context: Context<'_>) {
@@ -39,15 +40,16 @@ impl Layout {
 
         // must update region for every child
         (self.layout_fn)(region, info, context);
+        // Here childs regions updated
     }
 
     pub fn draw(&mut self, buffer: MappedBuffer<'_>, context: Context<'_>) {}
 
     pub fn size_hint(&self, context: Context<'_>) -> SizeHint {
-        todo!()
+        self.size
     }
 
-    pub(crate) fn calc_size(&mut self) {}
+    pub fn calc_size(&mut self, context: Context<'_>) {}
 }
 
 pub fn column() {
