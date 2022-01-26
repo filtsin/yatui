@@ -1,9 +1,9 @@
 use std::ptr::NonNull;
 
-use crate::state::controller::{CallBack, Data};
+use crate::state::controller::{CallBack, Data, Id};
 
 pub struct Event {
-    pub id: usize,
+    pub id: Id,
     pub action: Action,
 }
 
@@ -13,9 +13,9 @@ pub enum Action {
     Update(Update),
 
     // Inc ref counter
-    Subscribe(usize),
+    Subscribe,
     // Dec ref counter
-    Unsubscribe(usize),
+    Unsubscribe,
 }
 
 pub enum Insert {
@@ -38,7 +38,7 @@ pub struct Update {
 }
 
 impl Event {
-    pub fn new(id: usize, action: Action) -> Self {
+    pub fn new(id: Id, action: Action) -> Self {
         Self { id, action }
     }
 }
@@ -62,12 +62,12 @@ impl Action {
         Action::Update(value)
     }
 
-    pub fn subscribe(id: usize) -> Self {
-        Action::Subscribe(id)
+    pub fn subscribe() -> Self {
+        Action::Subscribe
     }
 
-    pub fn unsubscribe(id: usize) -> Self {
-        Action::Unsubscribe(id)
+    pub fn unsubscribe() -> Self {
+        Action::Unsubscribe
     }
 }
 

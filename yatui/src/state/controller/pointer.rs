@@ -5,28 +5,30 @@ use crate::{
     compositor::event::controller::{Action, Event, Func, Insert, Obj, Update},
 };
 
+use super::Id;
+
 #[derive(Debug)]
 pub struct Pointer<T> {
-    id: usize,
+    id: Id,
     marker: PhantomData<T>,
 }
 
 impl<T> Pointer<T> {
-    pub(crate) fn new(value: T, id: usize) -> Self
+    pub(crate) fn new(value: T, id: Id) -> Self
     where
         T: Send,
     {
         Self::new_inner(Obj::new(value), id)
     }
 
-    pub(crate) fn new_with<F>(f: F, id: usize) -> Self
+    pub(crate) fn new_with<F>(f: F, id: Id) -> Self
     where
         F: FnOnce() -> T + Send + 'static,
     {
         Self::new_inner(Func::new(f), id)
     }
 
-    pub fn id(&self) -> usize {
+    pub fn id(&self) -> Id {
         self.id
     }
 
@@ -52,7 +54,7 @@ impl<T> Pointer<T> {
         self.send_event(action);
     }
 
-    fn new_inner<U>(v: U, id: usize) -> Self
+    fn new_inner<U>(v: U, id: Id) -> Self
     where
         U: Into<Insert>,
     {
@@ -77,14 +79,14 @@ impl<T> Pointer<T> {
 
 impl<T> Clone for Pointer<T> {
     fn clone(&self) -> Self {
-        self.send_event(Action::subscribe(self.id()));
+        self.send_event(Action::subscribe());
         Self { id: self.id, marker: self.marker }
     }
 }
 
 impl<T> Drop for Pointer<T> {
     fn drop(&mut self) {
-        self.send_event(Action::unsubscribe(self.id()));
+        self.send_event(Action::unsubscribe());
     }
 }
 

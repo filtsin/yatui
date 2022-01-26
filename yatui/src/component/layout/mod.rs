@@ -50,6 +50,8 @@ impl Layout {
     }
 
     pub fn calc_size(&mut self, context: Context<'_>) {}
+
+    pub fn need_redraw(&self, context: Context<'_>) -> bool {}
 }
 
 pub fn column() {

@@ -1,8 +1,10 @@
 use std::collections::HashSet;
 
+use crate::state::controller::Id;
+
 #[derive(Default)]
 pub struct Watcher {
-    changes: HashSet<usize>,
+    changes: HashSet<Id>,
 }
 
 impl Watcher {
@@ -10,7 +12,7 @@ impl Watcher {
         Self::default()
     }
 
-    pub fn add(&mut self, id: usize) {
+    pub fn add(&mut self, id: Id) {
         self.changes.insert(id);
     }
 
@@ -18,7 +20,7 @@ impl Watcher {
         self.changes.clear();
     }
 
-    pub fn contains(&self, id: usize) -> bool {
+    pub fn contains(&self, id: Id) -> bool {
         self.changes.contains(&id)
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     compositor::Watcher,
-    state::{Controller, State},
+    state::{controller::Id, Controller, State},
 };
 
 #[derive(Clone, Copy)]
@@ -31,7 +31,11 @@ impl<'a> Context<'a> {
     pub fn is_changed<T>(self, state: &'_ State<T>) -> bool {
         match state {
             State::Value(_) => true,
-            State::Pointer(pointer) => self.watcher.contains(pointer.id()),
+            State::Pointer(pointer) => self.is_changed_id(pointer.id()),
         }
+    }
+
+    pub fn is_changed_id(self, id: Id) -> bool {
+        self.watcher.contains(id)
     }
 }

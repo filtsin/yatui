@@ -1,7 +1,11 @@
+pub mod subscribe;
+
 use crate::{
     component::size_hint::WidgetSize, compositor::context::Context, state::State,
     terminal::buffer::MappedBuffer,
 };
+
+use self::subscribe::Subscribe;
 
 use super::{size_hint::SizeHint, Component};
 
@@ -11,6 +15,8 @@ type SizeFn = dyn Fn(Context<'_>) -> SizeHint;
 pub struct Canvas {
     draw_fn: Box<CanvasFn>,
     size_fn: Option<Box<SizeFn>>,
+
+    subscribe: Subscribe,
 }
 
 impl Canvas {
@@ -18,7 +24,7 @@ impl Canvas {
     where
         F: FnMut(MappedBuffer<'_>, Context<'_>) + 'static,
     {
-        Self { draw_fn: Box::new(draw_fn), size_fn: None }
+        Self { draw_fn: Box::new(draw_fn), size_fn: None, subscribe: Subscribe::Always }
     }
 
     pub fn set_size_fn<F>(&mut self, size_fn: F)
@@ -26,6 +32,13 @@ impl Canvas {
         F: Fn(Context<'_>) -> SizeHint + 'static,
     {
         self.size_fn = Some(Box::new(size_fn));
+    }
+
+    pub fn add_subscribe<T>(&mut self, state: &State<T>) {
+        match state {
+            State::Value(_) => { /* nothing here */ }
+            State::Pointer(pointer) => self.subscribe.push(pointer.id()),
+        }
     }
 
     pub fn set_size_value(&mut self, value: SizeHint) {
@@ -40,6 +53,13 @@ impl Canvas {
         match &self.size_fn {
             Some(v) => v(context),
             None => SizeHint::new_max(WidgetSize::max()),
+        }
+    }
+
+    pub fn need_redraw(&self, context: Context<'_>) -> bool {
+        match self.subscribe {
+            Subscribe::Always => true,
+            Subscribe::Vec(ref vec) => vec.iter().any(|&v| context.is_changed_id(v)),
         }
     }
 }

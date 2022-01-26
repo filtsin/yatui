@@ -13,7 +13,7 @@ use self::{
 use crate::{
     backend::Backend,
     component::Component,
-    state::Controller,
+    state::{controller::Id, Controller},
     terminal::{
         buffer::{Buffer, MappedBuffer},
         cursor::Cursor,
@@ -93,17 +93,17 @@ where
         };
     }
 
-    pub(crate) fn controller_action(&mut self, id: usize, action: Action) {
+    pub(crate) fn controller_action(&mut self, id: Id, action: Action) {
         match action {
             Action::Insert(v) => self.controller_insert(id, v),
             Action::Set(v) => self.controller_set(id, v),
             Action::Update(v) => self.controller_update(id, v),
-            Action::Subscribe(id) => self.controller.subscribe(id),
-            Action::Unsubscribe(id) => self.controller.unsubscribe(id),
+            Action::Subscribe => self.controller.subscribe(id),
+            Action::Unsubscribe => self.controller.unsubscribe(id),
         }
     }
 
-    pub(crate) fn controller_insert(&mut self, id: usize, insert: Insert) {
+    pub(crate) fn controller_insert(&mut self, id: Id, insert: Insert) {
         self.watcher.add(id);
 
         match insert {
@@ -114,7 +114,7 @@ where
         }
     }
 
-    pub(crate) fn controller_set(&mut self, id: usize, insert: Insert) {
+    pub(crate) fn controller_set(&mut self, id: Id, insert: Insert) {
         self.watcher.add(id);
 
         match insert {
@@ -125,7 +125,7 @@ where
         }
     }
 
-    pub(crate) fn controller_update(&mut self, id: usize, update: Update) {
+    pub(crate) fn controller_update(&mut self, id: Id, update: Update) {
         self.watcher.add(id);
 
         let old = self.controller.get_raw(id);

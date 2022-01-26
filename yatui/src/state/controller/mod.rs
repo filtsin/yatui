@@ -39,7 +39,7 @@ impl Controller {
     /// 3. `data` must outlive `self` if no `remove` called
     /// # Panics
     /// Panics if `id` already exists in `Controller`
-    pub unsafe fn insert(&mut self, id: usize, data: Data, destructor: CallBack) {
+    pub unsafe fn insert(&mut self, id: Id, data: Data, destructor: CallBack) {
         if self.data.insert(id, ControllerContent::new(data, destructor)).is_some() {
             panic!("Controller panic: key {} already exists", id);
         }
@@ -53,7 +53,7 @@ impl Controller {
     /// 3. `data` must outlive `self` if no `remove` called
     /// # Panics
     /// Panics if `id` already exists in `Controller`
-    pub unsafe fn set(&mut self, id: usize, data: Data, destructor: CallBack) {
+    pub unsafe fn set(&mut self, id: Id, data: Data, destructor: CallBack) {
         let ref_count = self.ref_count(id);
 
         self.remove(id);
@@ -65,7 +65,7 @@ impl Controller {
     ///
     /// # Panics
     /// Panics if `id` is not exists in `Controller` or `destructor` panics
-    pub fn remove(&mut self, id: usize) {
+    pub fn remove(&mut self, id: Id) {
         self.data
             .remove(&id)
             .unwrap_or_else(|| panic!("Controller panic: key {} is not exists", id));
@@ -75,7 +75,7 @@ impl Controller {
     ///
     /// # Panics
     /// Panics if `id` is not exists in `Controller`
-    pub fn subscribe(&mut self, id: usize) {
+    pub fn subscribe(&mut self, id: Id) {
         self.data.get_mut(&id).unwrap().inc_count();
     }
 
@@ -92,19 +92,19 @@ impl Controller {
 
     /// # Panics
     /// Panics if `id` is not exists in `Controller`
-    pub fn get(&self, id: usize) -> ControllerRef<'_> {
+    pub fn get(&self, id: Id) -> ControllerRef<'_> {
         ControllerRef { data: self.content(id).data, marker: PhantomData }
     }
 
-    pub fn get_raw(&mut self, id: usize) -> Data {
+    pub fn get_raw(&mut self, id: Id) -> Data {
         self.content(id).data
     }
 
-    pub fn ref_count(&self, id: usize) -> usize {
+    pub fn ref_count(&self, id: Id) -> usize {
         self.content(id).count
     }
 
-    fn content(&self, id: usize) -> &ControllerContent {
+    fn content(&self, id: Id) -> &ControllerContent {
         self.data.get(&id).unwrap()
     }
 }
