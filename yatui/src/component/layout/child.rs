@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub struct Child {
-    component: Component,
+    pub(crate) component: Component,
     size: SizeHint,
     region: Region,
 }

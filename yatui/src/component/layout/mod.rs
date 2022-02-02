@@ -8,7 +8,7 @@ use crate::{
 };
 
 use self::child::Child;
-use super::{size_hint::SizeHint, Component};
+use super::{canvas::Canvas, size_hint::SizeHint, Component};
 
 type LayoutFn = dyn Fn(Region, LayoutInfo<'_>, Context<'_>);
 
@@ -49,9 +49,18 @@ impl Layout {
         self.size
     }
 
-    pub fn calc_size(&mut self, context: Context<'_>) {}
+    pub fn calc_size(&mut self, context: Context<'_>) -> SizeHint {
+        let mut result = SizeHint::default();
+        for Child { component, .. } in self.childs.iter_mut() {
+            match component {
+                Component::Canvas(c) => result += c.size_hint(context),
+                Component::Layout(l) => result += l.calc_size(context),
+            }
+        }
 
-    pub fn need_redraw(&self, context: Context<'_>) -> bool {}
+        self.size = result;
+        result
+    }
 }
 
 pub fn column() {

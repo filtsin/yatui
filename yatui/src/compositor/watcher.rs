@@ -23,4 +23,12 @@ impl Watcher {
     pub fn contains(&self, id: Id) -> bool {
         self.changes.contains(&id)
     }
+
+    pub fn size(&self) -> usize {
+        self.changes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.changes.is_empty()
+    }
 }

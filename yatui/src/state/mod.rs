@@ -47,3 +47,9 @@ impl<T> From<T> for State<T> {
         Self::Value(v)
     }
 }
+
+impl From<&str> for State<String> {
+    fn from(v: &str) -> Self {
+        Self::Value(v.to_owned())
+    }
+}

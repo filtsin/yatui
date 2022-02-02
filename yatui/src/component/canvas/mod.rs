@@ -65,10 +65,9 @@ impl Canvas {
 }
 
 // Example
-pub fn text<S, U>(content: S) -> Component
+pub fn text<S>(content: S) -> Component
 where
-    S: Into<State<U>>,
-    U: AsRef<str> + 'static,
+    S: Into<State<String>>,
 {
     let state = content.into();
 

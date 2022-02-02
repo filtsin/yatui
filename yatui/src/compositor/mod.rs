@@ -57,6 +57,12 @@ where
     B: Backend,
 {
     pub(crate) fn draw(&mut self) {
+        if self.watcher.is_empty()
+        /* TODO: && size_not_changed */
+        {
+            return;
+        }
+
         if let Some(component) = &mut self.root {
             let size = self.buffer.get_size();
             let (w, h) = (size.row(), size.column());
@@ -68,6 +74,7 @@ where
             match component {
                 Component::Canvas(c) => c.draw(mapped_buffer, context),
                 Component::Layout(l) => {
+                    l.calc_size(context);
                     l.layout(mapped_region, context);
                     l.draw(mapped_buffer, context);
                 }
