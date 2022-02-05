@@ -3,6 +3,7 @@
 
 pub mod app;
 pub mod backend;
+pub mod cassowary;
 pub mod component;
 pub mod compositor;
 pub mod error;

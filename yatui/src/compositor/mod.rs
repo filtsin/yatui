@@ -80,13 +80,13 @@ where
                 }
             }
 
-            self.backend.hide_cursor();
-            self.backend.clear_screen();
-
-            self.backend.move_cursor(Cursor::new(0, 0));
-
-            self.backend.draw(&self.buffer);
-            self.backend.flush();
+            // self.backend.hide_cursor();
+            // self.backend.clear_screen();
+            //
+            // self.backend.move_cursor(Cursor::new(0, 0));
+            //
+            // self.backend.draw(&self.buffer);
+            // self.backend.flush();
 
             self.watcher.remove_all();
         }
