@@ -5,24 +5,24 @@ pub mod size_hint;
 use canvas::Canvas;
 use layout::Layout;
 
-use crate::compositor::context::Context;
+use crate::{compositor::context::Context, terminal::buffer::MappedBuffer};
 
 use self::size_hint::SizeHint;
 
 pub enum Component {
-    Canvas(Canvas),
-    Layout(Layout),
+    Canvas(Box<Canvas>),
+    Layout(Box<Layout>),
 }
 
 impl From<Canvas> for Component {
     fn from(v: Canvas) -> Self {
-        Self::Canvas(v)
+        Self::Canvas(Box::new(v))
     }
 }
 
 impl From<Layout> for Component {
     fn from(v: Layout) -> Self {
-        Self::Layout(v)
+        Self::Layout(Box::new(v))
     }
 }
 
@@ -31,6 +31,13 @@ impl Component {
         match self {
             Component::Canvas(c) => c.size_hint(context),
             Component::Layout(l) => l.size_hint(context),
+        }
+    }
+
+    pub fn draw(&mut self, buffer: MappedBuffer<'_>, context: Context<'_>) {
+        match self {
+            Component::Canvas(c) => c.draw(buffer, context),
+            Component::Layout(l) => l.draw(buffer, context),
         }
     }
 }

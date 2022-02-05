@@ -178,38 +178,20 @@ fn mut_state_changes_watcher() {
 }
 
 #[test]
-fn state_change_value_without_controller() {
-    let mut state: State<i32> = 0.into();
-    state.set(1);
-
-    let result: State<i32> = 1.into();
-
-    assert_eq!(state, result);
-}
-
-#[test]
-fn state_update_value_without_controller() {
-    let mut state: State<i32> = 0.into();
-    state.update(|v| *v = 1);
-
-    let result: State<i32> = 1.into();
-
-    assert_eq!(state, result);
-}
-
-#[test]
 #[serial]
-fn state_value_ref_counter_is_one() {
+fn state_value_clone_increment_ref_counter() {
     let backend = Raw::new(Cursor::default());
     let mut app = App::new(backend);
 
-    let state = State::Value(0);
+    let state = State::Value(Rc::new(0));
+    let state2 = state.clone();
 
     app.process_event();
 
     let context = app.context();
 
-    assert_eq!(1, context.ref_count(&state));
+    assert_eq!(2, context.ref_count(&state));
+    assert_eq!(2, context.ref_count(&state2));
 }
 
 #[test]
@@ -218,7 +200,7 @@ fn state_value_get_by_context() {
     let backend = Raw::new(Cursor::default());
     let mut app = App::new(backend);
 
-    let state = State::Value(0);
+    let state = State::Value(Rc::new(0));
 
     app.process_event();
 

@@ -14,7 +14,7 @@ pub struct Solver {
     width: Variable,
     height: Variable,
 
-    pub variables: HashMap<Variable, (usize, &'static str)>,
+    pub variables: HashMap<Variable, (usize, ElementPart)>,
     elements: Vec<Element>,
 }
 
@@ -30,6 +30,14 @@ pub struct Element {
     max_height: Variable,
 }
 
+#[derive(Debug)]
+pub enum ElementPart {
+    LeftX,
+    LeftY,
+    RightX,
+    RightY,
+}
+
 impl Solver {
     pub(crate) fn new() -> Self {
         let mut res = Self::default();
@@ -42,8 +50,10 @@ impl Solver {
         self.solver.add_edit_variable(self.height, STRONG).unwrap();
     }
 
-    pub(crate) fn get_changes(&mut self) -> &[(Variable, f64)] {
-        self.solver.fetch_changes()
+    pub(crate) fn get_changes(
+        &mut self,
+    ) -> (&[(Variable, f64)], &HashMap<Variable, (usize, ElementPart)>) {
+        (self.solver.fetch_changes(), &self.variables)
     }
 
     pub(crate) fn add_custom_constraint(
@@ -90,10 +100,10 @@ impl Solver {
     pub(crate) fn add_variables(&mut self, index: usize) {
         let element = self.elements.get(index).unwrap();
 
-        self.variables.insert(element.left_x, (index, "left_x"));
-        self.variables.insert(element.left_y, (index, "left_y"));
-        self.variables.insert(element.right_x, (index, "right_x"));
-        self.variables.insert(element.right_y, (index, "right_y"));
+        self.variables.insert(element.left_x, (index, ElementPart::LeftX));
+        self.variables.insert(element.left_y, (index, ElementPart::LeftY));
+        self.variables.insert(element.right_x, (index, ElementPart::RightX));
+        self.variables.insert(element.right_y, (index, ElementPart::RightY));
 
         self.solver.add_edit_variable(element.min_width, STRONG).unwrap();
         self.solver.add_edit_variable(element.max_width, STRONG).unwrap();
@@ -114,6 +124,13 @@ impl Solver {
     }
 
     pub(crate) fn add_default_constraint(&mut self, index: usize) {
+        if index == 0 {
+            let element = self.get(index).unwrap();
+            let start_x_from_zero = element.left_x | EQ(REQUIRED) | 0.0;
+            let start_y_from_zero = element.left_y | EQ(REQUIRED) | 0.0;
+            self.solver.add_constraints(&[start_x_from_zero, start_y_from_zero]).unwrap();
+        }
+
         let element = self.get(index).unwrap();
 
         let non_negative_width = (element.right_x - element.left_x) | GE(REQUIRED) | 0.0;

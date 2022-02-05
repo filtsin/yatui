@@ -8,15 +8,16 @@ pub fn line<V>(childs: V) -> Component
 where
     V: IntoIterator<Item = Component>,
 {
-    let layout_fn = |mut system: LayoutSystem<'_>, context: Context<'_>| {
+    let layout_fn = |mut system: LayoutSystem<'_>, _: Context<'_>| {
         if system.is_empty() || system.len() == 1 {
             return;
         }
-        for i in 0..system.len() {
+
+        for i in 0..system.len() - 1 {
             let prev = system.get(i).unwrap();
             let next = system.get(i + 1).unwrap();
 
-            let constraint_x = prev.right_x | LE(REQUIRED) | next.left_x;
+            let constraint_x = prev.right_x | EQ(REQUIRED) | next.left_x;
             let constraint_y = prev.left_y | EQ(REQUIRED) | next.left_y;
 
             system.add(constraint_x).unwrap();
@@ -26,5 +27,5 @@ where
 
     let childs = childs.into_iter().map(Child::new).collect();
 
-    Component::Layout(Layout::new(childs, layout_fn))
+    Layout::new(childs, layout_fn).into()
 }

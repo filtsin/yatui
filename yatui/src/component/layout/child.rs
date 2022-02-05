@@ -7,7 +7,7 @@ use crate::{
 pub struct Child {
     pub(crate) component: Component,
     size: SizeHint,
-    region: Region,
+    pub(crate) region: Region,
 }
 
 impl Child {

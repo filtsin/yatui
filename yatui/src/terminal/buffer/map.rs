@@ -22,6 +22,10 @@ impl<'a> MappedBuffer<'a> {
         Self { buffer, mapped_region }
     }
 
+    pub fn map_region(&mut self, region: Region) -> MappedBuffer<'_> {
+        MappedBuffer { buffer: self.buffer, mapped_region: region }
+    }
+
     pub fn with_state(self, state: usize) -> MappedStateBuffer<'a> {
         // TODO: Check state for overflow region
         MappedStateBuffer::new(self, state)
@@ -42,6 +46,10 @@ impl<'a> MappedBuffer<'a> {
     }
 
     pub fn write_character(&mut self, c: Character, cursor: Cursor) {
+        // TODO: Just for debug, incorrect version
+        let left_x = self.mapped_region.left_top.column() + cursor.column();
+        let mut cursor = cursor;
+        cursor.set_column(left_x);
         self.buffer.write_in(c, cursor);
     }
 

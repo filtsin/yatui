@@ -20,7 +20,7 @@ impl<'a> MappedStateBuffer<'a> {
         self.buffer
     }
     pub fn write_text(mut self, text: &str) -> Self {
-        // TODO: Now it is ncorrect version just for debug
+        // TODO: Now it is incorrect version just for debug
         let mut cursor = Cursor::default();
         for c in text.chars() {
             let character = Character::new(c);

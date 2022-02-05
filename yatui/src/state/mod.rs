@@ -1,6 +1,8 @@
 pub(crate) mod controller;
 mod create;
 
+use std::rc::Rc;
+
 pub use self::{
     controller::pointer::Pointer,
     create::{mut_state, mut_state_with},
@@ -8,32 +10,10 @@ pub use self::{
 
 pub(crate) use controller::Controller;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum State<T> {
-    Value(T),
+    Value(Rc<T>),
     Pointer(Pointer<T>),
-}
-
-impl<T> State<T> {
-    pub fn set(&mut self, v: T)
-    where
-        T: Send,
-    {
-        match self {
-            State::Value(_) => *self = State::Value(v),
-            State::Pointer(pointer) => pointer.set(v),
-        }
-    }
-
-    pub fn update<F>(&mut self, f: F)
-    where
-        F: FnOnce(&mut T) + Send + 'static,
-    {
-        match self {
-            State::Value(v) => f(v),
-            State::Pointer(pointer) => pointer.update(f),
-        }
-    }
 }
 
 impl<T> From<Pointer<T>> for State<T> {
@@ -44,12 +24,12 @@ impl<T> From<Pointer<T>> for State<T> {
 
 impl<T> From<T> for State<T> {
     fn from(v: T) -> Self {
-        Self::Value(v)
+        Self::Value(Rc::new(v))
     }
 }
 
 impl From<&str> for State<String> {
     fn from(v: &str) -> Self {
-        Self::Value(v.to_owned())
+        Self::Value(Rc::new(v.to_owned()))
     }
 }

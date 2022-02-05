@@ -1,6 +1,6 @@
 pub mod child;
 mod line;
-pub mod solver;
+mod solver;
 
 use cassowary::Constraint;
 
@@ -8,13 +8,15 @@ use crate::{
     component::size_hint::WidgetSize,
     compositor::context::Context,
     error::Error,
-    terminal::{buffer::MappedBuffer, region::Region},
+    terminal::{buffer::MappedBuffer, cursor::Index, region::Region},
 };
 
 use self::{
     child::Child,
-    solver::{Element, Solver},
+    solver::{Element, ElementPart, Solver},
 };
+
+use log::info;
 
 use super::{canvas::Canvas, size_hint::SizeHint, Component};
 
@@ -28,6 +30,8 @@ pub struct Layout {
 
     layout_fn: Box<LayoutFn>,
     size: SizeHint,
+
+    last_region: Option<Region>,
 }
 
 impl Layout {
@@ -40,19 +44,62 @@ impl Layout {
             solver: Solver::new(),
             layout_fn: Box::new(layout_fn),
             size: SizeHint::new_max(WidgetSize::min()),
+            last_region: None,
         };
         res.solver.merge_childs(&res.childs);
+
+        info!("Creation completed");
+
         res
     }
 
     pub fn layout(&mut self, region: Region, context: Context<'_>) {
+        if self.last_region.is_none() {
+            let system = LayoutSystem { solver: &mut self.solver };
+            // Must add all additional equations into system
+            (self.layout_fn)(system, context);
+        }
+
+        if self.last_region.is_some() && self.last_region.unwrap() == region {
+            return;
+        }
+
+        for (i, child) in self.childs.iter_mut().enumerate() {
+            let size_hint = child.component.size_hint(context);
+            child.update_size(size_hint);
+            self.solver.merge_size_from_child(child, i);
+        }
+
         self.solver.suggest_size(region.width(), region.height());
-        let system = LayoutSystem { solver: &mut self.solver };
-        // Must add all additional equations into system
-        (self.layout_fn)(system, context);
+        self.last_region = Some(region);
+
+        let (changes, vars) = self.solver.get_changes();
+
+        info!("Changes: {:?}\nVars: {:?}", changes, vars);
+
+        for (variable, value) in changes {
+            if let Some((child_idx, field)) = vars.get(variable) {
+                let child = self.childs.get_mut(*child_idx).unwrap();
+                let value = *value as Index;
+
+                match field {
+                    ElementPart::LeftX => child.region.left_top.set_column(value),
+                    ElementPart::LeftY => child.region.left_top.set_row(value),
+                    ElementPart::RightX => child.region.right_bottom.set_column(value),
+                    ElementPart::RightY => child.region.right_bottom.set_row(value),
+                }
+            }
+        }
     }
 
-    pub fn draw(&mut self, buffer: MappedBuffer<'_>, context: Context<'_>) {}
+    pub fn draw(&mut self, mut buffer: MappedBuffer<'_>, context: Context<'_>) {
+        for (i, child) in self.childs.iter_mut().enumerate() {
+            let region = child.region;
+            info!("Child {}, region = {:?}", i, region);
+            let new_buffer = buffer.map_region(region);
+            child.component.draw(new_buffer, context);
+        }
+    }
 
     pub fn size_hint(&self, context: Context<'_>) -> SizeHint {
         self.size

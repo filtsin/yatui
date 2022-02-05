@@ -1,8 +1,10 @@
 pub mod subscribe;
 
 use crate::{
-    component::size_hint::WidgetSize, compositor::context::Context, state::State,
-    terminal::buffer::MappedBuffer,
+    component::size_hint::WidgetSize,
+    compositor::context::Context,
+    state::State,
+    terminal::{buffer::MappedBuffer, cursor::Index},
 };
 
 use self::subscribe::Subscribe;
@@ -70,11 +72,21 @@ where
     S: Into<State<String>>,
 {
     let state = content.into();
+    let state_clone = state.clone();
 
-    let canvas = Canvas::new(move |buf: MappedBuffer<'_>, context: Context<'_>| {
+    let mut canvas = Canvas::new(move |buf: MappedBuffer<'_>, context: Context<'_>| {
         let content = context.get(&state);
         buf.with_state(0).write_text(content.as_ref());
     });
+
+    canvas.add_subscribe(&state_clone);
+
+    let size_fn = move |context: Context<'_>| {
+        let context = context.get(&state_clone);
+        SizeHint::new_fixed(WidgetSize::new(context.len() as Index, 1))
+    };
+
+    canvas.set_size_fn(size_fn);
 
     canvas.into()
 }

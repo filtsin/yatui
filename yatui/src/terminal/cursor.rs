@@ -15,17 +15,29 @@ impl Cursor {
     pub fn new(row: Index, column: Index) -> Self {
         Self { row, column }
     }
+
     pub fn row(&self) -> Index {
         self.row
     }
+
     pub fn column(&self) -> Index {
         self.column
     }
+
     pub fn next_row(&self) -> Cursor {
         Cursor { row: self.row() + 1, ..*self }
     }
+
     pub fn next_column(&self) -> Cursor {
         Cursor { column: self.column() + 1, ..*self }
+    }
+
+    pub fn set_row(&mut self, row: Index) {
+        self.row = row;
+    }
+
+    pub fn set_column(&mut self, column: Index) {
+        self.column = column;
     }
 }
 
