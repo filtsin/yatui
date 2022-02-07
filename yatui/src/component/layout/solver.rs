@@ -8,13 +8,15 @@ use crate::{
 
 use super::child::Child;
 
+pub type Variables = HashMap<Variable, (usize, ElementPart)>;
+
 pub struct Solver {
     solver: cassowary::Solver,
 
     width: Variable,
     height: Variable,
 
-    pub variables: HashMap<Variable, (usize, ElementPart)>,
+    pub variables: Variables,
     elements: Vec<Element>,
 }
 
@@ -39,54 +41,58 @@ pub enum ElementPart {
 }
 
 impl Solver {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut res = Self::default();
         res.add_edit_size();
         res
     }
 
-    pub(crate) fn add_edit_size(&mut self) {
+    pub fn add_edit_size(&mut self) {
         self.solver.add_edit_variable(self.width, STRONG).unwrap();
         self.solver.add_edit_variable(self.height, STRONG).unwrap();
     }
 
-    pub(crate) fn get_changes(
-        &mut self,
-    ) -> (&[(Variable, f64)], &HashMap<Variable, (usize, ElementPart)>) {
+    pub fn get_changes(&mut self) -> (&[(Variable, f64)], &Variables) {
         (self.solver.fetch_changes(), &self.variables)
     }
 
-    pub(crate) fn add_custom_constraint(
+    pub fn add_custom_constraint(
         &mut self,
         constraint: Constraint,
     ) -> Result<(), LayoutEquationProblem> {
         self.solver.add_constraint(constraint).map_err(LayoutEquationProblem::from)
     }
 
-    pub(crate) fn merge_childs(&mut self, childs: &[Child]) {
+    pub fn merge_childs(&mut self, childs: &[Child]) {
         childs.iter().for_each(|c| self.add_child(c));
     }
 
-    pub(crate) fn suggest_size(&mut self, width: Index, height: Index) {
+    pub fn suggest_size(&mut self, width: Index, height: Index) {
         self.solver.suggest_value(self.width, width as f64).unwrap();
         self.solver.suggest_value(self.height, height as f64).unwrap();
     }
 
-    pub(crate) fn element_len(&self) -> usize {
+    pub fn element_len(&self) -> usize {
         self.elements.len()
     }
 
-    pub(crate) fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.solver.reset();
         self.variables.clear();
-        // TODO: Add width, height edit variables
+        self.elements.clear();
+
+        self.add_edit_size();
     }
 
-    pub(crate) fn get(&self, index: usize) -> Option<&Element> {
+    pub fn get(&self, index: usize) -> Option<&Element> {
         self.elements.get(index)
     }
 
-    pub(crate) fn add_child(&mut self, child: &Child) {
+    pub fn elements(&self) -> &Vec<Element> {
+        &self.elements
+    }
+
+    pub fn add_child(&mut self, child: &Child) {
         let element = Element::new();
         let index = self.elements.len();
 
@@ -97,7 +103,7 @@ impl Solver {
         self.add_default_constraint(index);
     }
 
-    pub(crate) fn add_variables(&mut self, index: usize) {
+    pub fn add_variables(&mut self, index: usize) {
         let element = self.elements.get(index).unwrap();
 
         self.variables.insert(element.left_x, (index, ElementPart::LeftX));
@@ -111,7 +117,7 @@ impl Solver {
         self.solver.add_edit_variable(element.max_height, STRONG).unwrap();
     }
 
-    pub(crate) fn merge_size_from_child(&mut self, child: &Child, index: usize) {
+    pub fn merge_size_from_child(&mut self, child: &Child, index: usize) {
         let min_size = child.size().minimum();
         let max_size = child.size().maximum();
 
@@ -123,7 +129,7 @@ impl Solver {
         self.solver.suggest_value(element.max_height, max_size.height() as f64).unwrap();
     }
 
-    pub(crate) fn add_default_constraint(&mut self, index: usize) {
+    pub fn add_default_constraint(&mut self, index: usize) {
         if index == 0 {
             let element = self.get(index).unwrap();
             let start_x_from_zero = element.left_x | EQ(REQUIRED) | 0.0;

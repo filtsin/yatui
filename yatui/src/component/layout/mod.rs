@@ -1,8 +1,9 @@
 pub mod child;
+mod column;
 mod line;
 mod solver;
 
-use cassowary::Constraint;
+use crate::cassowary::Constraint;
 
 use crate::{
     component::size_hint::WidgetSize,
@@ -13,14 +14,16 @@ use crate::{
 
 use self::{
     child::Child,
-    solver::{Element, ElementPart, Solver},
+    solver::{ElementPart, Solver},
 };
 
 use log::info;
 
 use super::{canvas::Canvas, size_hint::SizeHint, Component};
 
+pub use column::column;
 pub use line::line;
+pub use solver::Element;
 
 type LayoutFn = dyn Fn(LayoutSystem<'_>, Context<'_>);
 
@@ -46,10 +49,8 @@ impl Layout {
             size: SizeHint::new_max(WidgetSize::min()),
             last_region: None,
         };
+
         res.solver.merge_childs(&res.childs);
-
-        info!("Creation completed");
-
         res
     }
 
@@ -126,19 +127,15 @@ pub struct LayoutSystem<'a> {
 }
 
 impl<'a> LayoutSystem<'a> {
-    pub fn get(&self, index: usize) -> Option<&Element> {
-        self.solver.get(index)
+    pub fn elements(&self) -> &Vec<Element> {
+        self.solver.elements()
     }
 
-    pub fn len(&self) -> usize {
-        self.solver.element_len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub fn add(&mut self, constraint: Constraint) -> Result<(), Error> {
+    pub fn add_constraint(&mut self, constraint: Constraint) -> Result<(), Error> {
         self.solver.add_custom_constraint(constraint).map_err(Error::from)
+    }
+
+    pub fn add_constraints(&mut self, constraints: Vec<Constraint>) -> Result<(), Error> {
+        constraints.into_iter().try_for_each(|v| self.add_constraint(v))
     }
 }
