@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use crate::cassowary::*;
 
-use crate::{
-    component::size_hint::SizeHint, error::LayoutEquationProblem, terminal::cursor::Index,
-};
+use crate::{error::LayoutEquationProblem, terminal::cursor::Index};
 
 use super::child::Child;
 
@@ -26,10 +24,8 @@ pub struct Element {
     pub right_x: Variable,
     pub right_y: Variable,
 
-    min_width: Variable,
-    max_width: Variable,
-    min_height: Variable,
-    max_height: Variable,
+    width: Variable,
+    height: Variable,
 }
 
 #[derive(Debug)]
@@ -111,22 +107,15 @@ impl Solver {
         self.variables.insert(element.right_x, (index, ElementPart::RightX));
         self.variables.insert(element.right_y, (index, ElementPart::RightY));
 
-        self.solver.add_edit_variable(element.min_width, STRONG).unwrap();
-        self.solver.add_edit_variable(element.max_width, STRONG).unwrap();
-        self.solver.add_edit_variable(element.min_height, STRONG).unwrap();
-        self.solver.add_edit_variable(element.max_height, STRONG).unwrap();
+        self.solver.add_edit_variable(element.width, REQUIRED - 1.0).unwrap();
+        self.solver.add_edit_variable(element.height, REQUIRED - 1.0).unwrap();
     }
 
     pub fn merge_size_from_child(&mut self, child: &Child, index: usize) {
-        let min_size = child.size().minimum();
-        let max_size = child.size().maximum();
-
         let element = self.elements.get(index).unwrap();
 
-        self.solver.suggest_value(element.min_width, min_size.width() as f64).unwrap();
-        self.solver.suggest_value(element.max_width, max_size.width() as f64).unwrap();
-        self.solver.suggest_value(element.min_height, min_size.height() as f64).unwrap();
-        self.solver.suggest_value(element.max_height, max_size.height() as f64).unwrap();
+        self.solver.suggest_value(element.width, child.size().width() as f64).unwrap();
+        self.solver.suggest_value(element.height, child.size().height() as f64).unwrap();
     }
 
     fn add_default_constraint(&mut self, index: usize) {
@@ -151,14 +140,10 @@ impl Solver {
         // First elements have priority
         let width_strength = MEDIUM - index as f64;
 
-        let preffered_min_width =
-            (element.right_x - element.left_x) | GE(width_strength) | element.min_width;
-        let preffered_min_height =
-            (element.right_y - element.left_y) | GE(width_strength) | element.min_height;
-        let preffered_max_width =
-            (element.right_x - element.left_x) | LE(width_strength) | element.max_width;
-        let preffered_max_height =
-            (element.right_y - element.left_y) | LE(width_strength) | element.max_height;
+        let preffered_width =
+            (element.right_x - element.left_x) | EQ(width_strength) | element.width;
+        let preffered_height =
+            (element.right_y - element.left_y) | EQ(width_strength) | element.height;
 
         self.solver
             .add_constraints(&[
@@ -168,10 +153,8 @@ impl Solver {
                 left_y_positive,
                 right_x_lower_width,
                 right_y_lower_height,
-                preffered_min_width,
-                preffered_max_width,
-                preffered_min_height,
-                preffered_max_height,
+                preffered_width,
+                preffered_height,
             ])
             .unwrap();
     }
@@ -184,10 +167,8 @@ impl Element {
             left_y: Variable::new(),
             right_x: Variable::new(),
             right_y: Variable::new(),
-            min_width: Variable::new(),
-            max_width: Variable::new(),
-            min_height: Variable::new(),
-            max_height: Variable::new(),
+            width: Variable::new(),
+            height: Variable::new(),
         }
     }
 }

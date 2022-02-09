@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    component::{size_hint::SizeHint, Component},
+    component::{Component, WidgetSize},
     compositor::context::Context,
     terminal::{cursor::Cursor, region::Region},
 };
@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Child {
     pub(crate) component: Component,
-    size: SizeHint,
+    size: WidgetSize,
     pub(crate) region: Region,
 }
 
@@ -17,12 +17,12 @@ impl Child {
     pub fn new(component: Component) -> Self {
         Self {
             component,
-            size: SizeHint::zero(),
+            size: WidgetSize::min(),
             region: Region::new(Cursor::new(0, 0), Cursor::new(0, 0)),
         }
     }
 
-    pub fn size(&self) -> SizeHint {
+    pub fn size(&self) -> WidgetSize {
         self.size
     }
 
@@ -34,7 +34,7 @@ impl Child {
         self.region = region;
     }
 
-    pub(crate) fn update_size(&mut self, new_size: SizeHint) {
+    pub(crate) fn update_size(&mut self, new_size: WidgetSize) {
         self.size = new_size;
     }
 }

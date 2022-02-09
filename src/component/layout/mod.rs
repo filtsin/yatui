@@ -8,7 +8,7 @@ use std::fmt::Debug;
 use crate::cassowary::Constraint;
 
 use crate::{
-    component::size_hint::WidgetSize,
+    component::WidgetSize,
     compositor::context::Context,
     error::Error,
     terminal::{buffer::MappedBuffer, cursor::Index, region::Region},
@@ -21,7 +21,7 @@ use self::{
 
 use log::info;
 
-use super::{canvas::Canvas, size_hint::SizeHint, Component};
+use super::{canvas::Canvas, Component};
 
 pub use column::column;
 pub use line::line;
@@ -34,7 +34,7 @@ pub struct Layout {
     solver: Solver,
 
     layout_fn: Box<LayoutFn>,
-    size: SizeHint,
+    size: WidgetSize,
 
     last_region: Option<Region>,
 }
@@ -48,7 +48,7 @@ impl Layout {
             childs,
             solver: Solver::new(),
             layout_fn: Box::new(layout_fn),
-            size: SizeHint::new_max(WidgetSize::min()),
+            size: WidgetSize::min(),
             last_region: None,
         };
 
@@ -104,12 +104,12 @@ impl Layout {
         }
     }
 
-    pub fn size_hint(&self, context: Context<'_>) -> SizeHint {
+    pub fn size_hint(&self, context: Context<'_>) -> WidgetSize {
         self.size
     }
 
-    pub fn calc_size(&mut self, context: Context<'_>) -> SizeHint {
-        let mut result = SizeHint::default();
+    pub fn calc_size(&mut self, context: Context<'_>) -> WidgetSize {
+        let mut result = WidgetSize::default();
         for child in self.childs.iter_mut() {
             let new_size = match &mut child.component {
                 Component::Canvas(c) => c.size_hint(context),

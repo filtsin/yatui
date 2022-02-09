@@ -2,49 +2,6 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::terminal::cursor::Index;
 
-use derive_more::{Add, AddAssign, Sub, SubAssign};
-
-#[derive(
-    Debug, Eq, PartialEq, PartialOrd, Ord, Default, Copy, Clone, Add, AddAssign, Sub, SubAssign,
-)]
-pub struct SizeHint {
-    min: WidgetSize,
-    max: WidgetSize,
-}
-
-impl SizeHint {
-    pub fn new(min: WidgetSize, max: WidgetSize) -> Self {
-        if max < min {
-            panic!()
-        }
-        Self { min, max }
-    }
-
-    pub fn new_fixed(value: WidgetSize) -> Self {
-        Self::new(value, value)
-    }
-
-    pub fn new_min(min: WidgetSize) -> Self {
-        Self::new(min, WidgetSize::max())
-    }
-
-    pub fn new_max(max: WidgetSize) -> Self {
-        Self::new(WidgetSize::min(), max)
-    }
-
-    pub fn zero() -> Self {
-        Self::default()
-    }
-
-    pub fn minimum(&self) -> WidgetSize {
-        self.min
-    }
-
-    pub fn maximum(&self) -> WidgetSize {
-        self.max
-    }
-}
-
 /// Width and height of widget
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Default, Copy, Clone)]
 pub struct WidgetSize {

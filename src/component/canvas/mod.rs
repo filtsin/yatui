@@ -3,7 +3,7 @@ pub mod subscribe;
 use std::fmt::Debug;
 
 use crate::{
-    component::size_hint::WidgetSize,
+    component::WidgetSize,
     compositor::context::Context,
     state::State,
     terminal::{buffer::MappedBuffer, cursor::Index},
@@ -11,10 +11,10 @@ use crate::{
 
 use self::subscribe::Subscribe;
 
-use super::{size_hint::SizeHint, Component};
+use super::Component;
 
 type CanvasFn = dyn FnMut(MappedBuffer<'_>, Context<'_>);
-type SizeFn = dyn Fn(Context<'_>) -> SizeHint;
+type SizeFn = dyn Fn(Context<'_>) -> WidgetSize;
 
 pub struct Canvas {
     draw_fn: Box<CanvasFn>,
@@ -33,7 +33,7 @@ impl Canvas {
 
     pub fn set_size_fn<F>(&mut self, size_fn: F)
     where
-        F: Fn(Context<'_>) -> SizeHint + 'static,
+        F: Fn(Context<'_>) -> WidgetSize + 'static,
     {
         self.size_fn = Some(Box::new(size_fn));
     }
@@ -45,7 +45,7 @@ impl Canvas {
         }
     }
 
-    pub fn set_size_value(&mut self, value: SizeHint) {
+    pub fn set_size_value(&mut self, value: WidgetSize) {
         self.set_size_fn(move |_| value);
     }
 
@@ -53,10 +53,10 @@ impl Canvas {
         (self.draw_fn)(buf, context);
     }
 
-    pub fn size_hint(&self, context: Context<'_>) -> SizeHint {
+    pub fn size_hint(&self, context: Context<'_>) -> WidgetSize {
         match &self.size_fn {
             Some(v) => v(context),
-            None => SizeHint::new_max(WidgetSize::max()),
+            None => WidgetSize::max(),
         }
     }
 
@@ -91,7 +91,7 @@ where
 
     let size_fn = move |context: Context<'_>| {
         let context = context.get(&state_clone);
-        SizeHint::new_fixed(WidgetSize::new(context.len() as Index, 1))
+        WidgetSize::new(context.len() as Index, 1)
     };
 
     canvas.set_size_fn(size_fn);

@@ -1,4 +1,4 @@
-use crate::component::size_hint::WidgetSize;
+use crate::component::WidgetSize;
 
 use super::cursor::{Cursor, Index};
 
