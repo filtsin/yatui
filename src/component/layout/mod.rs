@@ -70,7 +70,6 @@ impl Layout {
         for (i, child) in self.childs.iter_mut().enumerate() {
             let size_hint = child.component.size_hint(context);
             child.update_size(size_hint);
-            println!("{:?}", size_hint);
             self.solver.merge_size_from_child(child, i);
         }
 
@@ -94,8 +93,6 @@ impl Layout {
                 }
             }
         }
-
-        println!("{:?}", self.childs);
     }
 
     pub fn draw(&mut self, mut buffer: MappedBuffer<'_>, context: Context<'_>) {
