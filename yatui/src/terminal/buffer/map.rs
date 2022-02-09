@@ -47,7 +47,7 @@ impl<'a> MappedBuffer<'a> {
 
     pub fn write_character(&mut self, c: Character, cursor: Cursor) {
         // TODO: Just for debug, incorrect version
-        let left_x = self.mapped_region.left_top.column() + cursor.column();
+        let left_x = self.mapped_region.left_top().column() + cursor.column();
         let mut cursor = cursor;
         cursor.set_column(left_x);
         self.buffer.write_in(c, cursor);
@@ -63,10 +63,10 @@ impl<'a> MappedBuffer<'a> {
 
     // Converts local row to the global
     fn global_row(&self, local_row: Index) -> Index {
-        local_row + self.mapped_region.left_top.row()
+        local_row + self.mapped_region.left_top().row()
     }
     // Converts local column to the global
     fn global_column(&self, local_column: Index) -> Index {
-        local_column + self.mapped_region.left_top.column()
+        local_column + self.mapped_region.left_top().column()
     }
 }

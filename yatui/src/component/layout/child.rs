@@ -1,9 +1,12 @@
+use std::fmt::Debug;
+
 use crate::{
     component::{size_hint::SizeHint, Component},
     compositor::context::Context,
     terminal::{cursor::Cursor, region::Region},
 };
 
+#[derive(Debug)]
 pub struct Child {
     pub(crate) component: Component,
     size: SizeHint,
@@ -21,6 +24,10 @@ impl Child {
 
     pub fn size(&self) -> SizeHint {
         self.size
+    }
+
+    pub fn region(&self) -> Region {
+        self.region
     }
 
     pub fn update_region(&mut self, region: Region) {

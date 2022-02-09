@@ -103,7 +103,7 @@ impl Solver {
         self.add_default_constraint(index);
     }
 
-    pub fn add_variables(&mut self, index: usize) {
+    fn add_variables(&mut self, index: usize) {
         let element = self.elements.get(index).unwrap();
 
         self.variables.insert(element.left_x, (index, ElementPart::LeftX));
@@ -129,7 +129,7 @@ impl Solver {
         self.solver.suggest_value(element.max_height, max_size.height() as f64).unwrap();
     }
 
-    pub fn add_default_constraint(&mut self, index: usize) {
+    fn add_default_constraint(&mut self, index: usize) {
         if index == 0 {
             let element = self.get(index).unwrap();
             let start_x_from_zero = element.left_x | EQ(REQUIRED) | 0.0;
@@ -148,12 +148,17 @@ impl Solver {
         let right_x_lower_width = element.right_x | LE(REQUIRED) | self.width;
         let right_y_lower_height = element.right_y | LE(REQUIRED) | self.height;
 
-        let preffered_min_width = (element.right_x - element.left_x) | GE(WEAK) | element.min_width;
+        // First elements have priority
+        let width_strength = MEDIUM - index as f64;
+
+        let preffered_min_width =
+            (element.right_x - element.left_x) | GE(width_strength) | element.min_width;
         let preffered_min_height =
-            (element.right_y - element.left_y) | GE(WEAK) | element.min_height;
-        let preffered_max_width = (element.right_x - element.left_x) | LE(WEAK) | element.max_width;
+            (element.right_y - element.left_y) | GE(width_strength) | element.min_height;
+        let preffered_max_width =
+            (element.right_x - element.left_x) | LE(width_strength) | element.max_width;
         let preffered_max_height =
-            (element.right_y - element.left_y) | LE(WEAK) | element.max_height;
+            (element.right_y - element.left_y) | LE(width_strength) | element.max_height;
 
         self.solver
             .add_constraints(&[

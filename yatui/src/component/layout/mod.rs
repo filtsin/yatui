@@ -3,6 +3,8 @@ mod column;
 mod line;
 mod solver;
 
+use std::fmt::Debug;
+
 use crate::cassowary::Constraint;
 
 use crate::{
@@ -68,6 +70,7 @@ impl Layout {
         for (i, child) in self.childs.iter_mut().enumerate() {
             let size_hint = child.component.size_hint(context);
             child.update_size(size_hint);
+            println!("{:?}", size_hint);
             self.solver.merge_size_from_child(child, i);
         }
 
@@ -91,6 +94,8 @@ impl Layout {
                 }
             }
         }
+
+        println!("{:?}", self.childs);
     }
 
     pub fn draw(&mut self, mut buffer: MappedBuffer<'_>, context: Context<'_>) {
@@ -120,6 +125,10 @@ impl Layout {
         self.size = result;
         result
     }
+
+    pub fn childs(&self) -> &Vec<Child> {
+        &self.childs
+    }
 }
 
 pub struct LayoutSystem<'a> {
@@ -137,5 +146,11 @@ impl<'a> LayoutSystem<'a> {
 
     pub fn add_constraints(&mut self, constraints: Vec<Constraint>) -> Result<(), Error> {
         constraints.into_iter().try_for_each(|v| self.add_constraint(v))
+    }
+}
+
+impl Debug for Layout {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Layout").finish()
     }
 }

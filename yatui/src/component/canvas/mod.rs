@@ -1,5 +1,7 @@
 pub mod subscribe;
 
+use std::fmt::Debug;
+
 use crate::{
     component::size_hint::WidgetSize,
     compositor::context::Context,
@@ -63,6 +65,12 @@ impl Canvas {
             Subscribe::Always => true,
             Subscribe::Vec(ref vec) => vec.iter().any(|&v| context.is_changed_id(v)),
         }
+    }
+}
+
+impl Debug for Canvas {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Canvas").finish()
     }
 }
 

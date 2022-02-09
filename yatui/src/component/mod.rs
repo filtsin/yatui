@@ -9,6 +9,7 @@ use crate::{compositor::context::Context, terminal::buffer::MappedBuffer};
 
 use self::size_hint::SizeHint;
 
+#[derive(Debug)]
 pub enum Component {
     Canvas(Box<Canvas>),
     Layout(Box<Layout>),
@@ -27,6 +28,20 @@ impl From<Layout> for Component {
 }
 
 impl Component {
+    pub fn canvas(self) -> Result<Box<Canvas>, Self> {
+        match self {
+            Component::Canvas(c) => Ok(c),
+            Component::Layout(_) => Err(self),
+        }
+    }
+
+    pub fn layout(self) -> Result<Box<Layout>, Self> {
+        match self {
+            Component::Canvas(_) => Err(self),
+            Component::Layout(l) => Ok(l),
+        }
+    }
+
     pub fn size_hint(&self, context: Context<'_>) -> SizeHint {
         match self {
             Component::Canvas(c) => c.size_hint(context),

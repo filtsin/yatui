@@ -1,12 +1,13 @@
 //! Application structure
 use crate::{
-    backend::Backend,
+    backend::{Backend, Raw},
     component::Component,
     compositor::{
         context::Context,
         event::{controller, Event},
         Compositor,
     },
+    terminal::cursor::Cursor,
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use once_cell::sync::OnceCell;
