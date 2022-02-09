@@ -12,7 +12,7 @@ pub struct Cursor {
 }
 
 impl Cursor {
-    pub fn new(row: Index, column: Index) -> Self {
+    pub fn new(column: Index, row: Index) -> Self {
         Self { row, column }
     }
 
@@ -42,7 +42,7 @@ impl Cursor {
 }
 
 impl From<(Index, Index)> for Cursor {
-    fn from((row, column): (Index, Index)) -> Self {
-        Self::new(row, column)
+    fn from((column, row): (Index, Index)) -> Self {
+        Self::new(column, row)
     }
 }

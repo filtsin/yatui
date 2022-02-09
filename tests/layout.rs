@@ -33,8 +33,8 @@ fn line_elements() {
 
     let regions = vec![
         Region::new(Cursor::new(0, 0), Cursor::new(1, 1)),
-        Region::new(Cursor::new(0, 1), Cursor::new(1, 2)),
-        Region::new(Cursor::new(0, 2), Cursor::new(1, 5)),
+        Region::new(Cursor::new(1, 0), Cursor::new(2, 1)),
+        Region::new(Cursor::new(2, 0), Cursor::new(5, 1)),
     ];
 
     let layout_regions: Vec<Region> = layout.childs().iter().map(|child| child.region()).collect();
@@ -51,8 +51,8 @@ fn column_elements() {
 
     let regions = vec![
         Region::new(Cursor::new(0, 0), Cursor::new(1, 1)),
-        Region::new(Cursor::new(1, 0), Cursor::new(2, 1)),
-        Region::new(Cursor::new(2, 0), Cursor::new(5, 1)),
+        Region::new(Cursor::new(0, 1), Cursor::new(1, 2)),
+        Region::new(Cursor::new(0, 2), Cursor::new(1, 5)),
     ];
 
     let layout_regions: Vec<Region> = layout.childs().iter().map(|child| child.region()).collect();
@@ -69,8 +69,8 @@ fn line_elements_overflow() {
 
     let regions = vec![
         Region::new(Cursor::new(0, 0), Cursor::new(1, 1)),
-        Region::new(Cursor::new(0, 1), Cursor::new(1, 4)),
-        Region::new(Cursor::new(0, 4), Cursor::new(1, 5)),
+        Region::new(Cursor::new(1, 0), Cursor::new(4, 1)),
+        Region::new(Cursor::new(4, 0), Cursor::new(5, 1)),
     ];
 
     let layout_regions: Vec<Region> = layout.childs().iter().map(|child| child.region()).collect();
@@ -87,8 +87,8 @@ fn column_elements_overflow() {
 
     let regions = vec![
         Region::new(Cursor::new(0, 0), Cursor::new(1, 1)),
-        Region::new(Cursor::new(1, 0), Cursor::new(4, 1)),
-        Region::new(Cursor::new(4, 0), Cursor::new(5, 1)),
+        Region::new(Cursor::new(0, 1), Cursor::new(1, 4)),
+        Region::new(Cursor::new(0, 4), Cursor::new(1, 5)),
     ];
 
     let layout_regions: Vec<Region> = layout.childs().iter().map(|child| child.region()).collect();
@@ -103,9 +103,9 @@ fn line_persistent_layout() {
     let mut layout = line([widget(3, 1), widget(3, 3), widget(3, 2)]).layout().unwrap();
 
     let regions = vec![
-        Region::new(Cursor::new(0, 0), Cursor::new(1, 3)),
-        Region::new(Cursor::new(0, 3), Cursor::new(3, 5)),
-        Region::new(Cursor::new(0, 5), Cursor::new(2, 5)),
+        Region::new(Cursor::new(0, 0), Cursor::new(3, 1)),
+        Region::new(Cursor::new(3, 0), Cursor::new(5, 3)),
+        Region::new(Cursor::new(5, 0), Cursor::new(5, 2)),
     ];
 
     for _ in 0..100 {
@@ -125,9 +125,9 @@ fn column_persistent_layout() {
     let mut layout = column([widget(1, 3), widget(3, 3), widget(2, 3)]).layout().unwrap();
 
     let regions = vec![
-        Region::new(Cursor::new(0, 0), Cursor::new(3, 1)),
-        Region::new(Cursor::new(3, 0), Cursor::new(5, 3)),
-        Region::new(Cursor::new(5, 0), Cursor::new(5, 2)),
+        Region::new(Cursor::new(0, 0), Cursor::new(1, 3)),
+        Region::new(Cursor::new(0, 3), Cursor::new(3, 5)),
+        Region::new(Cursor::new(0, 5), Cursor::new(2, 5)),
     ];
 
     for _ in 0..100 {

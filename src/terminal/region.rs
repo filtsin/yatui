@@ -43,6 +43,6 @@ impl Region {
 
 impl From<WidgetSize> for Region {
     fn from(v: WidgetSize) -> Self {
-        Region::new(Cursor::new(0, 0), Cursor::new(v.height(), v.width()))
+        Region::new(Cursor::new(0, 0), Cursor::new(v.width(), v.height()))
     }
 }

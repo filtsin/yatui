@@ -25,7 +25,7 @@ impl<W: Write> Termion<W> {
 impl<W: Write + Send> Backend for Termion<W> {
     fn get_size(&self) -> Result<Cursor> {
         let (column, row) = termion::terminal_size()?;
-        Ok(Cursor::new(row, column))
+        Ok(Cursor::new(column, row))
     }
 
     fn move_cursor(&mut self, pos: Cursor) {
