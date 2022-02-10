@@ -99,7 +99,7 @@ impl Layout {
         for (i, child) in self.childs.iter_mut().enumerate() {
             let region = child.region;
             info!("Child {}, region = {:?}", i, region);
-            let new_buffer = buffer.map_region(region);
+            let new_buffer = buffer.map(region);
             child.component.draw(new_buffer, context);
         }
     }

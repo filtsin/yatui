@@ -48,7 +48,7 @@ impl<B> Compositor<B> {
     }
 
     pub(crate) fn context(&self) -> Context<'_> {
-        Context::new(&self.controller, &self.watcher, self.buffer.get_size())
+        Context::new(&self.controller, &self.watcher, self.buffer.size())
     }
 }
 
@@ -64,12 +64,12 @@ where
         }
 
         if let Some(component) = &mut self.root {
-            let context = Context::new(&self.controller, &self.watcher, self.buffer.get_size());
+            let context = Context::new(&self.controller, &self.watcher, self.buffer.size());
 
-            let size = self.buffer.get_size();
+            let size = self.buffer.size();
             let (w, h) = (size.row(), size.column());
             let mapped_region = Region::new(Cursor::default(), Cursor::new(w, h));
-            let mapped_buffer = MappedBuffer::new(&mut self.buffer, mapped_region);
+            let mapped_buffer = self.buffer.map(mapped_region);
 
             match component {
                 Component::Canvas(c) => c.draw(mapped_buffer, context),

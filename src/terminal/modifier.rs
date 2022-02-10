@@ -1,14 +1,14 @@
 use bitflags::bitflags;
 
 /// Modifier of [super::character::Character]. Allows to change color and style
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone, Default)]
 pub struct Modifier {
     color: Option<Color>,
     background: Option<Color>,
     style: Style,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum Color {
     Black,

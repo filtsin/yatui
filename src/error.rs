@@ -9,6 +9,8 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("Bad layout equation: {0}")]
     LayoutEquation(#[from] LayoutEquationProblem),
+    #[error("Buffer error: {0}")]
+    Buffer(String),
     #[error("Application is not initialized")]
     AppNotInit,
 }

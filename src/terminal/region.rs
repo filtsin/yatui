@@ -31,10 +31,12 @@ impl Region {
     pub fn width(&self) -> Index {
         self.right_bottom.column() - self.left_top.column()
     }
+
     /// Count of rows in the region
     pub fn height(&self) -> Index {
         self.right_bottom.row() - self.left_top.row()
     }
+
     /// Count of rows multiplied to count of columns in the region
     pub fn area(&self) -> usize {
         self.width() as usize * self.height() as usize
@@ -44,5 +46,45 @@ impl Region {
 impl From<WidgetSize> for Region {
     fn from(v: WidgetSize) -> Self {
         Region::new(Cursor::new(0, 0), Cursor::new(v.width(), v.height()))
+    }
+}
+
+#[derive(Eq, PartialEq, Debug)]
+pub struct RegionIter {
+    region: Region,
+    cursor: Option<Cursor>,
+}
+
+impl Iterator for RegionIter {
+    type Item = Cursor;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(cursor) = self.cursor {
+            let mut next_cursor = cursor.next_column();
+
+            if next_cursor.column() > self.region.right_bottom().column() {
+                next_cursor = next_cursor.next_row();
+                next_cursor.set_column(self.region.left_top().column());
+                if next_cursor.row() > self.region.right_bottom().row() {
+                    return None;
+                }
+            }
+
+            self.cursor = Some(next_cursor);
+        } else {
+            self.cursor = Some(self.region.left_top());
+        }
+
+        self.cursor
+    }
+}
+
+impl IntoIterator for Region {
+    type Item = Cursor;
+
+    type IntoIter = RegionIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter { region: self, cursor: None }
     }
 }

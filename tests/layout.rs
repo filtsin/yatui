@@ -12,6 +12,8 @@ use yatui::{
     },
 };
 
+use pretty_assertions::assert_eq;
+
 macro_rules! context {
     () => {
         App::new(Raw::new(Cursor::default())).context()

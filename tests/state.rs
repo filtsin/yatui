@@ -8,6 +8,8 @@ use yatui::{
     terminal::cursor::Cursor,
 };
 
+use pretty_assertions::assert_eq;
+
 #[test]
 fn mut_state_has_pointer_size() {
     assert_eq!(size_of::<Pointer<i32>>(), size_of::<usize>());

@@ -18,7 +18,7 @@ impl Raw {
 
 impl Backend for Raw {
     fn get_size(&self) -> Result<Cursor> {
-        Ok(self.output.get_size())
+        Ok(self.output.size())
     }
 
     fn move_cursor(&mut self, pos: Cursor) {
