@@ -1,10 +1,12 @@
-use yatui::terminal::{buffer::Buffer, character::Character, cursor::Cursor, region::Region};
+use yatui::terminal::{
+    buffer::Buffer, character::Character, cursor::Cursor, region::Region, size::Size,
+};
 
 use pretty_assertions::assert_eq;
 
 #[test]
 fn creation() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
 
@@ -13,7 +15,7 @@ fn creation() {
 
 #[test]
 fn remap() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
     let mapped_buffer = mapped_buffer.map(Region::new(Cursor::new(0, 0), Cursor::new(1, 1)));
@@ -24,7 +26,7 @@ fn remap() {
 #[test]
 #[should_panic]
 fn remap_overflow_should_panic() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
     let _ = mapped_buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
@@ -32,7 +34,7 @@ fn remap_overflow_should_panic() {
 
 #[test]
 fn write_character() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
 
@@ -49,7 +51,7 @@ fn write_character() {
     #[rustfmt::skip]
     let s = vec![
         "     ",
-        " 013 ",
+        " 012 ",
         " 345 ",
         " 678 ",
         "     "
@@ -61,7 +63,7 @@ fn write_character() {
 #[test]
 #[should_panic]
 fn write_character_overflow_should_panic() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(1, 1)));
 
@@ -70,7 +72,7 @@ fn write_character_overflow_should_panic() {
 
 #[test]
 fn try_write_character() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
 
@@ -98,7 +100,7 @@ fn try_write_character() {
 
 #[test]
 fn try_write_character_overflow_should_return_err() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(1, 1)));
 
@@ -108,7 +110,7 @@ fn try_write_character_overflow_should_return_err() {
 
 #[test]
 fn fill() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
     mapped_buffer.fill('0');
@@ -127,7 +129,7 @@ fn fill() {
 
 #[test]
 fn clear() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
     buffer.full_map().fill('0');
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
@@ -147,7 +149,7 @@ fn clear() {
 
 #[test]
 fn write_line() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
     mapped_buffer.write_line("01", 1);
@@ -167,7 +169,7 @@ fn write_line() {
 #[test]
 #[should_panic]
 fn write_line_overflow_should_panic() {
-    let mut buffer = Buffer::new(Cursor::new(5, 5));
+    let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
     mapped_buffer.write_line("0123", 1);
@@ -175,7 +177,7 @@ fn write_line_overflow_should_panic() {
 
 #[test]
 fn get() {
-    let mut buffer = Buffer::new(Cursor::new(3, 3));
+    let mut buffer = Buffer::new(Size::new(3, 3));
 
     let mut mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(1, 1)));
     mapped_buffer.write_character('0', Cursor::new(0, 0));
@@ -188,7 +190,7 @@ fn get() {
 #[test]
 #[should_panic]
 fn get_overflow_should_panic() {
-    let mut buffer = Buffer::new(Cursor::new(3, 3));
+    let mut buffer = Buffer::new(Size::new(3, 3));
 
     let mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(1, 1)));
 

@@ -4,11 +4,12 @@ use yatui::{
     component::{
         canvas::Canvas,
         layout::{column, line},
-        Component, WidgetSize,
+        Component,
     },
     terminal::{
         cursor::{Cursor, Index},
         region::Region,
+        size::Size,
     },
 };
 
@@ -16,19 +17,19 @@ use pretty_assertions::assert_eq;
 
 macro_rules! context {
     () => {
-        App::new(Raw::new(Cursor::default())).context()
+        App::new(Raw::default()).context()
     };
 }
 
 fn widget(w: Index, h: Index) -> Component {
     let mut canvas = Canvas::new(|_, _| {});
-    canvas.set_size_value(WidgetSize::new(w, h));
+    canvas.set_size_value(Size::new(w, h));
     canvas.into()
 }
 
 #[test]
 fn line_elements() {
-    let region = Region::from(WidgetSize::new(5, 5));
+    let region = Region::from(Size::new(5, 5));
 
     let mut layout = line([widget(1, 1), widget(1, 1), widget(3, 1)]).layout().unwrap();
     layout.layout(region, context!());
@@ -46,7 +47,7 @@ fn line_elements() {
 
 #[test]
 fn column_elements() {
-    let region = Region::from(WidgetSize::new(5, 5));
+    let region = Region::from(Size::new(5, 5));
 
     let mut layout = column([widget(1, 1), widget(1, 1), widget(1, 3)]).layout().unwrap();
     layout.layout(region, context!());
@@ -64,7 +65,7 @@ fn column_elements() {
 
 #[test]
 fn line_elements_overflow() {
-    let region = Region::from(WidgetSize::new(5, 5));
+    let region = Region::from(Size::new(5, 5));
 
     let mut layout = line([widget(1, 1), widget(3, 1), widget(2, 1)]).layout().unwrap();
     layout.layout(region, context!());
@@ -82,7 +83,7 @@ fn line_elements_overflow() {
 
 #[test]
 fn column_elements_overflow() {
-    let region = Region::from(WidgetSize::new(5, 5));
+    let region = Region::from(Size::new(5, 5));
 
     let mut layout = column([widget(1, 1), widget(1, 3), widget(1, 2)]).layout().unwrap();
     layout.layout(region, context!());
@@ -100,7 +101,7 @@ fn column_elements_overflow() {
 
 #[test]
 fn line_persistent_layout() {
-    let region = Region::from(WidgetSize::new(5, 5));
+    let region = Region::from(Size::new(5, 5));
 
     let mut layout = line([widget(3, 1), widget(3, 3), widget(3, 2)]).layout().unwrap();
 
@@ -122,7 +123,7 @@ fn line_persistent_layout() {
 
 #[test]
 fn column_persistent_layout() {
-    let region = Region::from(WidgetSize::new(5, 5));
+    let region = Region::from(Size::new(5, 5));
 
     let mut layout = column([widget(1, 3), widget(3, 3), widget(2, 3)]).layout().unwrap();
 

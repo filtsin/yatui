@@ -3,22 +3,22 @@ use std::rc::Rc;
 use crate::{
     compositor::Watcher,
     state::{controller::Id, Controller, State},
-    terminal::cursor::{Cursor, Index},
+    terminal::size::Size,
 };
 
 #[derive(Clone, Copy)]
 pub struct Context<'a> {
     controller: &'a Controller,
     watcher: &'a Watcher,
-    size: Cursor,
+    size: Size,
 }
 
 impl<'a> Context<'a> {
-    pub(crate) fn new(controller: &'a Controller, watcher: &'a Watcher, size: Cursor) -> Self {
+    pub(crate) fn new(controller: &'a Controller, watcher: &'a Watcher, size: Size) -> Self {
         Self { controller, watcher, size }
     }
 
-    pub fn size(self) -> Cursor {
+    pub fn size(self) -> Size {
         self.size
     }
 

@@ -1,13 +1,13 @@
 pub mod canvas;
 pub mod layout;
-pub mod widget_size;
 
 use canvas::Canvas;
 use layout::Layout;
 
-use crate::{compositor::context::Context, terminal::buffer::MappedBuffer};
-
-pub use self::widget_size::WidgetSize;
+use crate::{
+    compositor::context::Context,
+    terminal::{buffer::MappedBuffer, size::Size},
+};
 
 #[derive(Debug)]
 pub enum Component {
@@ -42,7 +42,7 @@ impl Component {
         }
     }
 
-    pub fn size_hint(&self, context: Context<'_>) -> WidgetSize {
+    pub fn size_hint(&self, context: Context<'_>) -> Size {
         match self {
             Component::Canvas(c) => c.size_hint(context),
             Component::Layout(l) => l.size_hint(context),

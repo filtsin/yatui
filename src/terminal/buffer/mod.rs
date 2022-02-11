@@ -10,6 +10,7 @@ use crate::terminal::{
     character::Character,
     cursor::{Cursor, Index},
     region::Region,
+    size::Size,
 };
 
 /// Global buffer for terminal
@@ -23,10 +24,10 @@ pub struct Buffer {
 
 impl Buffer {
     /// Creates a new buffer from `last_pos`
-    pub fn new(size: Cursor) -> Self {
-        let region = Region::new(Cursor::default(), size);
-        let data = vec![Character::default(); region.area() as usize];
-        Self { data, region }
+    pub fn new(size: Size) -> Self {
+        let mut v = Self::default();
+        v.resize(size);
+        v
     }
 
     pub fn map(&mut self, region: Region) -> MappedBuffer<'_> {
@@ -34,16 +35,15 @@ impl Buffer {
     }
 
     pub fn full_map(&mut self) -> MappedBuffer<'_> {
-        let right_cursor = self.region.right_bottom().prev_row().prev_column();
-        self.map(Region::new(Cursor::default(), right_cursor))
+        self.map(self.region)
     }
 
     /// Updates `region` for current buffer.
     /// Useful for updating buffer in place when resizing terminal
-    pub fn resize(&mut self, last_pos: Cursor) {
-        let region = Region::new(Cursor::default(), last_pos);
-        self.data.resize_with(region.area(), Character::default);
-        self.region = region;
+    pub fn resize(&mut self, size: Size) {
+        self.region = Region::from(size);
+        println!("{}", self.region.area());
+        self.data.resize_with(self.region.area(), Character::default);
     }
 
     /// Write `c` in specified `position`
@@ -69,12 +69,17 @@ impl Buffer {
     }
 
     /// Returns current size of buffer
-    pub fn size(&self) -> Cursor {
-        Cursor::new(self.region.width(), self.region.height())
+    pub fn size(&self) -> Size {
+        self.region.size()
     }
 
     // get index for `data` vec for specified `cursor`
     pub fn get_index(&self, cursor: &Cursor) -> usize {
+        println!("{:?}", cursor);
+        println!(
+            "{}",
+            self.region.width() as usize * cursor.row() as usize + cursor.column() as usize
+        );
         self.region.width() as usize * cursor.row() as usize + cursor.column() as usize
     }
 }
@@ -101,11 +106,10 @@ where
 
         println!("{}-{}", w, h);
 
-        let mut res = Self::new(Cursor::new(w, h));
+        let mut res = Self::new(Size::new(w, h));
         let mut mapped = res.full_map();
 
         for (line, text) in vec.iter().enumerate() {
-            println!("{:?} : {:?}", line, text.as_ref());
             mapped.write_line(text, line as Index);
         }
 

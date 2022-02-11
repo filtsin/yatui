@@ -29,8 +29,6 @@ impl<'a> MappedBuffer<'a> {
         let global_left = self.global_cursor(region.left_top()).unwrap();
         let global_right = self.global_cursor(region.right_bottom()).unwrap();
 
-        println!("{:?}", Region::new(global_left, global_right));
-
         MappedBuffer { buffer: self.buffer, mapped_region: Region::new(global_left, global_right) }
     }
 
@@ -47,8 +45,6 @@ impl<'a> MappedBuffer<'a> {
     where
         C: Into<Character>,
     {
-        println!("HERE2");
-        println!("{:?}", cursor);
         self.buffer.write_character(c, self.global_cursor(cursor).unwrap());
     }
 
@@ -83,16 +79,10 @@ impl<'a> MappedBuffer<'a> {
         C: Into<Characters>,
     {
         let new_region =
-            Region::new(Cursor::new(0, line), Cursor::new(self.region().width(), line));
-
-        println!("HERE");
-        println!("{:?}", new_region);
+            Region::new(Cursor::new(0, line), Cursor::new(self.region().width() - 1, line));
 
         let mut mapped_buffer = self.map(new_region);
-        println!("HERE4");
         mapped_buffer.clear();
-
-        println!("HERE3");
 
         let mut cursor = Cursor::default();
 
@@ -104,7 +94,6 @@ impl<'a> MappedBuffer<'a> {
 
     pub fn clear(&mut self) {
         for cursor in self.region().into_iter() {
-            println!("{:?}", cursor);
             self.buffer.write_character(Character::default(), cursor);
         }
     }
@@ -127,7 +116,7 @@ impl<'a> MappedBuffer<'a> {
 
     // Converts local row to the global
     fn global_row(&self, local_row: Index) -> Option<Index> {
-        if local_row <= self.mapped_region.height() {
+        if local_row < self.mapped_region.height() {
             Some(local_row + self.mapped_region.left_top().row())
         } else {
             None
@@ -136,7 +125,7 @@ impl<'a> MappedBuffer<'a> {
 
     // Converts local column to the global
     fn global_column(&self, local_column: Index) -> Option<Index> {
-        if local_column <= self.mapped_region.width() {
+        if local_column < self.mapped_region.width() {
             Some(local_column + self.mapped_region.left_top().column())
         } else {
             None

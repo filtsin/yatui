@@ -1,7 +1,11 @@
 use crate::{
     backend::Backend,
     error::Result,
-    terminal::{buffer::Buffer, cursor::Cursor},
+    terminal::{
+        buffer::Buffer,
+        cursor::{Cursor, Index},
+        size::Size,
+    },
 };
 
 #[derive(Default)]
@@ -11,13 +15,13 @@ pub struct Raw {
 }
 
 impl Raw {
-    pub fn new(size: Cursor) -> Raw {
-        Self { output: Buffer::new(size), ..Default::default() }
+    pub fn new(width: Index, height: Index) -> Raw {
+        Self { output: Buffer::new(Size::new(width, height)), ..Default::default() }
     }
 }
 
 impl Backend for Raw {
-    fn get_size(&self) -> Result<Cursor> {
+    fn get_size(&self) -> Result<Size> {
         Ok(self.output.size())
     }
 

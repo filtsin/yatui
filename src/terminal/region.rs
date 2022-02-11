@@ -1,6 +1,5 @@
-use crate::component::WidgetSize;
-
 use super::cursor::{Cursor, Index};
+use crate::terminal::size::Size;
 
 /// Region represents an area in the terminal
 #[derive(Eq, PartialEq, Debug, Default, Clone, Copy)]
@@ -27,14 +26,18 @@ impl Region {
         self.right_bottom
     }
 
+    pub fn size(&self) -> Size {
+        Size::new(self.width(), self.height())
+    }
+
     /// Count of columns in the region
     pub fn width(&self) -> Index {
-        self.right_bottom.column() - self.left_top.column()
+        self.right_bottom.column() - self.left_top.column() + 1
     }
 
     /// Count of rows in the region
     pub fn height(&self) -> Index {
-        self.right_bottom.row() - self.left_top.row()
+        self.right_bottom.row() - self.left_top.row() + 1
     }
 
     /// Count of rows multiplied to count of columns in the region
@@ -43,9 +46,9 @@ impl Region {
     }
 }
 
-impl From<WidgetSize> for Region {
-    fn from(v: WidgetSize) -> Self {
-        Region::new(Cursor::new(0, 0), Cursor::new(v.width(), v.height()))
+impl From<Size> for Region {
+    fn from(v: Size) -> Self {
+        Region::new(Cursor::new(0, 0), Cursor::new(v.width() - 1, v.height() - 1))
     }
 }
 

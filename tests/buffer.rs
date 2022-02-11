@@ -1,10 +1,10 @@
-use yatui::terminal::{buffer::Buffer, character::Character, cursor::Cursor};
+use yatui::terminal::{buffer::Buffer, character::Character, cursor::Cursor, size::Size};
 
 use pretty_assertions::assert_eq;
 
 #[test]
 fn write_character() {
-    let mut buffer = Buffer::new(Cursor::new(3, 3));
+    let mut buffer = Buffer::new(Size::new(3, 3));
 
     buffer.write_character('0', Cursor::new(0, 0));
     buffer.write_character('1', Cursor::new(1, 0));
@@ -29,26 +29,26 @@ fn write_character() {
 #[test]
 #[should_panic]
 fn write_character_overflow_should_panic() {
-    let mut buffer = Buffer::new(Cursor::new(1, 1));
+    let mut buffer = Buffer::new(Size::new(1, 1));
 
     buffer.write_character('0', Cursor::new(1, 1));
 }
 
 #[test]
 fn resize() {
-    let mut buffer = Buffer::new(Cursor::new(3, 3));
-    assert_eq!(buffer.size(), Cursor::new(3, 3));
+    let mut buffer = Buffer::new(Size::new(3, 3));
+    assert_eq!(buffer.size(), Size::new(3, 3));
 
-    buffer.resize(Cursor::new(5, 5));
-    assert_eq!(buffer.size(), Cursor::new(5, 5));
+    buffer.resize(Size::new(5, 5));
+    assert_eq!(buffer.size(), Size::new(5, 5));
 
-    buffer.resize(Cursor::new(1, 1));
-    assert_eq!(buffer.size(), Cursor::new(1, 1));
+    buffer.resize(Size::new(1, 1));
+    assert_eq!(buffer.size(), Size::new(1, 1));
 }
 
 #[test]
 fn get() {
-    let mut buffer = Buffer::new(Cursor::new(3, 3));
+    let mut buffer = Buffer::new(Size::new(3, 3));
 
     buffer.write_character('0', Cursor::new(1, 1));
 
@@ -60,14 +60,14 @@ fn get() {
 #[test]
 #[should_panic]
 fn get_overflow_should_panic() {
-    let buffer = Buffer::new(Cursor::new(3, 3));
+    let buffer = Buffer::new(Size::new(3, 3));
 
     buffer.get(Cursor::new(3, 3));
 }
 
 #[test]
 fn get_index() {
-    let buffer = Buffer::new(Cursor::new(3, 3));
+    let buffer = Buffer::new(Size::new(3, 3));
 
     let index = buffer.get_index(&Cursor::new(1, 2));
 

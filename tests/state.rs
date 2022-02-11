@@ -18,7 +18,7 @@ fn mut_state_has_pointer_size() {
 #[test]
 #[serial]
 fn mut_state_creation() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -35,7 +35,7 @@ fn mut_state_creation() {
 #[test]
 #[serial]
 fn mut_state_with_creation() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state_with(|| Rc::new(0));
@@ -52,7 +52,7 @@ fn mut_state_with_creation() {
 #[test]
 #[serial]
 fn mut_state_set_value() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -70,7 +70,7 @@ fn mut_state_set_value() {
 #[test]
 #[serial]
 fn mut_state_set_with_value() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -88,7 +88,7 @@ fn mut_state_set_with_value() {
 #[test]
 #[serial]
 fn mut_state_update_value() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -106,7 +106,7 @@ fn mut_state_update_value() {
 #[test]
 #[serial]
 fn mut_state_clone_increment_ref_counter() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -123,7 +123,7 @@ fn mut_state_clone_increment_ref_counter() {
 #[test]
 #[serial]
 fn mut_state_drop_decrement_ref_counter() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -140,7 +140,7 @@ fn mut_state_drop_decrement_ref_counter() {
 #[test]
 #[serial]
 fn mut_state_update_no_changes_ref_counter() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -158,7 +158,7 @@ fn mut_state_update_no_changes_ref_counter() {
 #[test]
 #[serial]
 fn mut_state_changes_watcher() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = mut_state(0);
@@ -182,7 +182,7 @@ fn mut_state_changes_watcher() {
 #[test]
 #[serial]
 fn state_value_clone_increment_ref_counter() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = State::Value(Rc::new(0));
@@ -199,7 +199,7 @@ fn state_value_clone_increment_ref_counter() {
 #[test]
 #[serial]
 fn state_value_get_by_context() {
-    let backend = Raw::new(Cursor::default());
+    let backend = Raw::default();
     let mut app = App::new(backend);
 
     let state = State::Value(Rc::new(0));

@@ -18,6 +18,7 @@ use crate::{
         buffer::{Buffer, MappedBuffer},
         cursor::Cursor,
         region::Region,
+        size::Size,
     },
 };
 
@@ -34,7 +35,7 @@ impl<B> Compositor<B> {
     pub(crate) fn new(backend: B) -> Self {
         Self {
             backend,
-            buffer: Buffer::new(Cursor::new(20, 20)),
+            buffer: Buffer::new(Size::new(20, 20)),
             root: None,
             controller: Controller::new(),
             watcher: Watcher::default(),
@@ -66,9 +67,7 @@ where
         if let Some(component) = &mut self.root {
             let context = Context::new(&self.controller, &self.watcher, self.buffer.size());
 
-            let size = self.buffer.size();
-            let (w, h) = (size.row(), size.column());
-            let mapped_region = Region::new(Cursor::default(), Cursor::new(w, h));
+            let mapped_region = Region::from(self.buffer.size());
             let mapped_buffer = self.buffer.map(mapped_region);
 
             match component {

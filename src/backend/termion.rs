@@ -1,7 +1,7 @@
 use crate::{
     backend::Backend,
     error::Result,
-    terminal::{buffer::Buffer, cursor::Cursor},
+    terminal::{buffer::Buffer, cursor::Cursor, size::Size},
 };
 
 use termion::{
@@ -23,9 +23,9 @@ impl<W: Write> Termion<W> {
 }
 
 impl<W: Write + Send> Backend for Termion<W> {
-    fn get_size(&self) -> Result<Cursor> {
+    fn get_size(&self) -> Result<Size> {
         let (column, row) = termion::terminal_size()?;
-        Ok(Cursor::new(column, row))
+        Ok(Size::new(column, row))
     }
 
     fn move_cursor(&mut self, pos: Cursor) {
