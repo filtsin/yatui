@@ -40,12 +40,3 @@ impl<'a> MappedStateBuffer<'a> {
         todo!()
     }
 }
-
-impl Display for Buffer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for c in self.data.iter() {
-            write!(f, "{}", c)?;
-        }
-        Ok(())
-    }
-}

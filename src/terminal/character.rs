@@ -1,9 +1,13 @@
-use std::fmt::{Display, Write};
+use std::{
+    fmt::{Display, Write},
+    ops::{Deref, DerefMut},
+    slice::Iter,
+};
 
 use super::modifier::Modifier;
 
 /// Character in terminal cell with modifiers
-#[derive(Eq, PartialEq, Debug, Default, Copy, Clone)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub struct Character {
     symbol: char,
     modifier: Modifier,
@@ -12,6 +16,14 @@ pub struct Character {
 impl Character {
     pub fn new(symbol: char) -> Self {
         Self { symbol, modifier: Modifier::default() }
+    }
+
+    pub fn symbol(self) -> char {
+        self.symbol
+    }
+
+    pub fn update_symbol(self, symbol: char) -> Self {
+        Self { symbol, ..self }
     }
 }
 
@@ -25,5 +37,39 @@ impl Display for Character {
 impl From<char> for Character {
     fn from(s: char) -> Self {
         Self::new(s)
+    }
+}
+
+impl Default for Character {
+    fn default() -> Self {
+        Self { symbol: ' ', modifier: Modifier::default() }
+    }
+}
+
+#[derive(Debug)]
+pub struct Characters(pub Vec<Character>);
+
+impl<S> From<S> for Characters
+where
+    S: AsRef<str>,
+{
+    fn from(s: S) -> Self {
+        let res = s.as_ref().chars().map(Character::new).collect();
+        println!("{:?}", res);
+        Self(res)
+    }
+}
+
+impl Deref for Characters {
+    type Target = Vec<Character>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Characters {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

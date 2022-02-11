@@ -3,7 +3,7 @@ use super::{Buffer, MappedStateBuffer};
 use crate::{
     error::Error,
     terminal::{
-        character::Character,
+        character::{Character, Characters},
         cursor::{Cursor, Index},
         modifier::Modifier,
         region::Region,
@@ -26,23 +26,18 @@ impl<'a> MappedBuffer<'a> {
     }
 
     pub fn map(&mut self, region: Region) -> MappedBuffer<'_> {
-        MappedBuffer { buffer: self.buffer, mapped_region: region }
+        let global_left = self.global_cursor(region.left_top()).unwrap();
+        let global_right = self.global_cursor(region.right_bottom()).unwrap();
+
+        println!("{:?}", Region::new(global_left, global_right));
+
+        MappedBuffer { buffer: self.buffer, mapped_region: Region::new(global_left, global_right) }
     }
 
     pub fn with_state(self, state: usize) -> MappedStateBuffer<'a> {
         // TODO: Check state for overflow region
         MappedStateBuffer::new(self, state)
     }
-
-    pub fn with_state_cursor(self, cursor: Cursor) -> MappedStateBuffer<'a> {
-        todo!()
-    }
-
-    // border with specified character. return buffer inside this border
-    pub fn draw_border(self, size: usize, c: Character) -> MappedBuffer<'a> {
-        todo!()
-    }
-
     // style for all characters
     pub fn set_style(&mut self, style: Modifier) {
         todo!()
@@ -52,6 +47,8 @@ impl<'a> MappedBuffer<'a> {
     where
         C: Into<Character>,
     {
+        println!("HERE2");
+        println!("{:?}", cursor);
         self.buffer.write_character(c, self.global_cursor(cursor).unwrap());
     }
 
@@ -77,8 +74,38 @@ impl<'a> MappedBuffer<'a> {
         let character = c.into();
 
         for cursor in self.region().into_iter() {
-            println!("{:?}", cursor);
             self.buffer.write_character(character, cursor);
+        }
+    }
+
+    pub fn write_line<C>(&mut self, c: C, line: Index)
+    where
+        C: Into<Characters>,
+    {
+        let new_region =
+            Region::new(Cursor::new(0, line), Cursor::new(self.region().width(), line));
+
+        println!("HERE");
+        println!("{:?}", new_region);
+
+        let mut mapped_buffer = self.map(new_region);
+        println!("HERE4");
+        mapped_buffer.clear();
+
+        println!("HERE3");
+
+        let mut cursor = Cursor::default();
+
+        for character in c.into().0.into_iter() {
+            mapped_buffer.write_character(character, cursor);
+            cursor = cursor.next_column();
+        }
+    }
+
+    pub fn clear(&mut self) {
+        for cursor in self.region().into_iter() {
+            println!("{:?}", cursor);
+            self.buffer.write_character(Character::default(), cursor);
         }
     }
 

@@ -16,10 +16,14 @@ fn write_character() {
     buffer.write_character('7', Cursor::new(1, 2));
     buffer.write_character('8', Cursor::new(2, 2));
 
-    let symbols: Vec<Character> =
-        ['0', '1', '2', '3', '4', '5', '6', '7', '8'].into_iter().map(Character::from).collect();
+    #[rustfmt::skip]
+    let s = vec![
+        "012", 
+        "345", 
+        "678"
+    ];
 
-    assert_eq!(buffer.absorb(), symbols);
+    assert_eq!(buffer, Buffer::from(s));
 }
 
 #[test]

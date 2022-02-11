@@ -24,12 +24,24 @@ impl Cursor {
         self.column
     }
 
+    #[must_use]
     pub fn next_row(&self) -> Cursor {
         Cursor { row: self.row() + 1, ..*self }
     }
 
+    #[must_use]
     pub fn next_column(&self) -> Cursor {
         Cursor { column: self.column() + 1, ..*self }
+    }
+
+    #[must_use]
+    pub fn prev_row(&self) -> Cursor {
+        Cursor { row: self.row() - 1, ..*self }
+    }
+
+    #[must_use]
+    pub fn prev_column(&self) -> Cursor {
+        Cursor { column: self.column() - 1, ..*self }
     }
 
     pub fn set_row(&mut self, row: Index) {
