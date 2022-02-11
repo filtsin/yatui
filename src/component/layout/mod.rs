@@ -3,9 +3,12 @@ mod column;
 mod line;
 mod solver;
 
-use std::fmt::Debug;
+use std::{
+    collections::{hash_map::Keys, HashMap},
+    fmt::Debug,
+};
 
-use crate::cassowary::Constraint;
+use crate::{cassowary::Constraint, terminal::cursor::Cursor};
 
 use self::{
     child::Child,
@@ -79,27 +82,40 @@ impl Layout {
 
         info!("Changes: {:?}\nVars: {:?}", changes, vars);
 
+        let mut changer = RegionChanger::default();
+
         for (variable, value) in changes {
             if let Some((child_idx, field)) = vars.get(variable) {
-                let child = self.childs.get_mut(*child_idx).unwrap();
+                let id = *child_idx;
+
+                let child = self.childs.get_mut(id).unwrap();
+
+                changer.save(id, child.region());
+
                 let value = *value as Index;
 
                 match field {
-                    ElementPart::LeftX => child.region.left_top.set_column(value),
-                    ElementPart::LeftY => child.region.left_top.set_row(value),
-                    ElementPart::RightX => child.region.right_bottom.set_column(value),
-                    ElementPart::RightY => child.region.right_bottom.set_row(value),
+                    ElementPart::LeftX => changer.change_left_x(id, value),
+                    ElementPart::LeftY => changer.change_left_y(id, value),
+                    ElementPart::RightX => changer.change_right_x(id, value),
+                    ElementPart::RightY => changer.change_right_y(id, value),
                 }
             }
+        }
+
+        for change in changer.changes() {
+            let child = self.childs.get_mut(*change).unwrap();
+            child.update_region(changer.get_good_region(*change));
         }
     }
 
     pub fn draw(&mut self, mut buffer: MappedBuffer<'_>, context: Context<'_>) {
         for (i, child) in self.childs.iter_mut().enumerate() {
-            let region = child.region;
-            info!("Child {}, region = {:?}", i, region);
-            let new_buffer = buffer.map(region);
-            child.component.draw(new_buffer, context);
+            if let Some(region) = child.region {
+                info!("Child {}, region = {:?}", i, region);
+                let new_buffer = buffer.map(region);
+                child.component.draw(new_buffer, context);
+            }
         }
     }
 
@@ -148,5 +164,54 @@ impl<'a> LayoutSystem<'a> {
 impl Debug for Layout {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Layout").finish()
+    }
+}
+
+#[derive(Default)]
+struct RegionChanger {
+    history: HashMap<usize, Option<Region>>,
+    actions: HashMap<usize, (Cursor, Cursor)>,
+}
+
+impl RegionChanger {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn save(&mut self, id: usize, region: Option<Region>) {
+        self.history.insert(id, region);
+    }
+
+    fn change_left_x(&mut self, id: usize, new_x: Index) {
+        let value = self.actions.entry(id).or_default();
+        value.0.set_column(new_x);
+    }
+
+    fn change_left_y(&mut self, id: usize, new_x: Index) {
+        let value = self.actions.entry(id).or_default();
+        value.0.set_row(new_x);
+    }
+
+    fn change_right_x(&mut self, id: usize, new_x: Index) {
+        let value = self.actions.entry(id).or_default();
+        value.1.set_column(new_x);
+    }
+
+    fn change_right_y(&mut self, id: usize, new_x: Index) {
+        let value = self.actions.entry(id).or_default();
+        value.1.set_row(new_x);
+    }
+
+    fn get_good_region(&self, id: usize) -> Option<Region> {
+        let value = self.actions.get(&id).unwrap();
+        if let Some(v) = Region::try_new(value.0, value.1) {
+            Some(v)
+        } else {
+            *self.history.get(&id).unwrap()
+        }
+    }
+
+    fn changes(&self) -> Keys<'_, usize, (Cursor, Cursor)> {
+        self.actions.keys()
     }
 }

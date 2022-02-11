@@ -10,27 +10,23 @@ use crate::{
 pub struct Child {
     pub(crate) component: Component,
     size: Size,
-    pub(crate) region: Region,
+    pub(crate) region: Option<Region>,
 }
 
 impl Child {
     pub fn new(component: Component) -> Self {
-        Self {
-            component,
-            size: Size::min(),
-            region: Region::new(Cursor::new(0, 0), Cursor::new(0, 0)),
-        }
+        Self { component, size: Size::min(), region: None }
     }
 
     pub fn size(&self) -> Size {
         self.size
     }
 
-    pub fn region(&self) -> Region {
+    pub fn region(&self) -> Option<Region> {
         self.region
     }
 
-    pub fn update_region(&mut self, region: Region) {
+    pub fn update_region(&mut self, region: Option<Region>) {
         self.region = region;
     }
 

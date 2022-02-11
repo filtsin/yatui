@@ -15,7 +15,7 @@ where
             let cur = &elements[0];
             let next = &elements[1];
 
-            let next_element_start_from_prev_x = cur.right_x | EQ(REQUIRED) | next.left_x;
+            let next_element_start_from_prev_x = (cur.right_x + 1.0) | EQ(REQUIRED) | next.left_x;
             let elements_y_are_equal = cur.left_y | EQ(REQUIRED) | next.left_y;
 
             constraints.push(next_element_start_from_prev_x);

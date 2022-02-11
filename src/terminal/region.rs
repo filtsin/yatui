@@ -4,8 +4,8 @@ use crate::terminal::size::Size;
 /// Region represents an area in the terminal
 #[derive(Eq, PartialEq, Debug, Default, Clone, Copy)]
 pub struct Region {
-    pub(crate) left_top: Cursor,
-    pub(crate) right_bottom: Cursor,
+    left_top: Cursor,
+    right_bottom: Cursor,
 }
 
 impl Region {
@@ -16,6 +16,11 @@ impl Region {
     pub fn new(left_top: Cursor, right_bottom: Cursor) -> Self {
         assert!(right_bottom >= left_top);
         Self { left_top, right_bottom }
+    }
+
+    pub fn try_new(left_top: Cursor, right_bottom: Cursor) -> Option<Self> {
+        println!("{:?} - {:?} = {:?}", left_top, right_bottom, right_bottom < left_top);
+        if right_bottom < left_top { None } else { Some(Self::new(left_top, right_bottom)) }
     }
 
     pub fn left_top(&self) -> Cursor {

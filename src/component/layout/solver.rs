@@ -128,22 +128,22 @@ impl Solver {
 
         let element = self.get(index).unwrap();
 
-        let non_negative_width = (element.right_x - element.left_x) | GE(REQUIRED) | 0.0;
-        let non_negative_height = (element.right_y - element.left_y) | GE(REQUIRED) | 0.0;
+        let non_negative_width = (element.right_x - element.left_x + 1.0) | GE(REQUIRED) | 0.0;
+        let non_negative_height = (element.right_y - element.left_y + 1.0) | GE(REQUIRED) | 0.0;
 
         let left_x_positive = element.left_x | GE(REQUIRED) | 0.0;
         let left_y_positive = element.left_y | GE(REQUIRED) | 0.0;
 
-        let right_x_lower_width = element.right_x | LE(REQUIRED) | self.width;
-        let right_y_lower_height = element.right_y | LE(REQUIRED) | self.height;
+        let right_x_lower_width = element.right_x | LE(REQUIRED) | (self.width - 1.0);
+        let right_y_lower_height = element.right_y | LE(REQUIRED) | (self.height - 1.0);
 
         // First elements have priority
         let width_strength = MEDIUM - index as f64;
 
         let preffered_width =
-            (element.right_x - element.left_x) | EQ(width_strength) | element.width;
+            (element.right_x - element.left_x + 1.0) | EQ(width_strength) | element.width;
         let preffered_height =
-            (element.right_y - element.left_y) | EQ(width_strength) | element.height;
+            (element.right_y - element.left_y + 1.0) | EQ(width_strength) | element.height;
 
         self.solver
             .add_constraints(&[
