@@ -181,10 +181,12 @@ impl RegionChanger {
             return;
         }
 
-        match region {
-            Some(region) => self.actions.insert(id, (region.left_top(), region.right_bottom())),
-            None => self.actions.insert(id, (Cursor::default(), Cursor::default())),
+        let (left_top, right_bottom) = match region {
+            Some(region) => (region.left_top(), region.right_bottom()),
+            None => (Cursor::default(), Cursor::default()),
         };
+
+        self.actions.insert(id, (left_top, right_bottom));
     }
 
     fn change_left_x(&mut self, id: usize, new_x: Index) {
@@ -209,7 +211,7 @@ impl RegionChanger {
 
     fn get_region(&self, id: usize) -> Option<Region> {
         let value = self.actions.get(&id).unwrap();
-        if let Some(v) = Region::try_new(value.0, value.1) { Some(v) } else { None }
+        Region::try_new(value.0, value.1)
     }
 
     fn changes(&self) -> Keys<'_, usize, (Cursor, Cursor)> {

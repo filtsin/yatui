@@ -112,7 +112,7 @@ impl Display for Buffer {
         for (i, el) in self.data.iter().enumerate() {
             write!(f, "{}", el)?;
             if i == self.region.right_bottom().column().into() {
-                writeln!(f)?;
+                write!(f, "\r\n");
             }
         }
         Ok(())

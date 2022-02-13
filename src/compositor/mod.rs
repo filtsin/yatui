@@ -2,6 +2,8 @@ pub mod context;
 pub(crate) mod event;
 pub(crate) mod watcher;
 
+use log::info;
+
 use self::{
     context::Context,
     event::{
@@ -35,7 +37,7 @@ impl<B> Compositor<B> {
     pub(crate) fn new(backend: B) -> Self {
         Self {
             backend,
-            buffer: Buffer::new(Size::new(20, 20)),
+            buffer: Buffer::default(),
             root: None,
             controller: Controller::new(),
             watcher: Watcher::default(),
@@ -58,9 +60,12 @@ where
     B: Backend,
 {
     pub(crate) fn draw(&mut self) {
-        if self.watcher.is_empty()
-        /* TODO: && size_not_changed */
-        {
+        let current_size = self.backend.get_size().unwrap();
+
+        if self.buffer.size() != current_size {
+            info!("Resize new_size = {:?}", current_size);
+            self.buffer.resize(current_size);
+        } else if self.watcher.is_empty() {
             return;
         }
 
@@ -68,7 +73,8 @@ where
             let context = Context::new(&self.controller, &self.watcher, self.buffer.size());
 
             let mapped_region = Region::from(self.buffer.size());
-            let mapped_buffer = self.buffer.map(mapped_region);
+            let mut mapped_buffer = self.buffer.map(mapped_region);
+            mapped_buffer.clear();
 
             match component {
                 Component::Canvas(c) => c.draw(mapped_buffer, context),
@@ -78,6 +84,8 @@ where
                     l.draw(mapped_buffer, context);
                 }
             }
+
+            info!("Debug buffer: {:?}", self.buffer);
 
             self.backend.hide_cursor();
             self.backend.clear_screen();

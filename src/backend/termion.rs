@@ -7,17 +7,19 @@ use crate::{
 use termion::{
     clear, cursor,
     raw::{IntoRawMode, RawTerminal},
+    screen::AlternateScreen,
 };
 
 use std::io::{BufWriter, Write};
 
 pub struct Termion<W: Write> {
-    output: RawTerminal<BufWriter<W>>,
+    output: AlternateScreen<RawTerminal<BufWriter<W>>>,
 }
 
 impl<W: Write> Termion<W> {
     pub fn new(output: W) -> Result<Termion<W>> {
-        let output = BufWriter::with_capacity(5_000_000, output).into_raw_mode()?;
+        let output =
+            AlternateScreen::from(BufWriter::with_capacity(5_000_000, output).into_raw_mode()?);
         Ok(Termion { output })
     }
 }
