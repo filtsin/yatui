@@ -1,10 +1,8 @@
 mod map;
-mod state;
 
 use std::fmt::Display;
 
 pub use map::MappedBuffer;
-pub use state::MappedStateBuffer;
 
 use crate::terminal::{
     character::Character,
@@ -42,7 +40,6 @@ impl Buffer {
     /// Useful for updating buffer in place when resizing terminal
     pub fn resize(&mut self, size: Size) {
         self.region = Region::from(size);
-        println!("{}", self.region.area());
         self.data.resize_with(self.region.area(), Character::default);
     }
 
@@ -75,11 +72,6 @@ impl Buffer {
 
     // get index for `data` vec for specified `cursor`
     pub fn get_index(&self, cursor: &Cursor) -> usize {
-        println!("{:?}", cursor);
-        println!(
-            "{}",
-            self.region.width() as usize * cursor.row() as usize + cursor.column() as usize
-        );
         self.region.width() as usize * cursor.row() as usize + cursor.column() as usize
     }
 }
@@ -98,13 +90,11 @@ impl AsMut<[Character]> for Buffer {
 
 impl<S> From<Vec<S>> for Buffer
 where
-    S: AsRef<str>,
+    S: AsRef<str> + std::fmt::Debug,
 {
     fn from(vec: Vec<S>) -> Self {
         let h = vec.len() as Index;
         let w = vec.iter().map(|v| v.as_ref().chars().count()).max().unwrap() as Index;
-
-        println!("{}-{}", w, h);
 
         let mut res = Self::new(Size::new(w, h));
         let mut mapped = res.full_map();

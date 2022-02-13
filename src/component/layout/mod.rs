@@ -65,10 +65,6 @@ impl Layout {
             (self.layout_fn)(system, context);
         }
 
-        if self.last_region.is_some() && self.last_region.unwrap() == region {
-            return;
-        }
-
         for (i, child) in self.childs.iter_mut().enumerate() {
             let size_hint = child.component.size_hint(context);
             child.update_size(size_hint);
@@ -105,7 +101,10 @@ impl Layout {
 
         for change in changer.changes() {
             let child = self.childs.get_mut(*change).unwrap();
-            child.update_region(changer.get_good_region(*change));
+            if let Some(new_region) = changer.get_region(*change) {
+                child.update_region(Some(new_region));
+            }
+            info!("Region: {:?}", child.region());
         }
     }
 
@@ -169,7 +168,6 @@ impl Debug for Layout {
 
 #[derive(Default)]
 struct RegionChanger {
-    history: HashMap<usize, Option<Region>>,
     actions: HashMap<usize, (Cursor, Cursor)>,
 }
 
@@ -179,7 +177,14 @@ impl RegionChanger {
     }
 
     fn save(&mut self, id: usize, region: Option<Region>) {
-        self.history.insert(id, region);
+        if self.actions.contains_key(&id) {
+            return;
+        }
+
+        match region {
+            Some(region) => self.actions.insert(id, (region.left_top(), region.right_bottom())),
+            None => self.actions.insert(id, (Cursor::default(), Cursor::default())),
+        };
     }
 
     fn change_left_x(&mut self, id: usize, new_x: Index) {
@@ -202,13 +207,9 @@ impl RegionChanger {
         value.1.set_row(new_x);
     }
 
-    fn get_good_region(&self, id: usize) -> Option<Region> {
+    fn get_region(&self, id: usize) -> Option<Region> {
         let value = self.actions.get(&id).unwrap();
-        if let Some(v) = Region::try_new(value.0, value.1) {
-            Some(v)
-        } else {
-            *self.history.get(&id).unwrap()
-        }
+        if let Some(v) = Region::try_new(value.0, value.1) { Some(v) } else { None }
     }
 
     fn changes(&self) -> Keys<'_, usize, (Cursor, Cursor)> {

@@ -55,7 +55,6 @@ where
 {
     fn from(s: S) -> Self {
         let res = s.as_ref().chars().map(Character::new).collect();
-        println!("{:?}", res);
         Self(res)
     }
 }

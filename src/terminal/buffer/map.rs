@@ -1,4 +1,6 @@
-use super::{Buffer, MappedStateBuffer};
+use log::info;
+
+use super::Buffer;
 
 use crate::{
     error::Error,
@@ -28,14 +30,9 @@ impl<'a> MappedBuffer<'a> {
     pub fn map(&mut self, region: Region) -> MappedBuffer<'_> {
         let global_left = self.global_cursor(region.left_top()).unwrap();
         let global_right = self.global_cursor(region.right_bottom()).unwrap();
-
         MappedBuffer { buffer: self.buffer, mapped_region: Region::new(global_left, global_right) }
     }
 
-    pub fn with_state(self, state: usize) -> MappedStateBuffer<'a> {
-        // TODO: Check state for overflow region
-        MappedStateBuffer::new(self, state)
-    }
     // style for all characters
     pub fn set_style(&mut self, style: Modifier) {
         todo!()
@@ -76,8 +73,9 @@ impl<'a> MappedBuffer<'a> {
 
     pub fn write_line<C>(&mut self, c: C, line: Index)
     where
-        C: Into<Characters>,
+        C: Into<Characters> + std::fmt::Debug,
     {
+        info!("write_line() self={:?}, c={:?}, line={:?}", *self, c, line);
         let new_region =
             Region::new(Cursor::new(0, line), Cursor::new(self.region().width() - 1, line));
 
