@@ -14,13 +14,28 @@ impl Region {
     /// # Panics
     /// Panic if `right_bottom` < `left_top`
     pub fn new(left_top: Cursor, right_bottom: Cursor) -> Self {
-        assert!(right_bottom >= left_top);
-        Self { left_top, right_bottom }
+        Self::try_new(left_top, right_bottom).unwrap()
     }
 
     pub fn try_new(left_top: Cursor, right_bottom: Cursor) -> Option<Self> {
-        println!("{:?} - {:?} = {:?}", left_top, right_bottom, right_bottom < left_top);
-        if right_bottom < left_top { None } else { Some(Self::new(left_top, right_bottom)) }
+        match (
+            right_bottom.column().checked_sub(left_top.column()),
+            right_bottom.row().checked_sub(left_top.row()),
+        ) {
+            (Some(_), Some(_)) => Some(Self { left_top, right_bottom }),
+            _ => None,
+        }
+    }
+
+    pub fn with_size(left_top: Cursor, size: Size) -> Self {
+        assert!(size.width() > 0 && size.height() > 0);
+
+        let right_bottom = Cursor::new(
+            left_top.column().checked_add(size.width() - 1).unwrap(),
+            left_top.row().checked_add(size.height() - 1).unwrap(),
+        );
+
+        Self { left_top, right_bottom }
     }
 
     pub fn left_top(&self) -> Cursor {

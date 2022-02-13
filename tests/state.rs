@@ -5,7 +5,6 @@ use yatui::{
     app::App,
     backend::Raw,
     state::{mut_state, mut_state_with, Pointer, State},
-    terminal::cursor::Cursor,
 };
 
 use pretty_assertions::assert_eq;

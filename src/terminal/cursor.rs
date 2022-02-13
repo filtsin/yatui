@@ -58,20 +58,3 @@ impl From<(Index, Index)> for Cursor {
         Self::new(column, row)
     }
 }
-
-impl PartialOrd for Cursor {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.column.partial_cmp(&other.column) {
-            Some(Ordering::Equal | Ordering::Greater) => { /* nothing here */ }
-            ord => return ord,
-        }
-
-        self.row.partial_cmp(&other.row)
-    }
-}
-
-impl Ord for Cursor {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
-    }
-}
