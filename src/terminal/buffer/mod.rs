@@ -2,6 +2,7 @@ mod map;
 
 use std::fmt::Display;
 
+use log::info;
 pub use map::MappedBuffer;
 
 use crate::terminal::{

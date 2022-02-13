@@ -45,6 +45,10 @@ impl Canvas {
         }
     }
 
+    pub fn take_size_fn(&mut self) -> Box<SizeFn> {
+        self.size_fn.take().unwrap()
+    }
+
     pub fn set_size_value(&mut self, value: Size) {
         self.set_size_fn(move |_| value);
     }

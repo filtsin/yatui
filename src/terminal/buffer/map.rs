@@ -33,6 +33,17 @@ impl<'a> MappedBuffer<'a> {
         MappedBuffer { buffer: self.buffer, mapped_region: Region::new(global_left, global_right) }
     }
 
+    pub fn map_line(&mut self, line: Index) -> MappedBuffer<'_> {
+        self.map(Region::new(Cursor::new(0, line), Cursor::new(self.region().width() - 1, line)))
+    }
+
+    pub fn map_column(&mut self, column: Index) -> MappedBuffer<'_> {
+        self.map(Region::new(
+            Cursor::new(column, 0),
+            Cursor::new(column, self.region().height() - 1),
+        ))
+    }
+
     // style for all characters
     pub fn set_style(&mut self, style: Modifier) {
         todo!()
@@ -42,7 +53,8 @@ impl<'a> MappedBuffer<'a> {
     where
         C: Into<Character>,
     {
-        self.buffer.write_character(c, self.global_cursor(cursor).unwrap());
+        let character = c.into();
+        self.buffer.write_character(character, self.global_cursor(cursor).unwrap());
     }
 
     pub fn try_write_character<C>(&mut self, c: C, cursor: Cursor) -> Result<(), Error>
@@ -93,6 +105,24 @@ impl<'a> MappedBuffer<'a> {
         for character in c.into().0.into_iter() {
             mapped_buffer.write_character(character, cursor);
             cursor = cursor.next_column();
+        }
+    }
+
+    pub fn write_column<C>(&mut self, c: C, column: Index)
+    where
+        C: Into<Characters>,
+    {
+        let new_region =
+            Region::new(Cursor::new(column, 0), Cursor::new(column, self.region().height() - 1));
+
+        let mut mapped_buffer = self.map(new_region);
+        mapped_buffer.clear();
+
+        let mut cursor = Cursor::default();
+
+        for character in c.into().0.into_iter() {
+            mapped_buffer.write_character(character, cursor);
+            cursor = cursor.next_row();
         }
     }
 
