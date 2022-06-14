@@ -1,7 +1,7 @@
 pub(crate) mod controller;
 mod create;
 
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub use self::{
     controller::pointer::Pointer,
@@ -12,8 +12,13 @@ pub(crate) use controller::Controller;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum State<T> {
-    Value(Rc<T>),
+    Value(InnerValue<T>),
     Pointer(Pointer<T>),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InnerValue<T> {
+    pub(crate) pointer: Rc<T>,
 }
 
 impl<T> From<Pointer<T>> for State<T> {
@@ -24,12 +29,12 @@ impl<T> From<Pointer<T>> for State<T> {
 
 impl<T> From<T> for State<T> {
     fn from(v: T) -> Self {
-        Self::Value(Rc::new(v))
+        Self::Value(InnerValue { pointer: Rc::new(v) })
     }
 }
 
 impl From<&str> for State<String> {
     fn from(v: &str) -> Self {
-        Self::Value(Rc::new(v.to_owned()))
+        Self::Value(InnerValue { pointer: Rc::new(v.to_owned()) })
     }
 }

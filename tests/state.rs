@@ -184,7 +184,7 @@ fn state_value_clone_increment_ref_counter() {
     let backend = Raw::default();
     let mut app = App::new(backend);
 
-    let state = State::Value(Rc::new(0));
+    let state = State::from(Rc::new(0));
     let state2 = state.clone();
 
     app.process_event();
@@ -201,10 +201,10 @@ fn state_value_get_by_context() {
     let backend = Raw::default();
     let mut app = App::new(backend);
 
-    let state = State::Value(Rc::new(0));
+    let state = State::from(Rc::new(0));
 
     app.process_event();
 
     let context = app.context();
-    assert_eq!(0, *context.get(&state));
+    assert_eq!(0, **context.get(&state));
 }

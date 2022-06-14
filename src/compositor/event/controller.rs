@@ -71,7 +71,7 @@ impl Action {
     }
 }
 
-// SAFETY: `ControllerObj` created by `Send` object and we do not copy result in multiple threads
+// SAFETY: `Obj` created by `Send` object and we do not copy result in multiple threads
 // (using it only in ui thread)
 unsafe impl Send for Obj {}
 

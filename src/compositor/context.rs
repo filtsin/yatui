@@ -24,14 +24,14 @@ impl<'a> Context<'a> {
 
     pub fn get<'b: 'a, T>(self, state: &'b State<T>) -> &'a T {
         match state {
-            State::Value(v) => v,
+            State::Value(v) => &v.pointer,
             State::Pointer(pointer) => self.controller.get(pointer.id()).map::<T>(),
         }
     }
 
     pub fn ref_count<T>(self, state: &'_ State<T>) -> usize {
         match state {
-            State::Value(pointer) => Rc::strong_count(pointer),
+            State::Value(value) => Rc::strong_count(&value.pointer),
             State::Pointer(pointer) => self.controller.ref_count(pointer.id()),
         }
     }
