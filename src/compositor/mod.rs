@@ -73,17 +73,13 @@ where
             let context = Context::new(&self.controller, &self.watcher, self.buffer.size());
 
             let mapped_region = Region::from(self.buffer.size());
+
             let mut mapped_buffer = self.buffer.map(mapped_region);
             mapped_buffer.clear();
 
-            match component {
-                Component::Canvas(c) => c.draw(mapped_buffer, context),
-                Component::Layout(l) => {
-                    l.calc_size(context);
-                    l.layout(mapped_region, context);
-                    l.draw(mapped_buffer, context);
-                }
-            }
+            component.size_hint(context);
+            component.layout(mapped_region, context);
+            component.draw(mapped_buffer, context);
 
             info!("Debug buffer: {:?}", self.buffer);
 

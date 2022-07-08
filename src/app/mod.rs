@@ -41,6 +41,14 @@ impl<B> App<B> {
     pub fn context(&self) -> Context<'_> {
         self.compositor.context()
     }
+
+    pub fn symbol_table(&self) {
+        // TODO
+    }
+
+    pub fn symbol_table_mut(&mut self) {
+        // TODO
+    }
 }
 
 impl<B> App<B>

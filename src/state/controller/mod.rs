@@ -26,6 +26,12 @@ pub struct ControllerRef<'a> {
     marker: PhantomData<&'a ()>,
 }
 
+#[derive(Copy, Clone)]
+pub struct ControllerRefMut<'a> {
+    data: Data,
+    marker: PhantomData<&'a mut ()>,
+}
+
 impl Controller {
     pub fn new() -> Self {
         Self::default()
@@ -96,6 +102,10 @@ impl Controller {
         ControllerRef { data: self.content(id).data, marker: PhantomData }
     }
 
+    pub fn get_mut(&mut self, id: Id) -> ControllerRefMut<'_> {
+        ControllerRefMut { data: self.content(id).data, marker: PhantomData }
+    }
+
     pub fn get_raw(&mut self, id: Id) -> Data {
         self.content(id).data
     }
@@ -134,5 +144,11 @@ impl Drop for ControllerContent {
 impl<'a> ControllerRef<'a> {
     pub fn map<T>(self) -> &'a T {
         unsafe { &*self.data.cast::<T>().as_ptr() }
+    }
+}
+
+impl<'a> ControllerRefMut<'a> {
+    pub fn map<T>(self) -> &'a mut T {
+        unsafe { &mut *self.data.cast::<T>().as_ptr() }
     }
 }

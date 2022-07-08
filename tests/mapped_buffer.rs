@@ -5,7 +5,7 @@ use yatui::terminal::{
 use pretty_assertions::assert_eq;
 
 #[test]
-fn creation() {
+fn map() {
     let mut buffer = Buffer::new(Size::new(5, 5));
 
     let mapped_buffer = buffer.map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));

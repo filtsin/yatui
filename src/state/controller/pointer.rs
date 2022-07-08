@@ -97,3 +97,5 @@ impl<T> PartialEq for Pointer<T> {
 }
 
 impl<T> Eq for Pointer<T> {}
+
+unsafe impl<T> Send for Pointer<T> {}

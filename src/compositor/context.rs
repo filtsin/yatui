@@ -1,4 +1,8 @@
-use std::rc::Rc;
+use std::{
+    cell::{Ref, RefMut},
+    ops::Deref,
+    rc::Rc,
+};
 
 use crate::{
     compositor::Watcher,
@@ -29,14 +33,14 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn ref_count<T>(self, state: &'_ State<T>) -> usize {
+    pub fn ref_count<T>(self, state: &State<T>) -> usize {
         match state {
             State::Value(value) => Rc::strong_count(&value.pointer),
             State::Pointer(pointer) => self.controller.ref_count(pointer.id()),
         }
     }
 
-    pub fn is_changed<T>(self, state: &'_ State<T>) -> bool {
+    pub fn is_changed<T>(self, state: &State<T>) -> bool {
         match state {
             State::Value(_) => false,
             State::Pointer(pointer) => self.is_changed_id(pointer.id()),

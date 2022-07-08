@@ -108,7 +108,7 @@ fn mut_state_clone_increment_ref_counter() {
     let backend = Raw::default();
     let mut app = App::new(backend);
 
-    let state = mut_state(0);
+    let state: Pointer<i32> = mut_state(0);
     let state2 = state.clone();
 
     app.process_event();
@@ -125,7 +125,7 @@ fn mut_state_drop_decrement_ref_counter() {
     let backend = Raw::default();
     let mut app = App::new(backend);
 
-    let state = mut_state(0);
+    let state: Pointer<i32> = mut_state(0);
     let state2 = state.clone();
     drop(state2);
 

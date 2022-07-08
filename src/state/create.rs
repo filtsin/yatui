@@ -10,12 +10,14 @@ pub fn reserve_id() -> usize {
 }
 
 /// Create state from `value`
-pub fn mut_state<T>(value: T) -> Pointer<T>
+pub fn mut_state<U, T>(value: U) -> Pointer<T>
 where
+    U: Send,
+    U: Into<T>,
     T: Send,
 {
     let my_id = reserve_id();
-    Pointer::new(value, my_id)
+    Pointer::new(value.into(), my_id)
 }
 
 pub fn mut_state_with<F, T>(f: F) -> Pointer<T>

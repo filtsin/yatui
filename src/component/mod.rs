@@ -1,58 +1,68 @@
-pub mod canvas;
+mod cb;
 pub mod layout;
+pub mod subscription;
 
-use canvas::Canvas;
-use layout::Layout;
-
+pub use self::{
+    cb::{Cb, DrawFn, LayoutFn, SizeFn},
+    subscription::Subscription,
+};
 use crate::{
+    cb,
     compositor::context::Context,
-    terminal::{buffer::MappedBuffer, size::Size},
+    state::State,
+    terminal::{buffer::MappedBuffer, region::Region, size::Size},
 };
 
-#[derive(Debug)]
-pub enum Component {
-    Canvas(Box<Canvas>),
-    Layout(Box<Layout>),
-}
-
-impl From<Canvas> for Component {
-    fn from(v: Canvas) -> Self {
-        Self::Canvas(Box::new(v))
-    }
-}
-
-impl From<Layout> for Component {
-    fn from(v: Layout) -> Self {
-        Self::Layout(Box::new(v))
-    }
+pub struct Component {
+    draw_fn: DrawFn,
+    pub layout_fn: Option<LayoutFn>,
+    pub size_fn: Option<SizeFn>,
+    sub: Subscription,
 }
 
 impl Component {
-    pub fn canvas(self) -> Result<Box<Canvas>, Self> {
-        match self {
-            Component::Canvas(c) => Ok(c),
-            Component::Layout(_) => Err(self),
+    pub fn new(draw_fn: DrawFn) -> Self {
+        Self { draw_fn, layout_fn: None, size_fn: None, sub: Subscription::new() }
+    }
+
+    pub fn draw(&mut self, buf: MappedBuffer<'_>, context: Context<'_>) {
+        (self.draw_fn.f)(buf, context)
+    }
+
+    pub fn layout(&mut self, region: Region, context: Context<'_>) {
+        if let Some(layout_fn) = &mut self.layout_fn {
+            (layout_fn.f)(region, context);
         }
     }
 
-    pub fn layout(self) -> Result<Box<Layout>, Self> {
-        match self {
-            Component::Canvas(_) => Err(self),
-            Component::Layout(l) => Ok(l),
+    pub fn size_hint(&mut self, context: Context<'_>) -> Size {
+        match self.size_fn {
+            Some(ref mut size_fn) => (size_fn.f)(context),
+            None => Size::min(),
         }
     }
 
-    pub fn size_hint(&self, context: Context<'_>) -> Size {
-        match self {
-            Component::Canvas(c) => c.size_hint(context),
-            Component::Layout(l) => l.size_hint(context),
-        }
+    pub fn have_changes(&self, context: Context<'_>) -> bool {
+        self.sub.data().iter().any(|&x| context.is_changed_id(x))
     }
+}
 
-    pub fn draw(&mut self, buffer: MappedBuffer<'_>, context: Context<'_>) {
-        match self {
-            Component::Canvas(c) => c.draw(buffer, context),
-            Component::Layout(l) => l.draw(buffer, context),
-        }
-    }
+pub fn text<S>(content: S) -> Component
+where
+    S: Into<State<String>>,
+{
+    let state = content.into();
+    let state2 = state.clone();
+
+    let mut component = Component::new(cb!(move |mut buf, context| {
+        let content = context.get(&state);
+        buf.write_line(content, 0);
+    }));
+
+    component.size_fn = Some(cb!(move |context| {
+        let content = context.get(&state2);
+        Size::new(content.len().try_into().unwrap(), 1)
+    }));
+
+    component
 }
