@@ -3,8 +3,6 @@ mod solver;
 
 use std::collections::{hash_map::Keys, HashMap};
 
-use log::info;
-
 use self::{
     children::{Child, Children},
     solver::{ElementPart, Solver},
@@ -30,10 +28,11 @@ where
 {
     let children = children.into();
 
-    let mut component = Component::new(basic_draw(children.clone()));
-    component.layout_fn = Some(basic_layout(line_layout_fn, children.clone()));
-    component.size_fn = Some(basic_size_hint(children));
-    component
+    Component::builder()
+        .draw_fn(basic_draw(children.clone()))
+        .layout_fn(basic_layout(line_layout_fn, children.clone()))
+        .size_fn(line_size_fn(children))
+        .build()
 }
 
 pub fn column<S>(children: S) -> Component
@@ -42,10 +41,11 @@ where
 {
     let children = children.into();
 
-    let mut component = Component::new(basic_draw(children.clone()));
-    component.layout_fn = Some(basic_layout(column_layout_fn, children.clone()));
-    component.size_fn = Some(basic_size_hint(children));
-    component
+    Component::builder()
+        .draw_fn(basic_draw(children.clone()))
+        .layout_fn(basic_layout(column_layout_fn, children.clone()))
+        .size_fn(column_size_fn(children))
+        .build()
 }
 
 fn basic_layout<F>(mut layout_fn: F, children: State<Children>) -> LayoutFn
@@ -60,14 +60,12 @@ where
         let children = context.get(&children);
 
         if is_changed || last_region == Region::default() {
-            info!("First call or region changed, merge childs");
             solver.clear();
             solver.merge_childs(&children.data.borrow());
             layout_fn(&mut solver, context);
         }
 
         solver.suggest_size(region.size());
-        info!("Suggested region {:#?}", region);
 
         for child in children.data.borrow_mut().iter_mut() {
             solver.merge_size_from_child(child);
@@ -77,52 +75,49 @@ where
 
         for (variable, value) in changes {
             if let Some((child_idx, field)) = vars.get(variable) {
-                info!("Have change: {:?}, field = {:#?}, value = {:?}", child_idx, field, value);
-
                 let mut data = children.data.borrow_mut();
                 let mut child = data.get_mut(*child_idx).unwrap();
-                let mut transcation = child.start_transcation();
 
                 let value = *value as Index;
 
                 match field {
-                    ElementPart::LeftX => transcation.change_left_x(value),
-                    ElementPart::LeftY => transcation.change_left_y(value),
-                    ElementPart::RightX => transcation.change_right_x(value),
-                    ElementPart::RightY => transcation.change_right_y(value),
+                    ElementPart::LeftX => child.change_region().left_x(value),
+                    ElementPart::LeftY => child.change_region().left_y(value),
+                    ElementPart::RightX => child.change_region().right_x(value),
+                    ElementPart::RightY => child.change_region().right_y(value),
                 }
             }
         }
 
-        children.layout_all(context);
+        children.data.borrow_mut().iter_mut().for_each(|v| v.layout(context));
     })
 }
 
 fn basic_draw(children: State<Children>) -> DrawFn {
     cb!(move |mut buf, context| {
         let children = context.get(&children);
-
-        info!("Draw children");
-
-        for child in children.data.borrow_mut().iter_mut() {
-            info!("Region = {:#?}", child.region());
-            info!("Size = {:#?}", child.size());
-            let mapped_buf = buf.map(child.region().unwrap());
-            child.component.draw(mapped_buf, context);
-        }
+        children.data.borrow_mut().iter_mut().for_each(|v| v.draw(&mut buf, context));
     })
 }
 
-fn basic_size_hint(children: State<Children>) -> SizeFn {
+fn column_size_fn(children: State<Children>) -> SizeFn {
     cb!(move |context| {
         let mut size = Size::default();
 
-        let children = context.get(&children);
+        for child in context.get(&children).data.borrow_mut().iter_mut() {
+            size.add_assign_width_size(child.update_size(context));
+        }
 
-        for child in children.data.borrow_mut().iter_mut() {
-            let new_size = child.component.size_hint(context);
-            child.update_size(new_size);
-            size += new_size;
+        size
+    })
+}
+
+fn line_size_fn(children: State<Children>) -> SizeFn {
+    cb!(move |context| {
+        let mut size = Size::default();
+
+        for child in context.get(&children).data.borrow_mut().iter_mut() {
+            size.add_assign_height_size(child.update_size(context));
         }
 
         size

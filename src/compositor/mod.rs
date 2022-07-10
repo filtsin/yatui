@@ -2,8 +2,6 @@ pub mod context;
 pub(crate) mod event;
 pub(crate) mod watcher;
 
-use log::info;
-
 use self::{
     context::Context,
     event::{
@@ -63,7 +61,6 @@ where
         let current_size = self.backend.get_size().unwrap();
 
         if self.buffer.size() != current_size {
-            info!("Resize new_size = {:?}", current_size);
             self.buffer.resize(current_size);
         } else if self.watcher.is_empty() {
             return;
@@ -80,8 +77,6 @@ where
             component.size_hint(context);
             component.layout(mapped_region, context);
             component.draw(mapped_buffer, context);
-
-            info!("Debug buffer: {:?}", self.buffer);
 
             self.backend.hide_cursor();
             self.backend.clear_screen();

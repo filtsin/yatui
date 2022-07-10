@@ -1,5 +1,3 @@
-use log::info;
-
 use super::Buffer;
 
 use crate::{
@@ -87,13 +85,6 @@ impl<'a> MappedBuffer<'a> {
     where
         C: Into<Characters> + std::fmt::Debug,
     {
-        info!(
-            "write_line() region={:?} (size={:?}), c={:?}, line={:?}",
-            self.region(),
-            self.buffer.size(),
-            c,
-            line
-        );
         let new_region =
             Region::new(Cursor::new(0, line), Cursor::new(self.region().width() - 1, line));
 

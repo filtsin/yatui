@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use log::info;
-
 use crate::cassowary::*;
 
 use crate::{
@@ -88,7 +86,7 @@ impl Solver {
     }
 
     fn get_element(&self, child: &Child) -> &Element {
-        self.elements.get(child.my_index()).unwrap()
+        self.elements.get(child.position()).unwrap()
     }
 
     pub fn elements(&self) -> &[Element] {
@@ -110,8 +108,8 @@ impl Solver {
     }
 
     fn add_variables(&mut self, child: &Child) {
-        let element = self.elements.get(child.my_index()).unwrap();
-        let index = child.my_index();
+        let element = self.elements.get(child.position()).unwrap();
+        let index = child.position();
 
         self.variables.insert(element.left_x, (index, ElementPart::LeftX));
         self.variables.insert(element.left_y, (index, ElementPart::LeftY));
@@ -123,16 +121,14 @@ impl Solver {
     }
 
     pub(crate) fn merge_size_from_child(&mut self, child: &Child) {
-        let element = self.elements.get(child.my_index()).unwrap();
-
-        info!("Merge size from child {:#?}", child.size());
+        let element = self.elements.get(child.position()).unwrap();
 
         self.solver.suggest_value(element.width, child.size().width() as f64).unwrap();
         self.solver.suggest_value(element.height, child.size().height() as f64).unwrap();
     }
 
     fn add_default_constraint(&mut self, child: &Child) {
-        if child.my_index() == 0 {
+        if child.position() == 0 {
             let element = self.get_element(child);
             let start_x_from_zero = element.left_x | EQ(REQUIRED) | 0.0;
             let start_y_from_zero = element.left_y | EQ(REQUIRED) | 0.0;
@@ -151,7 +147,7 @@ impl Solver {
         let right_y_lower_height = element.right_y | LE(REQUIRED) | (self.height - 1.0);
 
         // First elements have priority
-        let width_strength = MEDIUM - child.my_index() as f64;
+        let width_strength = MEDIUM - child.position() as f64;
 
         let preffered_width =
             (element.right_x - element.left_x + 1.0) | EQ(width_strength) | element.width;

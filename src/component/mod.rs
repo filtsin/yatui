@@ -15,14 +15,18 @@ use crate::{
 
 pub struct Component {
     draw_fn: DrawFn,
-    pub layout_fn: Option<LayoutFn>,
-    pub size_fn: Option<SizeFn>,
+    layout_fn: Option<LayoutFn>,
+    size_fn: Option<SizeFn>,
     sub: Subscription,
 }
 
 impl Component {
-    pub fn new(draw_fn: DrawFn) -> Self {
+    fn new(draw_fn: DrawFn) -> Self {
         Self { draw_fn, layout_fn: None, size_fn: None, sub: Subscription::new() }
+    }
+
+    pub fn builder() -> ComponentBuilder {
+        ComponentBuilder::default()
     }
 
     pub fn draw(&mut self, buf: MappedBuffer<'_>, context: Context<'_>) {
@@ -44,6 +48,43 @@ impl Component {
 
     pub fn have_changes(&self, context: Context<'_>) -> bool {
         self.sub.data().iter().any(|&x| context.is_changed_id(x))
+    }
+}
+
+#[derive(Default)]
+pub struct ComponentBuilder {
+    draw_fn: Option<DrawFn>,
+    layout_fn: Option<LayoutFn>,
+    size_fn: Option<SizeFn>,
+}
+
+impl ComponentBuilder {
+    pub fn draw_fn<F>(mut self, f: F) -> Self
+    where
+        F: Into<DrawFn>,
+    {
+        self.draw_fn = Some(f.into());
+        self
+    }
+
+    pub fn layout_fn(mut self, f: LayoutFn) -> Self {
+        self.layout_fn = Some(f);
+        self
+    }
+
+    pub fn size_fn(mut self, f: SizeFn) -> Self {
+        self.size_fn = Some(f);
+        self
+    }
+
+    pub fn build(self) -> Component {
+        let draw = self.draw_fn.unwrap_or_else(|| return cb!(|_, _| {}));
+
+        let mut component = Component::new(draw);
+        component.layout_fn = self.layout_fn;
+        component.size_fn = self.size_fn;
+
+        component
     }
 }
 

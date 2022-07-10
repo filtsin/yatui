@@ -1,38 +1,40 @@
-// use yatui::{
-//     app::App,
-//     backend::Raw,
-//     cb,
-//     component::{
-//         layout::{column, line},
-//         Component,
-//     },
-//     terminal::{
-//         cursor::{Cursor, Index},
-//         region::Region,
-//         size::Size,
-//     },
-// };
-//
-// use pretty_assertions::assert_eq;
-//
-// macro_rules! context {
-//     () => {
-//         App::new(Raw::default()).context()
-//     };
-// }
-//
-// fn widget(w: Index, h: Index) -> Component {
-//     let mut widget = Component::new(cb!(|_, _| {}));
-//     widget.size_fn = Some(cb!(|_| Size::new(w, h)));
-//     widget
-// }
-//
+use serial_test::serial;
+use yatui::{
+    app::App,
+    backend::Raw,
+    cb,
+    component::{
+        layout::{children::Children, column, line},
+        Component,
+    },
+    state::{mut_state_with, State},
+    terminal::{
+        cursor::{Cursor, Index},
+        region::Region,
+        size::Size,
+    },
+};
+
+use pretty_assertions::assert_eq;
+
+fn widget(w: Index, h: Index) -> Component {
+    Component::builder().size_fn(cb!(move |_| Size::new(w, h))).build()
+}
+
 // #[test]
+// #[serial]
 // fn line_elements() {
+//     let mut app = App::new(Raw::default());
+//
 //     let region = Region::from(Size::new(5, 5));
 //
-//     let mut layout = line([widget(1, 1), widget(1, 1), widget(3, 1)]);
-//     layout.layout(region, context!());
+//     let state: State<Children> =
+//         mut_state_with(|| Children::new([widget(1, 1), widget(1, 1), widget(3, 1)])).into();
+//
+//     app.process_event();
+//
+//     let mut layout = line(state.clone());
+//     layout.layout(region, app.context());
 //
 //     let regions = vec![
 //         Some(Region::new(Cursor::new(0, 0), Cursor::new(0, 0))),
@@ -40,12 +42,11 @@
 //         Some(Region::new(Cursor::new(2, 0), Cursor::new(4, 0))),
 //     ];
 //
-//     let layout_regions: Vec<Option<Region>> =
-//         layout.childs().iter().map(|child| child.region()).collect();
+//     let layout_regions = app.context().get(&state).get_regions();
 //
 //     assert_eq!(layout_regions, regions);
 // }
-//
+
 // #[test]
 // fn column_elements() {
 //     let region = Region::from(Size::new(5, 5));
