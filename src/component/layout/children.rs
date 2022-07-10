@@ -46,6 +46,11 @@ impl Children {
         }
     }
 
+    pub fn push(&mut self, component: Component) {
+        let length = self.data.borrow().len();
+        self.data.borrow_mut().push(Child::new(component, length));
+    }
+
     pub fn get_regions(&self) -> Vec<Option<Region>> {
         self.data.borrow().iter().map(|v| v.region()).collect()
     }

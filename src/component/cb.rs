@@ -5,7 +5,7 @@ use crate::{
 use std::ops::{Deref, DerefMut};
 
 pub struct Cb<F: ?Sized> {
-    pub(crate) f: Box<F>,
+    pub f: Box<F>,
 }
 
 impl<F: ?Sized> Cb<F> {

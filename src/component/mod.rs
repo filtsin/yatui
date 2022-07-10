@@ -12,17 +12,24 @@ use crate::{
     state::State,
     terminal::{buffer::MappedBuffer, region::Region, size::Size},
 };
+use derive_more::From;
 
 pub struct Component {
     draw_fn: DrawFn,
     layout_fn: Option<LayoutFn>,
-    size_fn: Option<SizeFn>,
+    size: Option<ComponentSize>,
     sub: Subscription,
+}
+
+#[derive(From)]
+pub enum ComponentSize {
+    Value(Size),
+    Fn(SizeFn),
 }
 
 impl Component {
     fn new(draw_fn: DrawFn) -> Self {
-        Self { draw_fn, layout_fn: None, size_fn: None, sub: Subscription::new() }
+        Self { draw_fn, layout_fn: None, size: None, sub: Subscription::new() }
     }
 
     pub fn builder() -> ComponentBuilder {
@@ -40,8 +47,8 @@ impl Component {
     }
 
     pub fn size_hint(&mut self, context: Context<'_>) -> Size {
-        match self.size_fn {
-            Some(ref mut size_fn) => (size_fn.f)(context),
+        match self.size {
+            Some(ref mut size) => size.get_size(context),
             None => Size::min(),
         }
     }
@@ -51,11 +58,20 @@ impl Component {
     }
 }
 
+impl ComponentSize {
+    pub fn get_size(&mut self, context: Context<'_>) -> Size {
+        match &mut *self {
+            ComponentSize::Value(v) => *v,
+            ComponentSize::Fn(f) => (f.f)(context),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct ComponentBuilder {
     draw_fn: Option<DrawFn>,
     layout_fn: Option<LayoutFn>,
-    size_fn: Option<SizeFn>,
+    size: Option<ComponentSize>,
 }
 
 impl ComponentBuilder {
@@ -73,7 +89,12 @@ impl ComponentBuilder {
     }
 
     pub fn size_fn(mut self, f: SizeFn) -> Self {
-        self.size_fn = Some(f);
+        self.size = Some(f.into());
+        self
+    }
+
+    pub fn size_value(mut self, size: Size) -> Self {
+        self.size = Some(size.into());
         self
     }
 
@@ -82,7 +103,7 @@ impl ComponentBuilder {
 
         let mut component = Component::new(draw);
         component.layout_fn = self.layout_fn;
-        component.size_fn = self.size_fn;
+        component.size = self.size;
 
         component
     }
@@ -95,15 +116,15 @@ where
     let state = content.into();
     let state2 = state.clone();
 
-    let mut component = Component::new(cb!(move |mut buf, context| {
+    let draw_fn: DrawFn = cb!(move |mut buf, context| {
         let content = context.get(&state);
         buf.write_line(content, 0);
-    }));
+    });
 
-    component.size_fn = Some(cb!(move |context| {
+    let size_fn: SizeFn = cb!(move |context| {
         let content = context.get(&state2);
         Size::new(content.len().try_into().unwrap(), 1)
-    }));
+    });
 
-    component
+    Component::builder().draw_fn(draw_fn).size_fn(size_fn).build()
 }
