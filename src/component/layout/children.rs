@@ -25,7 +25,7 @@ pub(crate) struct Child {
 }
 
 // It is `Region` but sometimes contract `right_bottom` < `left_top` is incorrect
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct ChildRegion {
     left_top: Cursor,
     right_bottom: Cursor,
@@ -44,6 +44,10 @@ impl Children {
                     .collect(),
             ),
         }
+    }
+
+    pub fn get_regions(&self) -> Vec<Option<Region>> {
+        self.data.borrow().iter().map(|v| v.region()).collect()
     }
 }
 
@@ -70,12 +74,16 @@ impl Child {
     }
 
     pub fn layout(&mut self, context: Context<'_>) {
-        self.component.layout(self.region().unwrap(), context);
+        if let Some(region) = self.region() {
+            self.component.layout(region, context)
+        }
     }
 
     pub fn draw(&mut self, buf: &mut MappedBuffer<'_>, context: Context<'_>) {
-        let mapped_buf = buf.map(self.region().unwrap());
-        self.component.draw(mapped_buf, context);
+        if let Some(region) = self.region() {
+            let mapped_buf = buf.map(region);
+            self.component.draw(mapped_buf, context);
+        }
     }
 
     pub fn change_region(&mut self) -> &mut ChildRegion {
@@ -102,5 +110,14 @@ impl ChildRegion {
 
     pub fn right_y(&mut self, value: Index) {
         self.right_bottom.set_row(value);
+    }
+}
+
+impl<I> From<I> for Children
+where
+    I: IntoIterator<Item = Component>,
+{
+    fn from(children: I) -> Self {
+        Self::new(children)
     }
 }

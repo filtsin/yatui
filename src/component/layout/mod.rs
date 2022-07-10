@@ -30,8 +30,8 @@ where
 
     Component::builder()
         .draw_fn(basic_draw(children.clone()))
-        .layout_fn(basic_layout(line_layout_fn, children.clone()))
-        .size_fn(line_size_fn(children))
+        .layout_fn(basic_layout(line_layout_fn, line_size_fn(children.clone()), children.clone()))
+        .size_fn(cb!(line_size_fn(children)))
         .build()
 }
 
@@ -43,14 +43,15 @@ where
 
     Component::builder()
         .draw_fn(basic_draw(children.clone()))
-        .layout_fn(basic_layout(column_layout_fn, children.clone()))
-        .size_fn(column_size_fn(children))
+        .layout_fn(basic_layout(column_layout_fn, line_size_fn(children.clone()), children.clone()))
+        .size_fn(cb!(column_size_fn(children)))
         .build()
 }
 
-fn basic_layout<F>(mut layout_fn: F, children: State<Children>) -> LayoutFn
+fn basic_layout<F, S>(mut layout_fn: F, mut size_fn: S, children: State<Children>) -> LayoutFn
 where
     F: FnMut(&mut Solver, Context<'_>) + 'static,
+    S: FnMut(Context<'_>) -> Size + 'static,
 {
     let mut solver = Solver::new();
     let mut last_region = Region::default();
@@ -58,6 +59,8 @@ where
     cb!(move |region, context| {
         let is_changed = context.is_changed(&children);
         let children = context.get(&children);
+
+        size_fn(context);
 
         if is_changed || last_region == Region::default() {
             solver.clear();
@@ -100,8 +103,8 @@ fn basic_draw(children: State<Children>) -> DrawFn {
     })
 }
 
-fn column_size_fn(children: State<Children>) -> SizeFn {
-    cb!(move |context| {
+fn column_size_fn(children: State<Children>) -> impl FnMut(Context<'_>) -> Size {
+    move |context| {
         let mut size = Size::default();
 
         for child in context.get(&children).data.borrow_mut().iter_mut() {
@@ -109,11 +112,11 @@ fn column_size_fn(children: State<Children>) -> SizeFn {
         }
 
         size
-    })
+    }
 }
 
-fn line_size_fn(children: State<Children>) -> SizeFn {
-    cb!(move |context| {
+fn line_size_fn(children: State<Children>) -> impl FnMut(Context<'_>) -> Size {
+    move |context| {
         let mut size = Size::default();
 
         for child in context.get(&children).data.borrow_mut().iter_mut() {
@@ -121,7 +124,7 @@ fn line_size_fn(children: State<Children>) -> SizeFn {
         }
 
         size
-    })
+    }
 }
 
 fn column_layout_fn(solver: &mut Solver, context: Context<'_>) {

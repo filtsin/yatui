@@ -20,10 +20,11 @@ where
     Pointer::new(value.into(), my_id)
 }
 
-pub fn mut_state_with<F, T>(f: F) -> Pointer<T>
+pub fn mut_state_with<F, T, U>(f: F) -> Pointer<U>
 where
     F: FnOnce() -> T + Send + 'static,
+    T: Into<U>,
 {
     let my_id = reserve_id();
-    Pointer::new_with(f, my_id)
+    Pointer::new_with(|| f().into(), my_id)
 }
