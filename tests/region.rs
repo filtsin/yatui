@@ -105,3 +105,51 @@ fn region_iter() {
 
     assert_eq!(points, result);
 }
+
+#[test]
+fn first_line() {
+    let region = Region::with_size(Cursor::new(0, 0), Size::new(5, 5));
+
+    let result = Region::new(Cursor::new(0, 0), Cursor::new(4, 0));
+
+    assert_eq!(region.first_line(), result);
+}
+
+#[test]
+fn last_line() {
+    let region = Region::with_size(Cursor::new(0, 0), Size::new(5, 5));
+
+    let result = Region::new(Cursor::new(0, 4), Cursor::new(4, 4));
+
+    assert_eq!(region.last_line(), result);
+}
+
+#[test]
+fn first_column() {
+    let region = Region::with_size(Cursor::new(0, 0), Size::new(5, 5));
+
+    let result = Region::new(Cursor::new(0, 0), Cursor::new(0, 4));
+
+    assert_eq!(region.first_column(), result);
+}
+
+#[test]
+fn last_column() {
+    let region = Region::with_size(Cursor::new(0, 0), Size::new(5, 5));
+
+    let result = Region::new(Cursor::new(4, 0), Cursor::new(4, 4));
+
+    assert_eq!(region.last_column(), result);
+}
+
+#[test]
+fn line_and_column_with_size_one() {
+    let region = Region::with_size(Cursor::new(0, 0), Size::new(1, 1));
+
+    let result = Region::new(Cursor::new(0, 0), Cursor::new(0, 0));
+
+    assert_eq!(region.last_column(), region.first_column());
+    assert_eq!(region.last_line(), region.first_line());
+    assert_eq!(region.first_line(), region.first_column());
+    assert_eq!(region.first_line(), result);
+}

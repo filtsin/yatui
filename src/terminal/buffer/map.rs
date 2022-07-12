@@ -83,7 +83,7 @@ impl<'a> MappedBuffer<'a> {
 
     pub fn write_line<C>(&mut self, c: C, line: Index)
     where
-        C: Into<Characters> + std::fmt::Debug,
+        C: Into<Characters>,
     {
         let new_region =
             Region::new(Cursor::new(0, line), Cursor::new(self.region().width() - 1, line));

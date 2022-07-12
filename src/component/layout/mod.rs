@@ -1,10 +1,12 @@
-pub mod children;
+mod children;
 mod solver;
 
 use std::collections::{hash_map::Keys, HashMap};
 
+pub use children::Children;
+
 use self::{
-    children::{Child, Children},
+    children::Child,
     solver::{ElementPart, Solver},
 };
 use crate::{
@@ -60,6 +62,7 @@ where
         let is_changed = context.is_changed(&children);
         let children = context.get(&children);
 
+        // TODO: Remove because we have 2 calls for size
         size_fn(context);
 
         if is_changed || last_region == Region::default() {

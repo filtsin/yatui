@@ -53,33 +53,3 @@ impl Size {
         *self = self.add_height_size(rhs);
     }
 }
-
-// impl Add for Size {
-//     type Output = Size;
-//
-//     fn add(self, rhs: Self) -> Self::Output {
-//         Self::Output { w: self.w.saturating_add(rhs.w), h: self.h.saturating_add(rhs.h) }
-//     }
-// }
-//
-// impl AddAssign for Size {
-//     fn add_assign(&mut self, rhs: Self) {
-//         self.w = self.w.saturating_add(rhs.w);
-//         self.h = self.h.saturating_add(rhs.h);
-//     }
-// }
-//
-// impl Sub for Size {
-//     type Output = Size;
-//
-//     fn sub(self, rhs: Self) -> Self::Output {
-//         Self::Output { w: self.w.saturating_sub(rhs.w), h: self.h.saturating_sub(rhs.h) }
-//     }
-// }
-//
-// impl SubAssign for Size {
-//     fn sub_assign(&mut self, rhs: Self) {
-//         self.w = self.w.saturating_sub(rhs.w);
-//         self.h = self.h.saturating_sub(rhs.h);
-//     }
-// }

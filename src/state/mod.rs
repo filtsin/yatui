@@ -3,7 +3,7 @@ mod create;
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::component::{layout::children::Children, Component};
+use crate::component::{layout::Children, Component};
 
 use self::controller::Id;
 pub use self::{

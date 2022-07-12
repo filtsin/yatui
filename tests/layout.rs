@@ -4,7 +4,7 @@ use yatui::{
     backend::Raw,
     cb,
     component::{
-        layout::{children::Children, column, line},
+        layout::{column, line, Children},
         Component,
     },
     state::{mut_state_with, State},

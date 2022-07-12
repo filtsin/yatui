@@ -11,6 +11,7 @@ use super::children::Child;
 
 pub type Variables = HashMap<Variable, (usize, ElementPart)>;
 
+// TODO: Refactor methods, dont accept Child
 pub struct Solver {
     solver: cassowary::Solver,
 

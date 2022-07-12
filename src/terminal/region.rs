@@ -27,6 +27,38 @@ impl Region {
         }
     }
 
+    pub fn first_line(&self) -> Region {
+        let mut right_bottom = self.right_bottom();
+        right_bottom.set_row(self.left_top().row());
+        Region { left_top: self.left_top, right_bottom }
+    }
+
+    pub fn last_line(&self) -> Region {
+        let mut left_top = self.left_top();
+        left_top.set_row(self.right_bottom().row());
+        Region { left_top, right_bottom: self.right_bottom }
+    }
+
+    pub fn first_column(&self) -> Region {
+        let mut right_bottom = self.right_bottom();
+        right_bottom.set_column(self.left_top().column());
+        Region { left_top: self.left_top, right_bottom }
+    }
+
+    pub fn last_column(&self) -> Region {
+        let mut left_top = self.left_top();
+        left_top.set_column(self.right_bottom().column());
+        Region { left_top, right_bottom: self.right_bottom }
+    }
+
+    pub fn n_line(&self, i: usize) -> Option<Region> {
+        todo!()
+    }
+
+    pub fn n_column(&self, i: usize) -> Option<Region> {
+        todo!()
+    }
+
     pub fn with_size(left_top: Cursor, size: Size) -> Self {
         assert!(size.width() > 0 && size.height() > 0);
 
@@ -72,6 +104,7 @@ impl From<Size> for Region {
     }
 }
 
+/// Iterator over every cell in Region in horizontal order
 #[derive(Eq, PartialEq, Debug)]
 pub struct RegionIter {
     region: Region,
