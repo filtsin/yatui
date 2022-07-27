@@ -13,6 +13,12 @@ pub struct Modifier {
 pub enum Color {
     Black,
     White,
+    Blue,
+    Cyan,
+    Green,
+    Magenta,
+    Red,
+    Yellow,
     Rgb(u8, u8, u8),
 }
 

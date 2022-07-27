@@ -5,7 +5,7 @@ use crate::{
 };
 
 use termion::{
-    clear, cursor,
+    clear, color, cursor,
     raw::{IntoRawMode, RawTerminal},
     screen::AlternateScreen,
 };
@@ -13,7 +13,7 @@ use termion::{
 use std::io::{BufWriter, Write};
 
 pub struct Termion<W: Write> {
-    output: AlternateScreen<RawTerminal<BufWriter<W>>>,
+    pub output: AlternateScreen<RawTerminal<BufWriter<W>>>,
 }
 
 impl<W: Write> Termion<W> {
@@ -21,6 +21,10 @@ impl<W: Write> Termion<W> {
         let output =
             AlternateScreen::from(BufWriter::with_capacity(5_000_000, output).into_raw_mode()?);
         Ok(Termion { output })
+    }
+
+    pub fn draw_c(&mut self) {
+        write!(self.output, "{}", color::Fg(color::Red));
     }
 }
 
