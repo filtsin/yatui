@@ -15,6 +15,7 @@ derive_more = "0.99.17"
 crossbeam-channel = "0.5.1"
 cassowary = "0.3.0"
 trait-set = "0.3.0"
+smallvec = { version = "1.9.0", features = ["union"] }
 log = "0.4"
 
 [dev-dependencies]
