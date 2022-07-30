@@ -1,4 +1,4 @@
-use yatui::terminal::style::{Color, Modifier, Style};
+use yatui::text::{Color, Modifier, Style};
 
 use pretty_assertions::assert_eq;
 

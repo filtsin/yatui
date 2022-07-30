@@ -10,3 +10,4 @@ pub mod compositor;
 pub mod error;
 pub mod state;
 pub mod terminal;
+pub mod text;

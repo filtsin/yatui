@@ -4,18 +4,15 @@ use std::{
     slice::Iter,
 };
 
-use super::modifier::Modifier;
-
 /// Character in terminal cell with modifiers
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub struct Character {
     symbol: char,
-    modifier: Modifier,
 }
 
 impl Character {
     pub fn new(symbol: char) -> Self {
-        Self { symbol, modifier: Modifier::default() }
+        Self { symbol }
     }
 
     pub fn symbol(self) -> char {
@@ -42,7 +39,7 @@ impl From<char> for Character {
 
 impl Default for Character {
     fn default() -> Self {
-        Self { symbol: ' ', modifier: Modifier::default() }
+        Self { symbol: ' ' }
     }
 }
 

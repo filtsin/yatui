@@ -17,6 +17,7 @@ cassowary = "0.3.0"
 trait-set = "0.3.0"
 smallvec = { version = "1.9.0", features = ["union"] }
 log = "0.4"
+unicode-segmentation = "1.9.0"
 
 [dev-dependencies]
 serial_test = "0.5.1"

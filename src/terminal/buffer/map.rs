@@ -5,7 +5,6 @@ use crate::{
     terminal::{
         character::{Character, Characters},
         cursor::{Cursor, Index},
-        modifier::Modifier,
         region::Region,
     },
 };
@@ -40,11 +39,6 @@ impl<'a> MappedBuffer<'a> {
             Cursor::new(column, 0),
             Cursor::new(column, self.region().height() - 1),
         ))
-    }
-
-    // style for all characters
-    pub fn set_style(&mut self, style: Modifier) {
-        todo!()
     }
 
     pub fn write_character<C>(&mut self, c: C, cursor: Cursor)
