@@ -1,7 +1,7 @@
 pub mod graphemes;
 mod style;
 
-use self::graphemes::{Grapheme, Graphemes};
+use self::graphemes::Grapheme;
 pub use self::style::{Color, Modifier, Style};
 
 use unicode_segmentation::UnicodeSegmentation;
@@ -9,8 +9,8 @@ use unicode_segmentation::UnicodeSegmentation;
 use std::{
     borrow::Cow,
     cmp::{Ord, PartialOrd},
-    collections::BinaryHeap,
-    ops::Range,
+    collections::BTreeSet,
+    ops::{RangeBounds, RangeInclusive},
 };
 
 #[derive(Default, Clone)]
@@ -21,7 +21,7 @@ pub struct Text {
 
 #[derive(Default, Clone)]
 pub struct Styles {
-    data: BinaryHeap<RangeStyle>,
+    data: BTreeSet<RangeStyle>,
 }
 
 #[derive(Default, Clone)]
@@ -31,10 +31,10 @@ struct RawText {
     length: usize,
 }
 
-#[derive(Clone, Eq)]
+#[derive(Debug, Clone, Eq)]
 struct RangeStyle {
     // range in bytes offset of content
-    range: Range<usize>,
+    range: RangeInclusive<usize>,
     style: Style,
 }
 
@@ -46,16 +46,39 @@ impl Text {
         Self { data: RawText::new(content.into()), ..Default::default() }
     }
 
-    pub fn parts(&mut self) -> (Graphemes<'_>, &'_ mut Styles) {
-        let g = UnicodeSegmentation::grapheme_indices(self.data.content(), true)
-            .map(Grapheme::new)
-            .collect();
-
-        (Graphemes::new(g), &mut self.styles)
+    pub fn parts(&mut self) -> (impl Iterator<Item = Grapheme<'_>>, &'_ mut Styles) {
+        let g = UnicodeSegmentation::grapheme_indices(self.data.content(), true).map(Grapheme::new);
+        (g, &mut self.styles)
     }
 
-    pub fn add_style(&mut self, from: usize, to: usize, style: Style) {
-        self.styles.add_style_raw(from, to, style);
+    pub fn clear(&mut self) {
+        self.styles_mut().clear();
+        self.raw_mut().update_content("".into());
+    }
+
+    /// Replace *graphemes*
+    pub fn replace_range<R>(&mut self, range: R, replace_with: &str)
+    where
+        R: RangeBounds<usize>,
+    {
+        //
+    }
+
+    pub fn push_str(&mut self, string: &str) {
+        self.raw_mut().push_str(string);
+    }
+
+    /// Remove *grapheme* from this Text
+    pub fn remove(&mut self, grapheme_idx: usize) {
+        //
+    }
+
+    pub fn styles(&self) -> &Styles {
+        &self.styles
+    }
+
+    pub fn styles_mut(&mut self) -> &mut Styles {
+        &mut self.styles
     }
 
     pub fn is_borrowed(&self) -> bool {
@@ -74,6 +97,10 @@ impl Text {
         self.len() == 0
     }
 
+    pub fn as_str(&self) -> &str {
+        self.raw().content()
+    }
+
     fn raw(&self) -> &RawText {
         &self.data
     }
@@ -84,15 +111,51 @@ impl Text {
 }
 
 impl Styles {
-    pub fn add_style_raw(&mut self, from: usize, to: usize, style: Style) {
-        assert!(from < to);
-        assert!(from < self.data.len() && to <= self.data.len());
+    pub fn iter(&self) -> impl Iterator<Item = (usize, usize, Style)> + '_ {
+        self.data.iter().map(|v| (*v.range.start(), *v.range.end(), v.style))
+    }
 
-        self.data.push(RangeStyle::new(from..to, style));
+    pub fn add_style_raw(&mut self, from: usize, to: usize, style: Style) {
+        assert!(from <= to);
+
+        self.data.replace(RangeStyle::new(from..=to, style));
     }
 
     pub fn add_style(&mut self, from: &Grapheme<'_>, to: &Grapheme<'_>, style: Style) {
-        self.add_style_raw(from.index, to.index, style);
+        self.add_style_raw(from.index, to.index + to.data().len() - 1, style);
+    }
+
+    pub fn remove_full(&mut self, from: usize, to: usize) {
+        self.data.remove(&RangeStyle::from(from..=to));
+    }
+
+    pub fn remove(&mut self, from: usize, to: usize) {
+        let mut copy = BTreeSet::new();
+
+        std::mem::swap(&mut self.data, &mut copy);
+
+        for style in copy.into_iter() {
+            let (left, right) = style.cut(from, to);
+
+            if let Some(left) = left {
+                self.data.insert(left);
+            }
+            if let Some(right) = right {
+                self.data.insert(right);
+            }
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear()
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
@@ -113,6 +176,13 @@ impl RawText {
         self.length = len;
     }
 
+    fn push_str(&mut self, string: &str) {
+        let len = Self::compute_length(string);
+
+        self.content.to_mut().push_str(string);
+        self.length += len;
+    }
+
     fn compute_length(s: &str) -> usize {
         UnicodeSegmentation::graphemes(s, true).count()
     }
@@ -127,8 +197,41 @@ impl RawText {
 }
 
 impl RangeStyle {
-    fn new(range: Range<usize>, style: Style) -> Self {
+    fn new(range: RangeInclusive<usize>, style: Style) -> Self {
         Self { range, style }
+    }
+
+    fn cut(&self, from: usize, to: usize) -> (Option<RangeStyle>, Option<RangeStyle>) {
+        assert!(from <= to);
+
+        let from = if from < self.start() { self.start() } else { from };
+        let to = if to > self.end() { self.end() } else { to };
+
+        let left = if from != self.start() { Some(self.start()..=from - 1) } else { None };
+        let right = if to != self.end() { Some(to + 1..=self.end()) } else { None };
+
+        (
+            left.map(|range| RangeStyle::new(range, self.style)),
+            right.map(|range| RangeStyle::new(range, self.style)),
+        )
+    }
+
+    fn contains(&self, from: usize, to: usize) -> bool {
+        from >= self.start() || to <= self.end()
+    }
+
+    fn start(&self) -> usize {
+        *self.range.start()
+    }
+
+    fn end(&self) -> usize {
+        *self.range.end()
+    }
+}
+
+impl From<RangeInclusive<usize>> for RangeStyle {
+    fn from(range: RangeInclusive<usize>) -> Self {
+        Self::new(range, Style::default())
     }
 }
 
@@ -156,5 +259,37 @@ impl Ord for RangeStyle {
 impl PartialOrd for RangeStyle {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.range.clone().partial_cmp(other.range.clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RangeStyle;
+
+    #[test]
+    fn cut() {
+        let mut s: RangeStyle = (0..=4).into();
+
+        let (left, right) = s.cut(1, 2);
+        assert_eq!(left, Some((0..=0).into()));
+        assert_eq!(right, Some((3..=4).into()));
+
+        let (left, right) = s.cut(0, 1);
+        assert_eq!(left, None);
+        assert_eq!(right, Some((2..=4).into()));
+
+        let (left, right) = s.cut(3, 4);
+        assert_eq!(left, Some((0..=2).into()));
+        assert_eq!(right, None);
+
+        let mut s: RangeStyle = (2..=2).into();
+
+        let (left, right) = s.cut(1, 2);
+        assert_eq!(left, None);
+        assert_eq!(right, None);
+
+        let (left, right) = s.cut(0, 4);
+        assert_eq!(left, None);
+        assert_eq!(right, None);
     }
 }
