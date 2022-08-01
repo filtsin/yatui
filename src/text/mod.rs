@@ -5,6 +5,7 @@ use self::graphemes::Grapheme;
 pub use self::style::{Color, Modifier, Style};
 
 use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 use std::{
     borrow::Cow,
@@ -47,8 +48,7 @@ impl Text {
     }
 
     pub fn parts(&mut self) -> (impl Iterator<Item = Grapheme<'_>>, &'_ mut Styles) {
-        let g = UnicodeSegmentation::grapheme_indices(self.data.content(), true).map(Grapheme::new);
-        (g, &mut self.styles)
+        (RawText::create_graphemes(self.data.content()), &mut self.styles)
     }
 
     pub fn clear(&mut self) {
@@ -70,7 +70,7 @@ impl Text {
 
     /// Remove *grapheme* from this Text
     pub fn remove(&mut self, grapheme_idx: usize) {
-        //
+        self.raw_mut().remove(grapheme_idx)
     }
 
     pub fn styles(&self) -> &Styles {
@@ -183,8 +183,19 @@ impl RawText {
         self.length += len;
     }
 
+    fn remove(&mut self, grapheme_idx: usize) {
+        let idx = RawText::create_graphemes(self.content())
+            .nth(grapheme_idx)
+            .map(|g| (g.data().len(), g.index));
+
+        if let Some((count, idx)) = idx {
+            self.content.to_mut().replace_range(idx..(idx + count), "");
+            self.length -= 1;
+        }
+    }
+
     fn compute_length(s: &str) -> usize {
-        UnicodeSegmentation::graphemes(s, true).count()
+        UnicodeWidthStr::width(s)
     }
 
     fn is_borrowed(&self) -> bool {
@@ -193,6 +204,10 @@ impl RawText {
 
     fn is_owned(&self) -> bool {
         matches!(self.content, Cow::Owned(_))
+    }
+
+    fn create_graphemes(data: &str) -> impl Iterator<Item = Grapheme<'_>> {
+        UnicodeSegmentation::grapheme_indices(data, true).map(Grapheme::new)
     }
 }
 

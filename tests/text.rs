@@ -25,17 +25,22 @@ fn change_styles_mut() {
 }
 
 #[test]
-fn length_ascii_string() {
-    let texts_len = ["hello", "!!!", "@!0123456789", "   spaces   "].map(|v| Text::from(v).len());
-    let len = [5, 3, 12, 12];
+fn length() {
+    let texts_len = [
+        "hello",
+        "!!!",
+        "@!0123456789",
+        "   spaces   ",
+        "\n\t\r\n",
+        "привет",
+        "Löwe 老虎 Léopard",
+        "❤️🧡💛💚💙💜",
+        "y\u{0306}", // 2 code points, not (0, 'y̆')
+        "y̆",
+    ]
+    .map(|v| Text::from(v).len());
 
-    assert_eq!(texts_len, len);
-}
-
-#[test]
-fn length_not_ascii_string() {
-    let texts_len = ["привет", "Löwe 老虎 Léopard", "❤️🧡💛💚💙💜"].map(|v| Text::from(v).len());
-    let len = [6, 15, 6];
+    let len = [5, 3, 12, 12, 0, 6, 17, 11, 1, 1];
 
     assert_eq!(texts_len, len);
 }
@@ -191,11 +196,29 @@ fn push_str() {
 
 #[test]
 fn remove() {
+    let mut str: Text = "y\u{0306}es".into(); // y̆
+    str.remove(0);
+
+    assert_eq!(str.as_str(), "es");
+    assert_eq!(str.len(), 2);
+
     let mut str: Text = "Löwe 老虎".into();
     str.remove(1);
 
     assert_eq!(str.as_str(), "Lwe 老虎");
-    assert_eq!(str.len(), 6);
+    assert_eq!(str.len(), 8);
+
+    let mut str: Text = "Hello".into();
+    str.remove(4);
+
+    assert_eq!(str.as_str(), "Hell");
+    assert_eq!(str.len(), 4);
+
+    let mut str: Text = "1".into();
+    str.remove(100);
+
+    assert_eq!(str.as_str(), "1");
+    assert_eq!(str.len(), 1);
 }
 
 #[test]
@@ -210,25 +233,25 @@ fn replace_range() {
     str.replace_range(1..=5, "AAAAAAA");
 
     assert_eq!(str.as_str(), "L虎");
-    assert_eq!(str.len(), 2);
+    assert_eq!(str.len(), 3);
 
     let mut str: Text = "Löwe 老虎".into();
     str.replace_range(0..1, "");
 
     assert_eq!(str.as_str(), "öwe 老虎");
-    assert_eq!(str.len(), 6);
+    assert_eq!(str.len(), 8);
 
     let mut str: Text = "Löwe 老虎".into();
     str.replace_range(..3, "T");
 
     assert_eq!(str.as_str(), "we 老虎");
-    assert_eq!(str.len(), 5);
+    assert_eq!(str.len(), 7);
 
     let mut str: Text = "Löwe 老虎".into();
     str.replace_range(..=2, "T");
 
     assert_eq!(str.as_str(), "we 老虎");
-    assert_eq!(str.len(), 5);
+    assert_eq!(str.len(), 7);
 }
 
 #[test]
