@@ -1,4 +1,4 @@
-use yatui::text::{graphemes::Grapheme, Color, Modifier, Style, Text};
+use yatui::text::{Color, Grapheme, Modifier, Style, Text};
 
 use pretty_assertions::assert_eq;
 
@@ -17,7 +17,7 @@ fn change_styles_mut() {
 
     assert_eq!(str.styles().iter().count(), 0);
 
-    str.styles_mut().add_style_raw(0, 5, Style::new().fg(Color::Red));
+    str.styles_mut().add(0, 5, Style::new().fg(Color::Red));
 
     let mut styles = str.styles().iter();
     assert_eq!(styles.next().unwrap(), (0, 5, Style::new().fg(Color::Red)));
@@ -28,51 +28,51 @@ fn change_styles_mut() {
 fn length() {
     let texts_len = [
         "hello",
-        "!!!",
-        "@!0123456789",
-        "   spaces   ",
         "\n\t\r\n",
         "привет",
         "Löwe 老虎 Léopard",
         "❤️🧡💛💚💙💜",
         "y\u{0306}", // 2 code points, not (0, 'y̆')
         "y̆",
+        "text\nnew\r\nit is very big line\nnew line",
     ]
-    .map(|v| Text::from(v).len());
+    .map(|v| {
+        let text = Text::from(v);
+        (text.lines(), text.columns())
+    });
 
-    let len = [5, 3, 12, 12, 0, 6, 17, 11, 1, 1];
+    let len = [(1, 5), (2, 0), (1, 6), (1, 17), (1, 11), (1, 1), (1, 1), (4, 19)];
 
     assert_eq!(texts_len, len);
 }
 
 #[test]
-fn add_style_raw_order() {
+fn add_order() {
     let mut str: Text = "123456789".into();
-    let len = str.len();
 
     let styles = str.styles_mut();
 
     // 5 is GREEN fg (and ITALIC and BOLD and BLUE bg)
-    styles.add_style_raw(4, 4, Style::new().fg(Color::Green));
+    styles.add(4, 4, Style::new().fg(Color::Green));
 
     // All text BOLD
-    styles.add_style_raw(0, len - 1, Style::new().modifier(Modifier::BOLD));
+    styles.add(0, 8, Style::new().modifier(Modifier::BOLD));
 
     // 2345678 is ITALIC (and BOLD)
-    styles.add_style_raw(1, len - 2, Style::new().modifier(Modifier::ITALIC));
+    styles.add(1, 7, Style::new().modifier(Modifier::ITALIC));
 
     // 456 is BLUE bg (and ITALIC and BOLD and RED fg)
-    styles.add_style_raw(3, len - 4, Style::new().bg(Color::Blue));
+    styles.add(2, 6, Style::new().bg(Color::Blue));
 
     // 34567 is RED fg (and ITALIC and BOLD)
-    styles.add_style_raw(2, len - 3, Style::new().fg(Color::Red));
+    styles.add(3, 5, Style::new().fg(Color::Red));
 
     let styles_result = vec![
-        (0, len - 1, Style::new().modifier(Modifier::BOLD)),
-        (1, len - 2, Style::new().modifier(Modifier::ITALIC)),
-        (2, len - 3, Style::new().fg(Color::Red)),
-        (3, len - 4, Style::new().bg(Color::Blue)),
-        (4, len - 5, Style::new().fg(Color::Green)),
+        (0, 8, Style::new().modifier(Modifier::BOLD)),
+        (1, 7, Style::new().modifier(Modifier::ITALIC)),
+        (2, 6, Style::new().bg(Color::Blue)),
+        (3, 5, Style::new().fg(Color::Red)),
+        (4, 4, Style::new().fg(Color::Green)),
     ];
 
     let styles: Vec<_> = styles.iter().collect();
@@ -85,8 +85,8 @@ fn styles_for_exists_range_should_be_replaced() {
     let mut str: Text = "123".into();
 
     let styles = str.styles_mut();
-    styles.add_style_raw(0, 1, Style::new().fg(Color::Red));
-    styles.add_style_raw(0, 1, Style::new().fg(Color::Blue));
+    styles.add(0, 1, Style::new().fg(Color::Red));
+    styles.add(0, 1, Style::new().fg(Color::Blue));
 
     let styles_result = vec![(0, 1, Style::new().fg(Color::Blue))];
     let styles: Vec<_> = styles.iter().collect();
@@ -95,7 +95,7 @@ fn styles_for_exists_range_should_be_replaced() {
 }
 
 #[test]
-fn add_style_order() {
+fn add_with_grapheme() {
     let mut str: Text = "Löwe 老虎".into();
 
     let (graphemes, styles) = str.parts();
@@ -106,17 +106,17 @@ fn add_style_order() {
     // we is RED fg (and BOLD and ITALIC)
     let from = graphemes.get(2).unwrap();
     let to = graphemes.get(3).unwrap();
-    styles.add_style(from, to, Style::new().fg(Color::Red));
+    styles.add_with_grapheme(from, to, Style::new().fg(Color::Red));
 
     // öwe 老 is ITALIC (and BOLD)
     let from = graphemes.iter().find(|v| v.data() == "ö").unwrap();
     let to = graphemes.iter().find(|v| v.data() == "老").unwrap();
-    styles.add_style(from, to, Style::new().modifier(Modifier::ITALIC));
+    styles.add_with_grapheme(from, to, Style::new().modifier(Modifier::ITALIC));
 
     // All text BOLD
     let from = graphemes.first().unwrap();
     let to = graphemes.last().unwrap();
-    styles.add_style(from, to, Style::new().modifier(Modifier::BOLD));
+    styles.add_with_grapheme(from, to, Style::new().modifier(Modifier::BOLD));
 
     let styles_result = vec![
         (0, 11, Style::new().modifier(Modifier::BOLD)),
@@ -135,11 +135,11 @@ fn remove_full_range() {
 
     let styles = str.styles_mut();
 
-    styles.add_style_raw(0, 1, Style::new().fg(Color::Red));
-    styles.add_style_raw(0, 4, Style::new().fg(Color::Blue));
-    styles.add_style_raw(2, 3, Style::new().fg(Color::Green));
+    styles.add(0, 1, Style::new().fg(Color::Red));
+    styles.add(0, 4, Style::new().fg(Color::Blue));
+    styles.add(2, 3, Style::new().fg(Color::Green));
 
-    styles.remove_full(0, 4);
+    styles.remove_range(0, 4);
 
     let styles_result =
         vec![(0, 1, Style::new().fg(Color::Red)), (2, 3, Style::new().fg(Color::Green))];
@@ -155,9 +155,9 @@ fn remove_styles() {
 
     let styles = str.styles_mut();
 
-    styles.add_style_raw(0, 4, Style::new().fg(Color::Red));
-    styles.add_style_raw(1, 3, Style::new().bg(Color::Blue));
-    styles.add_style_raw(2, 2, Style::new().modifier(Modifier::BOLD));
+    styles.add(0, 4, Style::new().fg(Color::Red));
+    styles.add(1, 3, Style::new().bg(Color::Blue));
+    styles.add(2, 2, Style::new().modifier(Modifier::BOLD));
 
     styles.remove(1, 2);
 
@@ -177,11 +177,11 @@ fn remove_styles() {
 #[test]
 fn clear() {
     let mut str: Text = "Hello".into();
-    str.styles_mut().add_style_raw(0, 5, Style::new().fg(Color::Red));
+    str.styles_mut().add(0, 5, Style::new().fg(Color::Red));
 
     str.clear();
 
-    assert_eq!(str.len(), 0);
+    assert_eq!((str.lines(), str.columns()), (0, 0));
     assert_eq!(str.styles().iter().count(), 0);
 }
 
@@ -190,8 +190,8 @@ fn push_str() {
     let mut str: Text = "Hello".into();
     str.push_str(" world");
 
-    assert_eq!(str.as_str(), "Hello world");
-    assert_eq!(str.len(), 11);
+    assert_eq!(str.as_ref(), "Hello world");
+    assert_eq!(str.columns(), 11);
 }
 
 #[test]
@@ -213,50 +213,44 @@ fn remove() {
 
     assert_eq!(str.as_str(), "Hell");
     assert_eq!(str.len(), 4);
-
-    let mut str: Text = "1".into();
-    str.remove(100);
-
-    assert_eq!(str.as_str(), "1");
-    assert_eq!(str.len(), 1);
 }
 
-#[test]
-fn replace_range() {
-    let mut str: Text = "Hello".into();
-    str.replace_range(.., "New content");
-
-    assert_eq!(str.as_str(), "New content");
-    assert_eq!(str.len(), 11);
-
-    let mut str: Text = "Löwe 老虎".into();
-    str.replace_range(1..=5, "AAAAAAA");
-
-    assert_eq!(str.as_str(), "L虎");
-    assert_eq!(str.len(), 3);
-
-    let mut str: Text = "Löwe 老虎".into();
-    str.replace_range(0..1, "");
-
-    assert_eq!(str.as_str(), "öwe 老虎");
-    assert_eq!(str.len(), 8);
-
-    let mut str: Text = "Löwe 老虎".into();
-    str.replace_range(..3, "T");
-
-    assert_eq!(str.as_str(), "we 老虎");
-    assert_eq!(str.len(), 7);
-
-    let mut str: Text = "Löwe 老虎".into();
-    str.replace_range(..=2, "T");
-
-    assert_eq!(str.as_str(), "we 老虎");
-    assert_eq!(str.len(), 7);
-}
-
-#[test]
-#[should_panic]
-fn replace_range_out_of_bound() {
-    let mut str: Text = "Hello".into();
-    str.replace_range(0..100, "New content");
-}
+// // #[test]
+// // fn replace_range() {
+// //     let mut str: Text = "Hello".into();
+// //     str.replace_range(.., "New content");
+// //
+// //     assert_eq!(str.as_str(), "New content");
+// //     assert_eq!(str.len(), 11);
+// //
+// //     let mut str: Text = "Löwe 老虎".into();
+// //     str.replace_range(1..=5, "AAAAAAA");
+// //
+// //     assert_eq!(str.as_str(), "L虎");
+// //     assert_eq!(str.len(), 3);
+// //
+// //     let mut str: Text = "Löwe 老虎".into();
+// //     str.replace_range(0..1, "");
+// //
+// //     assert_eq!(str.as_str(), "öwe 老虎");
+// //     assert_eq!(str.len(), 8);
+// //
+// //     let mut str: Text = "Löwe 老虎".into();
+// //     str.replace_range(..3, "T");
+// //
+// //     assert_eq!(str.as_str(), "we 老虎");
+// //     assert_eq!(str.len(), 7);
+// //
+// //     let mut str: Text = "Löwe 老虎".into();
+// //     str.replace_range(..=2, "T");
+// //
+// //     assert_eq!(str.as_str(), "we 老虎");
+// //     assert_eq!(str.len(), 7);
+// // }
+// //
+// // #[test]
+// // #[should_panic]
+// // fn replace_range_out_of_bound() {
+// //     let mut str: Text = "Hello".into();
+// //     str.replace_range(0..100, "New content");
+// // }

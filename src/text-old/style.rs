@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 
+/// Modifier of [super::character::Character]. Allows to change color and style
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Default)]
 pub struct Style {
     fg: Option<Color>,
