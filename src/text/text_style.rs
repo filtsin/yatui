@@ -1,6 +1,9 @@
 use crate::text::Style;
 
-use std::collections::BTreeSet;
+use std::{
+    collections::BTreeSet,
+    ops::{Add, AddAssign, Sub, SubAssign},
+};
 
 use super::Grapheme;
 
@@ -155,8 +158,6 @@ impl TextStyle {
         for style in copy.into_iter() {
             let (left, right) = style.cut(start, end);
 
-            println!("left - {:?}, right - {:?}", left, right);
-
             if let Some(left) = left {
                 self.data.insert(left);
             }
@@ -180,6 +181,30 @@ impl TextStyle {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub(crate) fn positive_shift(&mut self, start_from: usize, delta: usize) {
+        self.data = std::mem::take(&mut self.data)
+            .into_iter()
+            .map(|mut range| {
+                if range.start >= start_from {
+                    range += delta;
+                }
+                range
+            })
+            .collect();
+    }
+
+    pub(crate) fn negative_shift(&mut self, start_from: usize, delta: usize) {
+        self.data = std::mem::take(&mut self.data)
+            .into_iter()
+            .map(|mut range| {
+                if range.start >= start_from {
+                    range -= delta;
+                }
+                range
+            })
+            .collect();
     }
 }
 
@@ -232,6 +257,38 @@ impl PartialOrd for RangeStyle {
 impl From<std::ops::RangeInclusive<usize>> for RangeStyle {
     fn from(range: std::ops::RangeInclusive<usize>) -> Self {
         Self::only_with_range(*range.start(), *range.end())
+    }
+}
+
+impl Add<usize> for RangeStyle {
+    type Output = Self;
+
+    fn add(mut self, rhs: usize) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl AddAssign<usize> for RangeStyle {
+    fn add_assign(&mut self, rhs: usize) {
+        self.start = self.start.checked_add(rhs).unwrap();
+        self.end = self.end.checked_add(rhs).unwrap();
+    }
+}
+
+impl Sub<usize> for RangeStyle {
+    type Output = Self;
+
+    fn sub(mut self, rhs: usize) -> Self::Output {
+        self -= rhs;
+        self
+    }
+}
+
+impl SubAssign<usize> for RangeStyle {
+    fn sub_assign(&mut self, rhs: usize) {
+        self.start = self.start.checked_sub(rhs).unwrap();
+        self.end = self.end.checked_sub(rhs).unwrap();
     }
 }
 

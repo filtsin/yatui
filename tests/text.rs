@@ -1,7 +1,5 @@
 use yatui::text::{Color, Grapheme, Modifier, Style, Text};
 
-use pretty_assertions::assert_eq;
-
 #[test]
 fn create_borrowed_and_owned_strings() {
     let str: Text = "hello".into();
@@ -199,58 +197,76 @@ fn remove() {
     let mut str: Text = "y\u{0306}es".into(); // y̆
     str.remove(0);
 
-    assert_eq!(str.as_str(), "es");
-    assert_eq!(str.len(), 2);
+    assert_eq!(str.as_ref(), "es");
+    assert_eq!(str.columns(), 2);
 
     let mut str: Text = "Löwe 老虎".into();
     str.remove(1);
 
-    assert_eq!(str.as_str(), "Lwe 老虎");
-    assert_eq!(str.len(), 8);
+    assert_eq!(str.as_ref(), "Lwe 老虎");
+    assert_eq!(str.columns(), 8);
 
     let mut str: Text = "Hello".into();
     str.remove(4);
 
-    assert_eq!(str.as_str(), "Hell");
-    assert_eq!(str.len(), 4);
+    assert_eq!(str.as_ref(), "Hell");
+    assert_eq!(str.columns(), 4);
+
+    let mut str: Text = "He\u{0306}llo".into();
+    str.styles_mut().add(0, 6, Style::default().bg(Color::Blue));
+    str.styles_mut().add(4, 5, Style::default().bg(Color::Red));
+    str.styles_mut().add(4, 4, Style::default().bg(Color::Green));
+    str.styles_mut().add(1, 3, Style::default().bg(Color::White));
+    str.remove(1);
+
+    let styles_result = vec![
+        (0, 0, Style::default().bg(Color::Blue)),
+        (1, 1, Style::default().bg(Color::Green)),
+        (1, 2, Style::default().bg(Color::Red)),
+        (1, 3, Style::default().bg(Color::Blue)),
+    ];
+
+    let styles: Vec<_> = str.styles().iter().collect();
+
+    assert_eq!(styles, styles_result);
 }
 
-// // #[test]
-// // fn replace_range() {
-// //     let mut str: Text = "Hello".into();
-// //     str.replace_range(.., "New content");
-// //
-// //     assert_eq!(str.as_str(), "New content");
-// //     assert_eq!(str.len(), 11);
-// //
-// //     let mut str: Text = "Löwe 老虎".into();
-// //     str.replace_range(1..=5, "AAAAAAA");
-// //
-// //     assert_eq!(str.as_str(), "L虎");
-// //     assert_eq!(str.len(), 3);
-// //
-// //     let mut str: Text = "Löwe 老虎".into();
-// //     str.replace_range(0..1, "");
-// //
-// //     assert_eq!(str.as_str(), "öwe 老虎");
-// //     assert_eq!(str.len(), 8);
-// //
-// //     let mut str: Text = "Löwe 老虎".into();
-// //     str.replace_range(..3, "T");
-// //
-// //     assert_eq!(str.as_str(), "we 老虎");
-// //     assert_eq!(str.len(), 7);
-// //
-// //     let mut str: Text = "Löwe 老虎".into();
-// //     str.replace_range(..=2, "T");
-// //
-// //     assert_eq!(str.as_str(), "we 老虎");
-// //     assert_eq!(str.len(), 7);
-// // }
-// //
-// // #[test]
-// // #[should_panic]
-// // fn replace_range_out_of_bound() {
-// //     let mut str: Text = "Hello".into();
-// //     str.replace_range(0..100, "New content");
-// // }
+#[test]
+fn replace_range() {
+    let mut str: Text = "Heööllo".into();
+    str.replace_range(.., "New content");
+
+    assert_eq!(str.as_ref(), "New content");
+    assert_eq!(str.columns(), 11);
+
+    let mut str: Text = "Löwe 老虎".into();
+    str.replace_range(1..=5, "AAAAAAA");
+
+    assert_eq!(str.as_ref(), "LAAAAAAA虎");
+    assert_eq!(str.columns(), 10);
+
+    let mut str: Text = "Löwe 老虎".into();
+    str.replace_range(0..1, "");
+
+    assert_eq!(str.as_ref(), "öwe 老虎");
+    assert_eq!(str.columns(), 8);
+
+    let mut str: Text = "Löwe 老虎".into();
+    str.replace_range(..3, "T");
+
+    assert_eq!(str.as_ref(), "Te 老虎");
+    assert_eq!(str.columns(), 7);
+
+    let mut str: Text = "Löwe 老虎".into();
+    str.replace_range(..=2, "T");
+
+    assert_eq!(str.as_ref(), "Te 老虎");
+    assert_eq!(str.columns(), 7);
+}
+
+#[test]
+#[should_panic]
+fn replace_range_out_of_bound() {
+    let mut str: Text = "Hello".into();
+    str.replace_range(0..100, "New content");
+}

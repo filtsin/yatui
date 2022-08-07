@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::RangeBounds};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -15,6 +15,7 @@ pub struct RawText {
 struct RawTextSize {
     columns: usize,
     lines: usize,
+    count: usize,
 }
 
 impl RawText {
@@ -30,7 +31,13 @@ impl RawText {
         self.size = Self::compute_size(self.content());
     }
 
-    pub fn remove(&mut self, grapheme_idx: usize) {}
+    pub fn replace_range<R>(&mut self, r: R, replace_with: &str)
+    where
+        R: RangeBounds<usize>,
+    {
+        self.content.to_mut().replace_range(r, replace_with);
+        self.size = Self::compute_size(self.as_ref());
+    }
 
     pub fn clear(&mut self) {
         self.content.to_mut().clear();
@@ -57,19 +64,27 @@ impl RawText {
         self.size.lines
     }
 
+    pub fn count(&self) -> usize {
+        self.size.count
+    }
+
     fn compute_size(s: &str) -> RawTextSize {
         let mut columns = 0;
         let mut lines = 0;
+        let mut count = 0;
 
         for line in s.lines() {
             lines += 1;
-            columns = columns.max(UnicodeWidthStr::width(line));
+
+            let width = UnicodeWidthStr::width(line);
+            columns = columns.max(width);
+            count += width;
         }
 
-        RawTextSize { columns, lines }
+        RawTextSize { columns, lines, count }
     }
 
-    pub fn create_graphemes(s: &str) -> impl Iterator<Item = Grapheme<'_>> {
+    pub fn create_graphemes(s: &str) -> impl Iterator<Item = Grapheme<'_>> + Clone {
         UnicodeSegmentation::grapheme_indices(s, true).map(Grapheme::new)
     }
 }

@@ -9,7 +9,11 @@ pub use text_style::TextStyle;
 
 use raw_text::RawText;
 
-use std::{borrow::Cow, collections::BTreeSet};
+use std::{
+    borrow::Cow,
+    collections::BTreeSet,
+    ops::{Range, RangeBounds, RangeTo},
+};
 
 #[derive(Default)]
 pub struct Text {
@@ -34,9 +38,29 @@ impl Text {
     }
 
     pub fn remove(&mut self, grapheme_idx: usize) {
-        self.raw.remove(grapheme_idx);
-        // TODO:
-        // remove styles
+        self.replace_range(grapheme_idx..=grapheme_idx, "");
+    }
+
+    pub fn replace_range<R>(&mut self, r: R, replace_with: &str)
+    where
+        R: RangeBounds<usize>,
+    {
+        let range = range(r, ..self.raw.count());
+
+        let g1 = RawText::create_graphemes(self.raw.as_ref()).nth(range.start).unwrap().info();
+        let g2 = RawText::create_graphemes(self.raw.as_ref()).nth(range.end - 1).unwrap().info();
+
+        self.raw.replace_range(g1.start()..=g2.end(), replace_with);
+        self.style.remove(g1.start(), g2.end());
+
+        let old_len = g2.distance_to(g1);
+        let new_len = replace_with.len();
+
+        if old_len > new_len {
+            self.styles_mut().negative_shift(g2.end(), old_len - new_len);
+        } else {
+            self.styles_mut().positive_shift(g2.end(), new_len - old_len);
+        }
     }
 
     pub fn clear(&mut self) {
@@ -67,6 +91,29 @@ impl Text {
     pub fn is_owned(&self) -> bool {
         self.raw.is_owned()
     }
+}
+
+// TODO: Replace with std::slice::range when stabilized
+fn range<R>(range: R, bounds: RangeTo<usize>) -> Range<usize>
+where
+    R: RangeBounds<usize>,
+{
+    let start = match range.start_bound() {
+        std::ops::Bound::Included(&n) => n,
+        std::ops::Bound::Excluded(&n) => n.checked_add(1).unwrap(),
+        std::ops::Bound::Unbounded => 0,
+    };
+
+    let end = match range.end_bound() {
+        std::ops::Bound::Included(&n) => n.checked_add(1).unwrap(),
+        std::ops::Bound::Excluded(&n) => n,
+        std::ops::Bound::Unbounded => bounds.end,
+    };
+
+    assert!(start < end);
+    assert!(end <= bounds.end);
+
+    start..end
 }
 
 impl AsRef<str> for Text {
