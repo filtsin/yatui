@@ -4,21 +4,27 @@ use std::hash::Hash;
 pub struct Grapheme<'a> {
     g: &'a str,
     byte_offset: usize,
+    index: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct GraphemeInfo {
+pub(crate) struct GraphemeInfo {
+    index: usize,
     bytes: usize,
     byte_offset: usize,
 }
 
 impl<'a> Grapheme<'a> {
-    pub(crate) fn new((byte_offset, g): (usize, &'a str)) -> Self {
-        Self { g, byte_offset }
+    pub(crate) fn new((index, (byte_offset, g)): (usize, (usize, &'a str))) -> Self {
+        Self { g, byte_offset, index }
     }
 
     pub fn data(&self) -> &str {
         self.as_ref()
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
     }
 
     pub fn start(&self) -> usize {
@@ -26,17 +32,17 @@ impl<'a> Grapheme<'a> {
     }
 
     pub fn end(&self) -> usize {
-        self.info().end()
+        self.clone().info().end()
     }
 
-    pub fn info(&self) -> GraphemeInfo {
-        GraphemeInfo::new(self.g.len(), self.byte_offset)
+    pub(crate) fn info(self) -> GraphemeInfo {
+        GraphemeInfo::new(self.index, self.g.len(), self.byte_offset)
     }
 }
 
 impl GraphemeInfo {
-    pub fn new(bytes: usize, byte_offset: usize) -> Self {
-        Self { bytes, byte_offset }
+    pub fn new(index: usize, bytes: usize, byte_offset: usize) -> Self {
+        Self { index, bytes, byte_offset }
     }
 
     pub fn len(&self) -> usize {
@@ -49,6 +55,10 @@ impl GraphemeInfo {
 
     pub fn end(&self) -> usize {
         self.byte_offset + self.len() - 1
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
     }
 
     pub fn distance_to(&self, rhs: GraphemeInfo) -> usize {

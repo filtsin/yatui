@@ -15,7 +15,6 @@ pub struct RawText {
 struct RawTextSize {
     columns: usize,
     lines: usize,
-    count: usize,
 }
 
 impl RawText {
@@ -44,6 +43,33 @@ impl RawText {
         self.size = RawTextSize::default();
     }
 
+    pub fn reserve(&mut self, additional: usize) {
+        self.content.to_mut().reserve(additional);
+    }
+
+    pub fn reserve_exact(&mut self, additional: usize) {
+        self.content.to_mut().reserve_exact(additional);
+    }
+
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        if let Cow::Owned(ref mut s) = self.content {
+            s.shrink_to(min_capacity);
+        }
+    }
+
+    pub fn shrink_to_fit(&mut self) {
+        if let Cow::Owned(ref mut s) = self.content {
+            s.shrink_to_fit();
+        }
+    }
+
+    pub fn capacity(&self) -> usize {
+        match &self.content {
+            Cow::Borrowed(s) => 0,
+            Cow::Owned(s) => s.capacity(),
+        }
+    }
+
     pub fn content(&self) -> &str {
         self.as_ref()
     }
@@ -64,28 +90,22 @@ impl RawText {
         self.size.lines
     }
 
-    pub fn count(&self) -> usize {
-        self.size.count
-    }
-
     fn compute_size(s: &str) -> RawTextSize {
         let mut columns = 0;
         let mut lines = 0;
-        let mut count = 0;
 
         for line in s.lines() {
             lines += 1;
 
             let width = UnicodeWidthStr::width(line);
             columns = columns.max(width);
-            count += width;
         }
 
-        RawTextSize { columns, lines, count }
+        RawTextSize { columns, lines }
     }
 
     pub fn create_graphemes(s: &str) -> impl Iterator<Item = Grapheme<'_>> + Clone {
-        UnicodeSegmentation::grapheme_indices(s, true).map(Grapheme::new)
+        UnicodeSegmentation::grapheme_indices(s, true).enumerate().map(Grapheme::new)
     }
 }
 
