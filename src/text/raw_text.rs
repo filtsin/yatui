@@ -2,16 +2,16 @@ use std::{borrow::Cow, ops::RangeBounds};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-use super::Grapheme;
+use super::{Grapheme, GraphemeIter};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RawText {
     content: Cow<'static, str>,
     // Cached sizes for content
     size: RawTextSize,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct RawTextSize {
     columns: usize,
     lines: usize,
@@ -23,11 +23,35 @@ impl RawText {
         Self { content, size }
     }
 
+    // Take content (transform it into string if it is borrowed)
+    pub fn take(&mut self) -> String {
+        self.size = RawTextSize::default();
+        std::mem::take(self.content.to_mut())
+    }
+
     pub fn push_str(&mut self, string: &str) {
         self.content.to_mut().push_str(string);
-        // Maybe optimize this way. Find last line on older content and recalculate
-        // size with new info from string
+        self.update_size();
+    }
+
+    pub fn split_off(&mut self, at: usize) -> RawText {
+        let res = self.content.to_mut().split_off(at);
+        self.update_size();
+        RawText::new(res.into())
+    }
+
+    pub fn push(&mut self, c: char) {
+        self.content.to_mut().push(c);
+        self.update_size();
+    }
+
+    pub fn update_size(&mut self) {
         self.size = Self::compute_size(self.content());
+    }
+
+    pub fn insert_str(&mut self, idx: usize, string: &str) {
+        self.content.to_mut().insert_str(idx, string);
+        self.update_size();
     }
 
     pub fn replace_range<R>(&mut self, r: R, replace_with: &str)
@@ -35,7 +59,7 @@ impl RawText {
         R: RangeBounds<usize>,
     {
         self.content.to_mut().replace_range(r, replace_with);
-        self.size = Self::compute_size(self.as_ref());
+        self.update_size();
     }
 
     pub fn clear(&mut self) {
@@ -68,6 +92,19 @@ impl RawText {
             Cow::Borrowed(s) => 0,
             Cow::Owned(s) => s.capacity(),
         }
+    }
+
+    pub fn truncate(&mut self, new_len: usize) {
+        self.content.to_mut().truncate(new_len);
+        self.update_size();
+    }
+
+    pub fn map<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut String),
+    {
+        f(self.content.to_mut());
+        self.update_size();
     }
 
     pub fn content(&self) -> &str {
@@ -104,8 +141,8 @@ impl RawText {
         RawTextSize { columns, lines }
     }
 
-    pub fn create_graphemes(s: &str) -> impl Iterator<Item = Grapheme<'_>> + Clone {
-        UnicodeSegmentation::grapheme_indices(s, true).enumerate().map(Grapheme::new)
+    pub fn create_graphemes(s: &str) -> GraphemeIter<'_> {
+        GraphemeIter::new(UnicodeSegmentation::grapheme_indices(s, true).enumerate())
     }
 }
 

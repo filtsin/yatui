@@ -1,6 +1,9 @@
-use std::hash::Hash;
+use std::{
+    hash::Hash,
+    ops::{Deref, RangeInclusive},
+};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq)]
 pub struct Grapheme<'a> {
     g: &'a str,
     byte_offset: usize,
@@ -61,16 +64,8 @@ impl GraphemeInfo {
         self.index
     }
 
-    pub fn distance_to(&self, rhs: GraphemeInfo) -> usize {
-        if self.byte_offset > rhs.byte_offset {
-            GraphemeInfo::distance_between(*self, rhs)
-        } else {
-            GraphemeInfo::distance_between(rhs, *self)
-        }
-    }
-
-    fn distance_between(lhs: GraphemeInfo, rhs: GraphemeInfo) -> usize {
-        lhs.end() - rhs.start() + 1
+    pub fn bytes_range(&self) -> RangeInclusive<usize> {
+        self.start()..=self.end()
     }
 }
 
@@ -80,8 +75,28 @@ impl AsRef<str> for Grapheme<'_> {
     }
 }
 
+impl Deref for Grapheme<'_> {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl PartialEq<&str> for Grapheme<'_> {
+    fn eq(&self, other: &&str) -> bool {
+        self.g == *other
+    }
+}
+
 impl Hash for Grapheme<'_> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.g.hash(state);
+    }
+}
+
+impl PartialEq for Grapheme<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.g == other.g
     }
 }

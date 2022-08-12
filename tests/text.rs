@@ -1,4 +1,4 @@
-use yatui::text::{Color, Grapheme, Modifier, Style, Text};
+use yatui::text::{Color, Modifier, Style, Text};
 
 #[test]
 fn create_borrowed_and_owned_strings() {
@@ -10,28 +10,7 @@ fn create_borrowed_and_owned_strings() {
 }
 
 #[test]
-fn change_styles_mut() {
-    let mut str: Text = "".into();
-
-    assert_eq!(str.styles().iter().count(), 0);
-
-    str.styles_mut().add(..2, Style::new().fg(Color::Red));
-    str.styles_mut().add(.., Style::new().fg(Color::White));
-    str.styles_mut().add(2..3, Style::new().fg(Color::Blue));
-    str.styles_mut().add(3..=4, Style::new().fg(Color::Green));
-    str.styles_mut().add(5.., Style::new().fg(Color::Yellow));
-
-    let mut styles = str.styles().iter();
-    assert_eq!(styles.next().unwrap(), (0, 1, Style::new().fg(Color::Red)));
-    assert_eq!(styles.next().unwrap(), (0, usize::MAX, Style::new().fg(Color::White)));
-    assert_eq!(styles.next().unwrap(), (2, 2, Style::new().fg(Color::Blue)));
-    assert_eq!(styles.next().unwrap(), (3, 4, Style::new().fg(Color::Green)));
-    assert_eq!(styles.next().unwrap(), (5, usize::MAX, Style::new().fg(Color::Yellow)));
-    assert_eq!(styles.next(), None)
-}
-
-#[test]
-fn length() {
+fn lines_columns_length() {
     let texts_len = [
         "hello",
         "\n\t\r\n",
@@ -42,108 +21,27 @@ fn length() {
         "y̆",
         "𝄞",
         "text\nnew\r\nit is very big line\nnew line",
+        "",
     ]
     .map(|v| {
         let text = Text::from(v);
-        (text.lines(), text.columns())
+        (text.lines(), text.columns(), text.len())
     });
 
-    let len = [(1, 5), (2, 0), (1, 6), (1, 17), (1, 11), (1, 1), (1, 1), (1, 1), (4, 19)];
+    let len = [
+        (1, 5, 5),
+        (3, 0, 3),
+        (1, 6, 6),
+        (1, 17, 15),
+        (1, 11, 6),
+        (1, 1, 1),
+        (1, 1, 1),
+        (1, 1, 1),
+        (4, 19, 37),
+        (0, 0, 0),
+    ];
 
     assert_eq!(texts_len, len);
-}
-
-#[test]
-fn add_order() {
-    let mut str: Text = "123456789".into();
-
-    let styles = str.styles_mut();
-
-    // 5 is GREEN fg (and ITALIC and BOLD and BLUE bg)
-    styles.add(4..=4, Style::new().fg(Color::Green));
-
-    // All text BOLD
-    styles.add(0..=8, Style::new().modifier(Modifier::BOLD));
-
-    // 2345678 is ITALIC (and BOLD)
-    styles.add(1..=7, Style::new().modifier(Modifier::ITALIC));
-
-    // 456 is BLUE bg (and ITALIC and BOLD and RED fg)
-    styles.add(2..=6, Style::new().bg(Color::Blue));
-
-    // 34567 is RED fg (and ITALIC and BOLD)
-    styles.add(3..=5, Style::new().fg(Color::Red));
-
-    let styles_result = vec![
-        (0, 8, Style::new().modifier(Modifier::BOLD)),
-        (1, 7, Style::new().modifier(Modifier::ITALIC)),
-        (2, 6, Style::new().bg(Color::Blue)),
-        (3, 5, Style::new().fg(Color::Red)),
-        (4, 4, Style::new().fg(Color::Green)),
-    ];
-
-    let styles: Vec<_> = styles.iter().collect();
-
-    assert_eq!(styles, styles_result);
-}
-
-#[test]
-fn styles_for_exists_range_should_be_replaced() {
-    let mut str: Text = "123".into();
-
-    let styles = str.styles_mut();
-    styles.add(0..=1, Style::new().fg(Color::Red));
-    styles.add(0..=1, Style::new().fg(Color::Blue));
-
-    let styles_result = vec![(0, 1, Style::new().fg(Color::Blue))];
-    let styles: Vec<_> = styles.iter().collect();
-
-    assert_eq!(styles, styles_result);
-}
-
-#[test]
-fn remove_full_range() {
-    let mut str: Text = "Hello".into();
-
-    let styles = str.styles_mut();
-
-    styles.add(0..=1, Style::new().fg(Color::Red));
-    styles.add(0..=4, Style::new().fg(Color::Blue));
-    styles.add(2..=3, Style::new().fg(Color::Green));
-
-    styles.remove_range(0..=4);
-
-    let styles_result =
-        vec![(0, 1, Style::new().fg(Color::Red)), (2, 3, Style::new().fg(Color::Green))];
-
-    let styles: Vec<_> = styles.iter().collect();
-
-    assert_eq!(styles_result, styles);
-}
-
-#[test]
-fn remove_styles() {
-    let mut str: Text = "Hello".into();
-
-    let styles = str.styles_mut();
-
-    styles.add(0..=4, Style::new().fg(Color::Red));
-    styles.add(1..=3, Style::new().bg(Color::Blue));
-    styles.add(2..=2, Style::new().modifier(Modifier::BOLD));
-
-    styles.remove(1..=2);
-
-    let styles_result = vec![
-        (0, 0, Style::new().fg(Color::Red)),
-        (3, 3, Style::new().bg(Color::Blue)),
-        (3, 4, Style::new().fg(Color::Red)),
-    ];
-
-    let styles: Vec<_> = styles.iter().collect();
-
-    println!("{:?}", styles);
-
-    assert_eq!(styles_result, styles);
 }
 
 #[test]
@@ -158,6 +56,17 @@ fn clear() {
 }
 
 #[test]
+fn clear_all() {
+    let mut str: Text = "Hello".into();
+    str.styles_mut().add(0..=5, Style::new().fg(Color::Red));
+
+    str.clear_all();
+
+    assert_eq!((str.lines(), str.columns()), (0, 0));
+    assert_eq!(str.styles().iter().count(), 0);
+}
+
+#[test]
 fn push_str() {
     let mut str: Text = "Hello".into();
     str.push_str(" world");
@@ -167,7 +76,7 @@ fn push_str() {
 }
 
 #[test]
-fn remove_string() {
+fn remove() {
     let mut str: Text = "y\u{0306}es".into(); // y̆
     str.remove(0);
 
@@ -181,10 +90,12 @@ fn remove_string() {
     assert_eq!(str.columns(), 8);
 
     let mut str: Text = "Hello".into();
+    str.styles_mut().add(.., Style::new());
     str.remove(4);
 
     assert_eq!(str.as_ref(), "Hell");
     assert_eq!(str.columns(), 4);
+    assert_eq!(str.styles().iter().count(), 1);
 }
 
 #[test]
@@ -193,27 +104,6 @@ fn remove_string_out_of_bound() {
     let mut str: Text = "Text".into();
     str.remove(100);
 }
-
-// #[test]
-// fn remove_string_with_styles() {
-//     let mut str: Text = "He\u{0306}llo".into();
-//     str.styles_mut().add(0..=6, Style::default().bg(Color::Blue));
-//     str.styles_mut().add(4, 5, Style::default().bg(Color::Red));
-//     str.styles_mut().add(4, 4, Style::default().bg(Color::Green));
-//     str.styles_mut().add(1, 3, Style::default().bg(Color::White));
-//     str.remove(1);
-//
-//     let styles_result = vec![
-//         (0, 0, Style::default().bg(Color::Blue)),
-//         (1, 1, Style::default().bg(Color::Green)),
-//         (1, 2, Style::default().bg(Color::Red)),
-//         (1, 3, Style::default().bg(Color::Blue)),
-//     ];
-//
-//     let styles: Vec<_> = str.styles().iter().collect();
-//
-//     assert_eq!(styles, styles_result);
-// }
 
 #[test]
 fn replace_range() {
@@ -248,10 +138,12 @@ fn replace_range() {
     assert_eq!(str.columns(), 7);
 
     let mut str: Text = "老Löwe 虎".into();
+    str.styles_mut().add(.., Style::new());
     str.replace_range(1.., "T");
 
     assert_eq!(str.as_ref(), "老T");
     assert_eq!(str.columns(), 3);
+    assert_eq!(str.styles().iter().count(), 1);
 }
 
 #[test]
@@ -259,4 +151,249 @@ fn replace_range() {
 fn replace_range_out_of_bound() {
     let mut str: Text = "Hello".into();
     str.replace_range(0..100, "New content");
+}
+
+#[test]
+fn replace_range_polite() {
+    let mut str: Text = "Löwe 老虎 y\u{0306}!".into();
+    str.styles_mut().add(1..2, Style::new().fg(Color::Red)); // ö
+    str.styles_mut().add(5..7, Style::new().fg(Color::Blue)); // 老虎
+    str.styles_mut().add(8..=8, Style::new().fg(Color::Yellow)); // y\u{0306}
+    let mut str2 = str.clone();
+
+    str.replace_range_polite(3..=5, " New text ");
+
+    assert_eq!(str.as_ref(), "Löw New text 虎 y\u{0306}!");
+    assert_eq!(str.columns(), 18);
+
+    let styles = vec![
+        (1..=1, Style::new().fg(Color::Red)),
+        (13..=13, Style::new().fg(Color::Blue)),
+        (15..=15, Style::new().fg(Color::Yellow)),
+    ];
+
+    assert_eq!(str.styles().clone().into_vec(), styles);
+
+    str2.replace_range_polite(3..=5, "1");
+    assert_eq!(str2.as_ref(), "Löw1虎 y\u{0306}!");
+    assert_eq!(str2.columns(), 9);
+
+    let styles = vec![
+        (1..=1, Style::new().fg(Color::Red)),
+        (4..=4, Style::new().fg(Color::Blue)),
+        (6..=6, Style::new().fg(Color::Yellow)),
+    ];
+
+    assert_eq!(str2.styles().clone().into_vec(), styles);
+}
+
+#[test]
+fn pop() {
+    let mut str: Text = "He\u{0306}y".into();
+    str.pop();
+    assert_eq!(str.as_ref(), "He\u{0306}");
+    assert_eq!(str.columns(), 2);
+    str.pop();
+    assert_eq!(str.as_ref(), "H");
+    assert_eq!(str.columns(), 1);
+    str.pop();
+    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.columns(), 0);
+    str.pop();
+    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.columns(), 0);
+}
+
+#[test]
+fn push() {
+    let mut str: Text = "fo".into();
+    str.push('o');
+    str.push('老');
+    str.push('🖉');
+
+    assert_eq!(str.as_ref(), "foo老🖉");
+    assert_eq!(str.columns(), 6);
+}
+
+#[test]
+fn modify() {
+    let mut str: Text = "hello".into();
+
+    str.modify(|string| {
+        string.make_ascii_uppercase();
+    });
+
+    assert_eq!(str.as_ref(), "HELLO");
+    assert_eq!(str.columns(), 5);
+    assert_eq!(str.lines(), 1);
+
+    str.modify(|string| {
+        *string = string.replace('E', "\n2345\n");
+    });
+
+    assert_eq!(str.as_ref(), "H\n2345\nLLO");
+    assert_eq!(str.columns(), 4);
+    assert_eq!(str.lines(), 3);
+}
+
+#[test]
+fn insert_str() {
+    let mut str: Text = "老hello".into();
+
+    str.insert_str(0, "foo");
+    assert_eq!(str.as_ref(), "foo老hello");
+
+    str.insert_str(4, " ");
+    assert_eq!(str.as_ref(), "foo老 hello");
+
+    str.insert_str(str.len(), "\nnew content");
+    assert_eq!(str.as_ref(), "foo老 hello\nnew content");
+    assert_eq!(str.columns(), 11);
+    assert_eq!(str.lines(), 2);
+}
+
+#[test]
+#[should_panic]
+fn insert_str_out_of_bounds() {
+    let mut str: Text = "hello".into();
+    str.insert_str(100, "foo");
+}
+
+#[test]
+fn retain() {
+    let mut str: Text = "老y\u{0306}foл".into();
+
+    str.retain(|_| true);
+    assert_eq!(str.as_ref(), "老y\u{0306}foл");
+
+    str.retain(|l| l != "y\u{0306}");
+    assert_eq!(str.as_ref(), "老foл");
+
+    str.retain(|_| false);
+    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.columns(), 0);
+    assert_eq!(str.lines(), 0);
+
+    let mut str: Text = "yy\u{0306}".into();
+    str.retain(|c| c != "y");
+    assert_eq!(str.as_ref(), "y\u{0306}");
+
+    let mut str: Text = "y\u{0306}y\u{0306}❤️🧡🧡🧡🧡🧡🧡🧡🧡".into();
+    str.retain(|c| c != "❤️");
+    assert_eq!(str.as_ref(), "y\u{0306}y\u{0306}🧡🧡🧡🧡🧡🧡🧡🧡");
+
+    str.retain(|c| c == "🧡");
+    assert_eq!(str.as_ref(), "🧡🧡🧡🧡🧡🧡🧡🧡");
+}
+
+#[test]
+fn truncate() {
+    let mut str: Text = "y\u{0306}hello\nfoo老".into();
+
+    str.truncate(7);
+
+    assert_eq!(str.as_ref(), "y\u{0306}hello\n");
+
+    str.truncate(100);
+    assert_eq!(str.as_ref(), "y\u{0306}hello\n");
+
+    str.truncate(0);
+    assert_eq!(str.as_ref(), "");
+}
+
+#[test]
+fn split_off_polite() {
+    let mut str: Text = "hey\u{0306}it\n is me".into();
+    str.styles_mut().add(0..2, Style::new().fg(Color::Red));
+    str.styles_mut().add(.., Style::new().fg(Color::Blue));
+    str.styles_mut().add(4..=6, Style::new().fg(Color::Green));
+    str.styles_mut().add(1..=8, Style::new().fg(Color::Yellow));
+
+    let str2 = str.split_off_polite(3);
+
+    assert_eq!(str.as_ref(), "hey\u{0306}");
+    assert_eq!(str2.as_ref(), "it\n is me");
+
+    assert_eq!(str.columns(), 3);
+    assert_eq!(str.lines(), 1);
+    assert_eq!(str2.columns(), 6);
+    assert_eq!(str2.lines(), 2);
+
+    let styles_left = vec![
+        (0..=1, Style::new().fg(Color::Red)),
+        (0..=usize::MAX, Style::new().fg(Color::Blue)),
+        (1..=8, Style::new().fg(Color::Yellow)),
+        (4..=6, Style::new().fg(Color::Green)),
+    ];
+
+    let styles_right = vec![
+        (0..=5, Style::new().fg(Color::Yellow)),
+        (0..=usize::MAX - 3, Style::new().fg(Color::Blue)),
+        (1..=3, Style::new().fg(Color::Green)),
+    ];
+
+    assert_eq!(str.styles().clone().into_vec(), styles_left);
+    assert_eq!(str2.styles().clone().into_vec(), styles_right);
+}
+
+#[test]
+#[should_panic]
+fn split_off_polite_out_of_bounds() {
+    let mut str: Text = "hey".into();
+    str.split_off_polite(100);
+}
+
+#[test]
+fn truncate_lines() {
+    let mut str: Text = "hello\nnew\r\nworld\n".into();
+    assert_eq!(str.lines(), 3);
+
+    str.truncate_lines(3);
+    assert_eq!(str.as_ref(), "hello\nnew\r\nworld");
+    assert_eq!(str.lines(), 3);
+
+    str.truncate_lines(2);
+    assert_eq!(str.as_ref(), "hello\nnew");
+    assert_eq!(str.lines(), 2);
+
+    let mut str: Text = "hello\nnew".into();
+
+    str.truncate_lines(1);
+    assert_eq!(str.as_ref(), "hello");
+    assert_eq!(str.lines(), 1);
+
+    str.truncate_lines(0);
+    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.lines(), 0);
+}
+
+#[test]
+fn truncate_columns() {
+    let mut str: Text = "333\n4444\r\n4444\r\n55555\r\n1".into();
+    assert_eq!(str.columns(), 5);
+
+    str.truncate_columns(5);
+    assert_eq!(str.as_ref(), "333\n4444\r\n4444\r\n55555\r\n1");
+    assert_eq!(str.columns(), 5);
+
+    str.truncate_columns(4);
+    assert_eq!(str.as_ref(), "333\n4444\r\n4444\r\n5555\r\n1");
+    assert_eq!(str.columns(), 4);
+
+    str.truncate_columns(3);
+    assert_eq!(str.as_ref(), "333\n444\r\n444\r\n555\r\n1");
+    assert_eq!(str.columns(), 3);
+
+    str.truncate_columns(2);
+    assert_eq!(str.as_ref(), "33\n44\r\n44\r\n55\r\n1");
+    assert_eq!(str.columns(), 3);
+
+    str.truncate_columns(1);
+    assert_eq!(str.as_ref(), "3\n4\r\n4\r\n5\r\n1");
+    assert_eq!(str.columns(), 3);
+
+    str.truncate_columns(0);
+    assert_eq!(str.as_ref(), "\n\r\n\r\n\r\n\n");
+    assert_eq!(str.columns(), 0);
+    assert_eq!(str.lines(), 5);
 }

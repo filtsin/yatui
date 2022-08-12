@@ -2,17 +2,21 @@ mod grapheme;
 mod raw_text;
 mod style;
 mod text_style;
+mod utils;
 
 pub use grapheme::Grapheme;
 pub use style::{Color, Modifier, Style};
 pub use text_style::TextStyle;
 
 use raw_text::RawText;
+use unicode_segmentation::GraphemeIndices;
 use unicode_width::UnicodeWidthStr;
+use utils::get_graphemes_info;
 
 use std::{
     borrow::Cow,
     collections::BTreeSet,
+    iter::Enumerate,
     ops::{
         Bound::{self, Excluded, Included, Unbounded},
         Range, RangeBounds, RangeInclusive, RangeTo,
@@ -21,10 +25,15 @@ use std::{
 
 use self::grapheme::GraphemeInfo;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Text {
     raw: RawText,
     style: TextStyle,
+}
+
+#[derive(Clone)]
+pub struct GraphemeIter<'a> {
+    inner: Enumerate<GraphemeIndices<'a>>,
 }
 
 impl Text {
@@ -48,8 +57,44 @@ impl Text {
     /// let mut text: Text = "hello".into();
     /// let (graphemes, styles) = text.parts();
     /// ```
-    pub fn parts(&mut self) -> (impl Iterator<Item = Grapheme<'_>>, &'_ mut TextStyle) {
+    pub fn parts(&mut self) -> (GraphemeIter<'_>, &'_ mut TextStyle) {
         (RawText::create_graphemes(self.raw.as_ref()), &mut self.style)
+    }
+
+    /// Return iterator over graphemes for this `Text`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::text::Text;
+    /// let text: Text = "y\u{0306}ello老".into();
+    ///
+    /// assert_eq!(text.graphemes().collect::<Vec<_>>(), vec!["y\u{0306}", "e", "l", "l", "o", "老"]);
+    /// ```
+    pub fn graphemes(&self) -> GraphemeIter<'_> {
+        RawText::create_graphemes(self.as_ref())
+    }
+
+    /// Modify text in place with a given closure.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "hello".into();
+    /// text.modify(|string| {
+    ///     *string = string.replace("el", "i ");
+    ///     string.push_str("ok");
+    ///     string.make_ascii_uppercase();
+    /// });
+    /// assert_eq!(text.as_ref(), "HI LOOK");
+    /// assert_eq!(text.columns(), 7);
+    /// ```
+    pub fn modify<F>(&mut self, mut f: F)
+    where
+        F: FnOnce(&mut String),
+    {
+        self.raw.map(f);
     }
 
     /// Appends a given string slice onto the end of this `Text`.
@@ -114,8 +159,8 @@ impl Text {
     ///
     /// assert_eq!(text.as_ref(), "h new content o");
     /// assert_eq!(
-    ///     text.styles().iter().collect::<Vec<_>>(),
-    ///     vec![(1, 3, Style::new().bg(Color::Red)), (4, 4, Style::new().bg(Color::Yellow))]
+    ///     text.styles().clone().into_vec(),
+    ///     vec![(1..=3, Style::new().bg(Color::Red)), (4..=4, Style::new().bg(Color::Yellow))]
     /// );
     /// ```
     pub fn replace_range<R>(&mut self, range: R, replace_with: &str)
@@ -145,11 +190,8 @@ impl Text {
     /// text.replace_range_polite(1..=3, " new content ");
     ///
     /// assert_eq!(text.as_ref(), "h new content o");
-    /// assert_eq!(
-    ///     text.styles().iter().collect::<Vec<_>>(),
-    ///     vec![(14, 14, Style::new().bg(Color::Yellow))]
-    /// );
-    /// // So the grapheme 'o' saved style after replacing string
+    /// assert_eq!(text.styles().clone().into_vec(), vec![(14..=14, Style::new().bg(Color::Yellow))]);
+    /// // So the grapheme 'o' saved style after replacing string because it is not in range.
     /// ```
     pub fn replace_range_polite<R>(&mut self, range: R, replace_with: &str)
     where
@@ -157,10 +199,11 @@ impl Text {
     {
         let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_ref()), range);
         self.raw.replace_range(g1.start()..=g2.end(), replace_with);
+
         self.style.remove(g1.index()..=g2.index());
 
         let old_len = g2.index() - g1.index() + 1;
-        let new_len = UnicodeWidthStr::width(replace_with);
+        let new_len = RawText::create_graphemes(replace_with).count();
 
         if old_len > new_len {
             self.styles_mut().negative_shift(g2.index().checked_add(1).unwrap(), old_len - new_len);
@@ -177,7 +220,6 @@ impl Text {
     ///
     /// ```
     /// # use yatui::text::Text;
-    ///
     /// let mut text: Text = "foo".into();
     /// text.pop();
     ///
@@ -186,19 +228,48 @@ impl Text {
     pub fn pop(&mut self) {
         if let Some(g) = RawText::create_graphemes(self.as_ref()).last() {
             let info = g.info();
-            self.raw.replace_range(info.start()..=info.end(), "");
+            self.raw.replace_range(info.bytes_range(), "");
         }
     }
 
-    /// Remove all matches of `pat` in the `Text`.
+    /// Appends the given `char` to the end of this `Text`.
     ///
     /// # Examples
     ///
     /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "foo".into();
+    /// text.push('1');
+    ///
+    /// assert_eq!(text.as_ref(), "foo1");
+    /// ```
+    pub fn push(&mut self, c: char) {
+        self.raw.push(c);
+    }
+
+    /// Inserts a string slice into this `Text` at `grapheme` index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `grapheme_idx` is larger than the `Text` len (in graphemes).
+    ///
+    /// # Examples
     ///
     /// ```
-    pub fn remove_matches(&mut self, pat: &str) {
-        todo!()
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "老y\u{0306}f".into();
+    /// text.insert_str(2, "bar");
+    ///
+    /// assert_eq!(text.as_ref(), "老y\u{0306}barf");
+    /// ```
+    pub fn insert_str(&mut self, grapheme_idx: usize, string: &str) {
+        if grapheme_idx == 0 {
+            self.raw.insert_str(0, string);
+            return;
+        }
+
+        let g = self.graphemes().nth(grapheme_idx - 1).unwrap().info();
+        self.raw.insert_str(g.end() + 1, string);
     }
 
     /// Retains only the `graphemes` specified by the predicate.
@@ -210,18 +281,63 @@ impl Text {
     /// # Examples
     ///
     /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "y\u{0306} - is not y".into();
+    /// text.retain(|s| s != "y");
+    ///
+    /// assert_eq!(text.as_ref(), "y\u{0306} - is not ");
     /// ```
-    pub fn retain<F>(&mut self, f: F)
+    ///
+    /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "y\u{0306}老🧡пh".into();
+    /// let keep = [true, false, false, true, true];
+    /// let mut iter = keep.iter();
+    /// text.retain(|_| *iter.next().unwrap());
+    ///
+    /// assert_eq!(text.as_ref(), "y\u{0306}пh");
+    /// ```
+    pub fn retain<F>(&mut self, mut f: F)
     where
-        F: FnMut(&str) -> bool {
-            todo!()
+        F: FnMut(&str) -> bool,
+    {
+        let mut vec = self.raw.take().into_bytes();
 
+        let mut byte_pos = 0;
+        let mut shift = 0;
+
+        while let Some(g) = {
+            // Safety: we moving by graphemes in valid UTF-8 string so it is valid UTF-8
+            let str = unsafe { std::str::from_utf8_unchecked(&vec[byte_pos..]) };
+            RawText::create_graphemes(str).next()
+        } {
+            let result = f(g.data());
+            let g = g.info();
+
+            if !result {
+                shift += g.len();
+            } else if shift > 0 {
+                for i in 0..g.len() {
+                    vec[byte_pos - shift + i] = vec[byte_pos + i];
+                }
+            }
+            byte_pos += g.len();
         }
+
+        // Safety: new len is less than capacity, all elements are initialized. Vec is valid
+        // UTF-8 because old string was valid UTF-8 and all we did was move some graphemes.
+        unsafe {
+            vec.set_len(byte_pos - shift);
+            self.raw = RawText::new(String::from_utf8_unchecked(vec).into());
+        };
+    }
 
     /// Split the `Text` into two at the given `grapheme` index.
     ///
-    /// Returns a newly allocated `Text`. `self` contains graphemes `[0, at]`, and the returned
-    /// `Text` contains graphemes `[at, len).
+    /// Returns a newly allocated `Text`. `self` contains graphemes `[0, at)`, and the returned
+    /// `Text` contains graphemes `[at, len)`. This method is polite. This means
+    /// that new `Text` will save his styles like in the original `Text`.
+    /// Wherein original `Text` in `self` doesn't change.
     ///
     /// # Panics
     ///
@@ -230,22 +346,51 @@ impl Text {
     /// # Examples
     ///
     /// ```
+    /// # use yatui::text::{Text, Style, Color};
+    /// let mut text: Text = "foobar".into();
+    /// text.styles_mut().add(3..=5, Style::new().fg(Color::Red)); // bar is red
+    /// let mut new_text = text.split_off_polite(3);
+    ///
+    /// assert_eq!(text.as_ref(), "foo");
+    /// assert_eq!(new_text.as_ref(), "bar");
+    /// assert_eq!(text.styles().clone().into_vec(), vec![(3..=5, Style::new().fg(Color::Red))]);
+    /// assert_eq!(new_text.styles().clone().into_vec(), vec![(0..=2, Style::new().fg(Color::Red))]);
     /// ```
-    pub fn split_off(&mut self, at: usize) -> Text {
-        todo!()
+    pub fn split_off_polite(&mut self, at: usize) -> Text {
+        let mut styles = self.style.clone();
+        styles.remove(..at);
+        styles.negative_shift(at, at);
+
+        let g = self.graphemes().nth(at).unwrap();
+        Text { raw: self.raw.split_off(g.start()), style: styles }
     }
 
     /// Shortens this `Text` to the specified length in graphemes.
     ///
     /// If `new_len` is greater that the current length this is no-op. Possibly you want to use
-    /// [truncate_columns](Self::truncate_columns).
+    /// [truncate_columns](Self::truncate_columns). Styles remain untouched.
     ///
     /// # Examples
     ///
     /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "y\u{0306}ellow".into();
+    /// text.truncate(1);
+    ///
+    /// assert_eq!(text.as_ref(), "y\u{0306}");
+    /// ```
+    ///
+    /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "hello".into();
+    /// text.truncate(100);
+    ///
+    /// assert_eq!(text.as_ref(), "hello");
     /// ```
     pub fn truncate(&mut self, new_len: usize) {
-        todo!()
+        if let Some(pos) = self.graphemes().nth(new_len).map(|g| g.info().start()) {
+            self.raw.replace_range(pos.., "");
+        }
     }
 
     /// Shortens this `Text` to the specified lines count.
@@ -255,14 +400,40 @@ impl Text {
     /// # Examples
     ///
     /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "foo\nbar\r\n!".into();
+    /// text.truncate_lines(1);
+    ///
+    /// assert_eq!(text.as_ref(), "foo");
     /// ```
     pub fn truncate_lines(&mut self, new_lines: usize) {
-        todo!()
+        // <= because we want to remove \n in the end of text if it is present there.
+        if new_lines <= self.lines() {
+            let mut bytes = 0;
+            let mut lines = 0;
+
+            for g in self.graphemes() {
+                if g == "\n" || g == "\r\n" {
+                    lines += 1;
+                }
+
+                if lines == new_lines {
+                    break;
+                }
+
+                bytes += g.len();
+            }
+
+            // TODO: We do not need to recalculate columns and lines, update lines manually
+            self.modify(|string| {
+                string.truncate(bytes);
+            });
+        }
     }
 
     /// Shortens this `Text` to the specified columns count.
     ///
-    /// If `new_columns` is greater than the current max columns this is no-op. 
+    /// If `new_columns` is greater than the current max columns this is no-op.
     /// This method can change multiple lines of `Text`.
     ///
     /// # Examples
@@ -274,7 +445,7 @@ impl Text {
     }
 
     /// Returns the length of this `Text` in `graphemes`.
-    /// It is *O(*n*)* operation.
+    /// It is *O(*n*)* operation!
     ///
     /// # Examples
     ///
@@ -310,7 +481,7 @@ impl Text {
     /// Check description for [std::reserve_exact](std::string::String::reserve_exact).
     ///
     /// If the `Text` is borrowed it will be transformed to owned.
-    /// 
+    ///
     /// # Examples
     ///
     /// ```
@@ -447,7 +618,7 @@ impl Text {
     /// It is *O(*1*)* operation.
     ///
     /// Result of this function is not equal to graphemes count, because some graphemes
-    /// can fill more than 1 column and some having zero width (control characters). 
+    /// can fill more than 1 column and some having zero width (control characters).
     /// For example `ö` have width equal 1, but `老` have width 2.
     ///
     /// # Examples
@@ -510,64 +681,22 @@ impl Text {
     }
 }
 
-fn get_graphemes_info<'a, I, R>(iter: I, range: R) -> (GraphemeInfo, GraphemeInfo)
-where
-    I: IntoIterator<Item = Grapheme<'a>>,
-    R: RangeBounds<usize>,
-{
-    let (g1, g2) = iter_bound(iter, range);
-    (g1.info(), g2.info())
+impl<'a> GraphemeIter<'a> {
+    fn new(inner: Enumerate<GraphemeIndices<'a>>) -> Self {
+        Self { inner }
+    }
 }
 
-fn iter_bound<I, R, K>(iter: I, range: R) -> (K, K)
-where
-    I: IntoIterator<Item = K>,
-    R: RangeBounds<usize>,
-    K: Clone,
-{
-    let mut iter = iter.into_iter();
+impl<'a> Iterator for GraphemeIter<'a> {
+    type Item = Grapheme<'a>;
 
-    let start_idx = match range.start_bound() {
-        Included(&n) => n,
-        Excluded(&n) => n.checked_add(1).unwrap(),
-        Unbounded => 0,
-    };
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(Grapheme::new)
+    }
 
-    let left = iter.nth(start_idx).unwrap();
-
-    let right = if range.end_bound() == Unbounded {
-        iter.last().unwrap()
-    } else {
-        let end_idx = match range.end_bound() {
-            Included(&n) => n,
-            Excluded(&n) => n.checked_sub(1).unwrap(),
-            Unbounded => unreachable!(),
-        };
-
-        assert!(start_idx <= end_idx);
-
-        if end_idx == start_idx { left.clone() } else { iter.nth(end_idx - start_idx - 1).unwrap() }
-    };
-
-    (left, right)
-}
-
-fn bound_to_range<R: RangeBounds<usize>>(range: R) -> RangeInclusive<usize> {
-    let start = match range.start_bound() {
-        Included(&n) => n,
-        Excluded(&n) => n.checked_add(1).unwrap(),
-        Unbounded => 0,
-    };
-
-    let end = match range.end_bound() {
-        Included(&n) => n,
-        Excluded(&n) => n.checked_sub(1).unwrap(),
-        Unbounded => usize::MAX,
-    };
-
-    assert!(start <= end);
-
-    start..=end
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
 }
 
 impl AsRef<str> for Text {
