@@ -30,7 +30,7 @@ fn lines_columns_length() {
 
     let len = [
         (1, 5, 5),
-        (3, 0, 3),
+        (2, 0, 3),
         (1, 6, 6),
         (1, 17, 15),
         (1, 11, 6),
@@ -71,7 +71,7 @@ fn push_str() {
     let mut str: Text = "Hello".into();
     str.push_str(" world");
 
-    assert_eq!(str.as_ref(), "Hello world");
+    assert_eq!(str.as_str(), "Hello world");
     assert_eq!(str.columns(), 11);
 }
 
@@ -80,20 +80,20 @@ fn remove() {
     let mut str: Text = "y\u{0306}es".into(); // y̆
     str.remove(0);
 
-    assert_eq!(str.as_ref(), "es");
+    assert_eq!(str.as_str(), "es");
     assert_eq!(str.columns(), 2);
 
     let mut str: Text = "Löwe 老虎".into();
     str.remove(1);
 
-    assert_eq!(str.as_ref(), "Lwe 老虎");
+    assert_eq!(str.as_str(), "Lwe 老虎");
     assert_eq!(str.columns(), 8);
 
     let mut str: Text = "Hello".into();
     str.styles_mut().add(.., Style::new());
     str.remove(4);
 
-    assert_eq!(str.as_ref(), "Hell");
+    assert_eq!(str.as_str(), "Hell");
     assert_eq!(str.columns(), 4);
     assert_eq!(str.styles().iter().count(), 1);
 }
@@ -110,38 +110,38 @@ fn replace_range() {
     let mut str: Text = "Heööllo".into();
     str.replace_range(.., "New content");
 
-    assert_eq!(str.as_ref(), "New content");
+    assert_eq!(str.as_str(), "New content");
     assert_eq!(str.columns(), 11);
 
     let mut str: Text = "Löwe 老虎".into();
     str.replace_range(1..=5, "AAAAAAA");
 
-    assert_eq!(str.as_ref(), "LAAAAAAA虎");
+    assert_eq!(str.as_str(), "LAAAAAAA虎");
     assert_eq!(str.columns(), 10);
 
     let mut str: Text = "Löwe 老虎".into();
     str.replace_range(0..1, "");
 
-    assert_eq!(str.as_ref(), "öwe 老虎");
+    assert_eq!(str.as_str(), "öwe 老虎");
     assert_eq!(str.columns(), 8);
 
     let mut str: Text = "Löwe 老虎".into();
     str.replace_range(..3, "T");
 
-    assert_eq!(str.as_ref(), "Te 老虎");
+    assert_eq!(str.as_str(), "Te 老虎");
     assert_eq!(str.columns(), 7);
 
     let mut str: Text = "Löwe 老虎".into();
     str.replace_range(..=2, "T");
 
-    assert_eq!(str.as_ref(), "Te 老虎");
+    assert_eq!(str.as_str(), "Te 老虎");
     assert_eq!(str.columns(), 7);
 
     let mut str: Text = "老Löwe 虎".into();
     str.styles_mut().add(.., Style::new());
     str.replace_range(1.., "T");
 
-    assert_eq!(str.as_ref(), "老T");
+    assert_eq!(str.as_str(), "老T");
     assert_eq!(str.columns(), 3);
     assert_eq!(str.styles().iter().count(), 1);
 }
@@ -163,7 +163,7 @@ fn replace_range_polite() {
 
     str.replace_range_polite(3..=5, " New text ");
 
-    assert_eq!(str.as_ref(), "Löw New text 虎 y\u{0306}!");
+    assert_eq!(str.as_str(), "Löw New text 虎 y\u{0306}!");
     assert_eq!(str.columns(), 18);
 
     let styles = vec![
@@ -175,7 +175,7 @@ fn replace_range_polite() {
     assert_eq!(str.styles().clone().into_vec(), styles);
 
     str2.replace_range_polite(3..=5, "1");
-    assert_eq!(str2.as_ref(), "Löw1虎 y\u{0306}!");
+    assert_eq!(str2.as_str(), "Löw1虎 y\u{0306}!");
     assert_eq!(str2.columns(), 9);
 
     let styles = vec![
@@ -191,16 +191,16 @@ fn replace_range_polite() {
 fn pop() {
     let mut str: Text = "He\u{0306}y".into();
     str.pop();
-    assert_eq!(str.as_ref(), "He\u{0306}");
+    assert_eq!(str.as_str(), "He\u{0306}");
     assert_eq!(str.columns(), 2);
     str.pop();
-    assert_eq!(str.as_ref(), "H");
+    assert_eq!(str.as_str(), "H");
     assert_eq!(str.columns(), 1);
     str.pop();
-    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.as_str(), "");
     assert_eq!(str.columns(), 0);
     str.pop();
-    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.as_str(), "");
     assert_eq!(str.columns(), 0);
 }
 
@@ -211,7 +211,7 @@ fn push() {
     str.push('老');
     str.push('🖉');
 
-    assert_eq!(str.as_ref(), "foo老🖉");
+    assert_eq!(str.as_str(), "foo老🖉");
     assert_eq!(str.columns(), 6);
 }
 
@@ -223,7 +223,7 @@ fn modify() {
         string.make_ascii_uppercase();
     });
 
-    assert_eq!(str.as_ref(), "HELLO");
+    assert_eq!(str.as_str(), "HELLO");
     assert_eq!(str.columns(), 5);
     assert_eq!(str.lines(), 1);
 
@@ -231,7 +231,7 @@ fn modify() {
         *string = string.replace('E', "\n2345\n");
     });
 
-    assert_eq!(str.as_ref(), "H\n2345\nLLO");
+    assert_eq!(str.as_str(), "H\n2345\nLLO");
     assert_eq!(str.columns(), 4);
     assert_eq!(str.lines(), 3);
 }
@@ -241,13 +241,13 @@ fn insert_str() {
     let mut str: Text = "老hello".into();
 
     str.insert_str(0, "foo");
-    assert_eq!(str.as_ref(), "foo老hello");
+    assert_eq!(str.as_str(), "foo老hello");
 
     str.insert_str(4, " ");
-    assert_eq!(str.as_ref(), "foo老 hello");
+    assert_eq!(str.as_str(), "foo老 hello");
 
     str.insert_str(str.len(), "\nnew content");
-    assert_eq!(str.as_ref(), "foo老 hello\nnew content");
+    assert_eq!(str.as_str(), "foo老 hello\nnew content");
     assert_eq!(str.columns(), 11);
     assert_eq!(str.lines(), 2);
 }
@@ -264,26 +264,26 @@ fn retain() {
     let mut str: Text = "老y\u{0306}foл".into();
 
     str.retain(|_| true);
-    assert_eq!(str.as_ref(), "老y\u{0306}foл");
+    assert_eq!(str.as_str(), "老y\u{0306}foл");
 
     str.retain(|l| l != "y\u{0306}");
-    assert_eq!(str.as_ref(), "老foл");
+    assert_eq!(str.as_str(), "老foл");
 
     str.retain(|_| false);
-    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.as_str(), "");
     assert_eq!(str.columns(), 0);
     assert_eq!(str.lines(), 0);
 
     let mut str: Text = "yy\u{0306}".into();
     str.retain(|c| c != "y");
-    assert_eq!(str.as_ref(), "y\u{0306}");
+    assert_eq!(str.as_str(), "y\u{0306}");
 
     let mut str: Text = "y\u{0306}y\u{0306}❤️🧡🧡🧡🧡🧡🧡🧡🧡".into();
     str.retain(|c| c != "❤️");
-    assert_eq!(str.as_ref(), "y\u{0306}y\u{0306}🧡🧡🧡🧡🧡🧡🧡🧡");
+    assert_eq!(str.as_str(), "y\u{0306}y\u{0306}🧡🧡🧡🧡🧡🧡🧡🧡");
 
     str.retain(|c| c == "🧡");
-    assert_eq!(str.as_ref(), "🧡🧡🧡🧡🧡🧡🧡🧡");
+    assert_eq!(str.as_str(), "🧡🧡🧡🧡🧡🧡🧡🧡");
 }
 
 #[test]
@@ -292,13 +292,13 @@ fn truncate() {
 
     str.truncate(7);
 
-    assert_eq!(str.as_ref(), "y\u{0306}hello\n");
+    assert_eq!(str.as_str(), "y\u{0306}hello\n");
 
     str.truncate(100);
-    assert_eq!(str.as_ref(), "y\u{0306}hello\n");
+    assert_eq!(str.as_str(), "y\u{0306}hello\n");
 
     str.truncate(0);
-    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.as_str(), "");
 }
 
 #[test]
@@ -311,8 +311,8 @@ fn split_off_polite() {
 
     let str2 = str.split_off_polite(3);
 
-    assert_eq!(str.as_ref(), "hey\u{0306}");
-    assert_eq!(str2.as_ref(), "it\n is me");
+    assert_eq!(str.as_str(), "hey\u{0306}");
+    assert_eq!(str2.as_str(), "it\n is me");
 
     assert_eq!(str.columns(), 3);
     assert_eq!(str.lines(), 1);
@@ -348,22 +348,26 @@ fn truncate_lines() {
     let mut str: Text = "hello\nnew\r\nworld\n".into();
     assert_eq!(str.lines(), 3);
 
+    str.truncate_lines(4);
+    assert_eq!(str.as_str(), "hello\nnew\r\nworld\n");
+    assert_eq!(str.lines(), 3);
+
     str.truncate_lines(3);
-    assert_eq!(str.as_ref(), "hello\nnew\r\nworld");
+    assert_eq!(str.as_str(), "hello\nnew\r\nworld");
     assert_eq!(str.lines(), 3);
 
     str.truncate_lines(2);
-    assert_eq!(str.as_ref(), "hello\nnew");
+    assert_eq!(str.as_str(), "hello\nnew");
     assert_eq!(str.lines(), 2);
 
     let mut str: Text = "hello\nnew".into();
 
     str.truncate_lines(1);
-    assert_eq!(str.as_ref(), "hello");
+    assert_eq!(str.as_str(), "hello");
     assert_eq!(str.lines(), 1);
 
     str.truncate_lines(0);
-    assert_eq!(str.as_ref(), "");
+    assert_eq!(str.as_str(), "");
     assert_eq!(str.lines(), 0);
 }
 
@@ -372,28 +376,50 @@ fn truncate_columns() {
     let mut str: Text = "333\n4444\r\n4444\r\n55555\r\n1".into();
     assert_eq!(str.columns(), 5);
 
+    str.truncate_columns(6);
+    assert_eq!(str.as_str(), "333\n4444\r\n4444\r\n55555\r\n1");
+    assert_eq!(str.columns(), 5);
+
     str.truncate_columns(5);
-    assert_eq!(str.as_ref(), "333\n4444\r\n4444\r\n55555\r\n1");
+    assert_eq!(str.as_str(), "333\n4444\r\n4444\r\n55555\r\n1");
     assert_eq!(str.columns(), 5);
 
     str.truncate_columns(4);
-    assert_eq!(str.as_ref(), "333\n4444\r\n4444\r\n5555\r\n1");
+    assert_eq!(str.as_str(), "333\n4444\r\n4444\r\n5555\r\n1");
     assert_eq!(str.columns(), 4);
 
     str.truncate_columns(3);
-    assert_eq!(str.as_ref(), "333\n444\r\n444\r\n555\r\n1");
+    assert_eq!(str.as_str(), "333\n444\r\n444\r\n555\r\n1");
     assert_eq!(str.columns(), 3);
 
     str.truncate_columns(2);
-    assert_eq!(str.as_ref(), "33\n44\r\n44\r\n55\r\n1");
-    assert_eq!(str.columns(), 3);
+    assert_eq!(str.as_str(), "33\n44\r\n44\r\n55\r\n1");
+    assert_eq!(str.columns(), 2);
 
     str.truncate_columns(1);
-    assert_eq!(str.as_ref(), "3\n4\r\n4\r\n5\r\n1");
-    assert_eq!(str.columns(), 3);
+    assert_eq!(str.as_str(), "3\n4\r\n4\r\n5\r\n1");
+    assert_eq!(str.columns(), 1);
+    assert_eq!(str.lines(), 5);
 
     str.truncate_columns(0);
-    assert_eq!(str.as_ref(), "\n\r\n\r\n\r\n\n");
+    assert_eq!(str.as_str(), "\n\r\n\r\n\r\n");
     assert_eq!(str.columns(), 0);
-    assert_eq!(str.lines(), 5);
+    assert_eq!(str.lines(), 4);
+}
+
+#[test]
+fn index() {
+    let str: Text = "老y\u{0306}hп\ntext\r\nf".into();
+
+    assert_eq!(&str[0..1], "老");
+    assert_eq!(&str[0..5], "老y\u{0306}hп\n");
+    assert_eq!(&str[9..10], "\r\n");
+    assert_eq!(&str[0..=10], str.as_str());
+}
+
+#[test]
+#[should_panic]
+fn index_out_of_bounds() {
+    let str: Text = "hello".into();
+    let _ = &str[100..200];
 }

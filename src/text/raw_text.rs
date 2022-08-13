@@ -1,26 +1,30 @@
-use std::{borrow::Cow, ops::RangeBounds};
+use super::{Grapheme, GraphemeIter};
+
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-use super::{Grapheme, GraphemeIter};
+use std::{
+    borrow::Cow,
+    cmp::{Eq, PartialEq},
+    ops::RangeBounds,
+};
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct RawText {
     content: Cow<'static, str>,
     // Cached sizes for content
     size: RawTextSize,
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 struct RawTextSize {
     columns: usize,
     lines: usize,
 }
 
 impl RawText {
-    pub fn new(content: Cow<'static, str>) -> Self {
-        let size = Self::compute_size(content.as_ref());
-        Self { content, size }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     // Take content (transform it into string if it is borrowed)
@@ -37,7 +41,7 @@ impl RawText {
     pub fn split_off(&mut self, at: usize) -> RawText {
         let res = self.content.to_mut().split_off(at);
         self.update_size();
-        RawText::new(res.into())
+        res.into()
     }
 
     pub fn push(&mut self, c: char) {
@@ -99,7 +103,7 @@ impl RawText {
         self.update_size();
     }
 
-    pub fn map<F>(&mut self, f: F)
+    pub fn modify<F>(&mut self, f: F)
     where
         F: FnOnce(&mut String),
     {
@@ -127,6 +131,10 @@ impl RawText {
         self.size.lines
     }
 
+    pub fn as_str(&self) -> &str {
+        &self.content
+    }
+
     fn compute_size(s: &str) -> RawTextSize {
         let mut columns = 0;
         let mut lines = 0;
@@ -148,6 +156,15 @@ impl RawText {
 
 impl AsRef<str> for RawText {
     fn as_ref(&self) -> &str {
-        &self.content
+        self.as_str()
+    }
+}
+
+impl<C: Into<Cow<'static, str>>> From<C> for RawText {
+    fn from(s: C) -> Self {
+        let mut result = Self::new();
+        result.content = s.into();
+        result.update_size();
+        result
     }
 }

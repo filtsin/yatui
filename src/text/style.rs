@@ -1,13 +1,13 @@
 use bitflags::bitflags;
 
-#[derive(Eq, PartialEq, Debug, Copy, Clone, Default)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone, Default, Hash)]
 pub struct Style {
     fg: Option<Color>,
     bg: Option<Color>,
     modifier: Modifier,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum Color {
     Black,

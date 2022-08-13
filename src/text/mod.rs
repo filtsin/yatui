@@ -14,18 +14,22 @@ use unicode_width::UnicodeWidthStr;
 use utils::get_graphemes_info;
 
 use std::{
-    borrow::Cow,
+    borrow::{Borrow, Cow},
+    cmp::{Eq, PartialEq},
     collections::BTreeSet,
-    iter::Enumerate,
+    fmt::Display,
+    iter::{Enumerate, FromIterator},
     ops::{
+        Add, AddAssign,
         Bound::{self, Excluded, Included, Unbounded},
-        Range, RangeBounds, RangeInclusive, RangeTo,
+        Index, Range, RangeBounds, RangeInclusive, RangeTo,
     },
+    str::FromStr,
 };
 
 use self::grapheme::GraphemeInfo;
 
-#[derive(Default, Clone)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Text {
     raw: RawText,
     style: TextStyle,
@@ -37,11 +41,12 @@ pub struct GraphemeIter<'a> {
 }
 
 impl Text {
-    pub fn new<C>(content: C) -> Self
-    where
-        C: Into<Cow<'static, str>>,
-    {
-        Self { raw: RawText::new(content.into()), ..Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.raw.as_str()
     }
 
     /// Return parts of `Text`.
@@ -58,7 +63,7 @@ impl Text {
     /// let (graphemes, styles) = text.parts();
     /// ```
     pub fn parts(&mut self) -> (GraphemeIter<'_>, &'_ mut TextStyle) {
-        (RawText::create_graphemes(self.raw.as_ref()), &mut self.style)
+        (RawText::create_graphemes(self.raw.as_str()), &mut self.style)
     }
 
     /// Return iterator over graphemes for this `Text`.
@@ -72,7 +77,7 @@ impl Text {
     /// assert_eq!(text.graphemes().collect::<Vec<_>>(), vec!["y\u{0306}", "e", "l", "l", "o", "老"]);
     /// ```
     pub fn graphemes(&self) -> GraphemeIter<'_> {
-        RawText::create_graphemes(self.as_ref())
+        RawText::create_graphemes(self.as_str())
     }
 
     /// Modify text in place with a given closure.
@@ -87,14 +92,14 @@ impl Text {
     ///     string.push_str("ok");
     ///     string.make_ascii_uppercase();
     /// });
-    /// assert_eq!(text.as_ref(), "HI LOOK");
+    /// assert_eq!(text.as_str(), "HI LOOK");
     /// assert_eq!(text.columns(), 7);
     /// ```
     pub fn modify<F>(&mut self, mut f: F)
     where
         F: FnOnce(&mut String),
     {
-        self.raw.map(f);
+        self.raw.modify(f);
     }
 
     /// Appends a given string slice onto the end of this `Text`.
@@ -106,7 +111,7 @@ impl Text {
     /// let mut text: Text = "hello".into();
     /// text.push_str(" world");
     ///
-    /// assert_eq!(text.as_ref(), "hello world");
+    /// assert_eq!(text.as_str(), "hello world");
     /// ```
     pub fn push_str(&mut self, string: &str) {
         self.raw.push_str(string);
@@ -127,7 +132,7 @@ impl Text {
     /// let mut text: Text = "hello".into();
     /// text.remove(0);
     ///
-    /// assert_eq!(text.as_ref(), "ello");
+    /// assert_eq!(text.as_str(), "ello");
     /// ```
     pub fn remove(&mut self, grapheme_idx: usize) {
         self.replace_range(grapheme_idx..=grapheme_idx, "");
@@ -157,7 +162,7 @@ impl Text {
     /// text.styles_mut().add(4..=4, Style::new().bg(Color::Yellow));
     /// text.replace_range(1..=3, " new content ");
     ///
-    /// assert_eq!(text.as_ref(), "h new content o");
+    /// assert_eq!(text.as_str(), "h new content o");
     /// assert_eq!(
     ///     text.styles().clone().into_vec(),
     ///     vec![(1..=3, Style::new().bg(Color::Red)), (4..=4, Style::new().bg(Color::Yellow))]
@@ -167,7 +172,7 @@ impl Text {
     where
         R: RangeBounds<usize>,
     {
-        let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_ref()), range);
+        let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_str()), range);
         self.raw.replace_range(g1.start()..=g2.end(), replace_with);
     }
 
@@ -189,7 +194,7 @@ impl Text {
     /// text.styles_mut().add(4..=4, Style::new().bg(Color::Yellow));
     /// text.replace_range_polite(1..=3, " new content ");
     ///
-    /// assert_eq!(text.as_ref(), "h new content o");
+    /// assert_eq!(text.as_str(), "h new content o");
     /// assert_eq!(text.styles().clone().into_vec(), vec![(14..=14, Style::new().bg(Color::Yellow))]);
     /// // So the grapheme 'o' saved style after replacing string because it is not in range.
     /// ```
@@ -197,7 +202,7 @@ impl Text {
     where
         R: RangeBounds<usize>,
     {
-        let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_ref()), range);
+        let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_str()), range);
         self.raw.replace_range(g1.start()..=g2.end(), replace_with);
 
         self.style.remove(g1.index()..=g2.index());
@@ -223,10 +228,10 @@ impl Text {
     /// let mut text: Text = "foo".into();
     /// text.pop();
     ///
-    /// assert_eq!(text.as_ref(), "fo");
+    /// assert_eq!(text.as_str(), "fo");
     /// ```
     pub fn pop(&mut self) {
-        if let Some(g) = RawText::create_graphemes(self.as_ref()).last() {
+        if let Some(g) = RawText::create_graphemes(self.as_str()).last() {
             let info = g.info();
             self.raw.replace_range(info.bytes_range(), "");
         }
@@ -241,7 +246,7 @@ impl Text {
     /// let mut text: Text = "foo".into();
     /// text.push('1');
     ///
-    /// assert_eq!(text.as_ref(), "foo1");
+    /// assert_eq!(text.as_str(), "foo1");
     /// ```
     pub fn push(&mut self, c: char) {
         self.raw.push(c);
@@ -260,7 +265,7 @@ impl Text {
     /// let mut text: Text = "老y\u{0306}f".into();
     /// text.insert_str(2, "bar");
     ///
-    /// assert_eq!(text.as_ref(), "老y\u{0306}barf");
+    /// assert_eq!(text.as_str(), "老y\u{0306}barf");
     /// ```
     pub fn insert_str(&mut self, grapheme_idx: usize, string: &str) {
         if grapheme_idx == 0 {
@@ -285,7 +290,7 @@ impl Text {
     /// let mut text: Text = "y\u{0306} - is not y".into();
     /// text.retain(|s| s != "y");
     ///
-    /// assert_eq!(text.as_ref(), "y\u{0306} - is not ");
+    /// assert_eq!(text.as_str(), "y\u{0306} - is not ");
     /// ```
     ///
     /// ```
@@ -295,7 +300,7 @@ impl Text {
     /// let mut iter = keep.iter();
     /// text.retain(|_| *iter.next().unwrap());
     ///
-    /// assert_eq!(text.as_ref(), "y\u{0306}пh");
+    /// assert_eq!(text.as_str(), "y\u{0306}пh");
     /// ```
     pub fn retain<F>(&mut self, mut f: F)
     where
@@ -328,7 +333,7 @@ impl Text {
         // UTF-8 because old string was valid UTF-8 and all we did was move some graphemes.
         unsafe {
             vec.set_len(byte_pos - shift);
-            self.raw = RawText::new(String::from_utf8_unchecked(vec).into());
+            self.raw.modify(|string| *string = String::from_utf8_unchecked(vec));
         };
     }
 
@@ -351,8 +356,8 @@ impl Text {
     /// text.styles_mut().add(3..=5, Style::new().fg(Color::Red)); // bar is red
     /// let mut new_text = text.split_off_polite(3);
     ///
-    /// assert_eq!(text.as_ref(), "foo");
-    /// assert_eq!(new_text.as_ref(), "bar");
+    /// assert_eq!(text.as_str(), "foo");
+    /// assert_eq!(new_text.as_str(), "bar");
     /// assert_eq!(text.styles().clone().into_vec(), vec![(3..=5, Style::new().fg(Color::Red))]);
     /// assert_eq!(new_text.styles().clone().into_vec(), vec![(0..=2, Style::new().fg(Color::Red))]);
     /// ```
@@ -377,7 +382,7 @@ impl Text {
     /// let mut text: Text = "y\u{0306}ellow".into();
     /// text.truncate(1);
     ///
-    /// assert_eq!(text.as_ref(), "y\u{0306}");
+    /// assert_eq!(text.as_str(), "y\u{0306}");
     /// ```
     ///
     /// ```
@@ -385,7 +390,7 @@ impl Text {
     /// let mut text: Text = "hello".into();
     /// text.truncate(100);
     ///
-    /// assert_eq!(text.as_ref(), "hello");
+    /// assert_eq!(text.as_str(), "hello");
     /// ```
     pub fn truncate(&mut self, new_len: usize) {
         if let Some(pos) = self.graphemes().nth(new_len).map(|g| g.info().start()) {
@@ -404,7 +409,7 @@ impl Text {
     /// let mut text: Text = "foo\nbar\r\n!".into();
     /// text.truncate_lines(1);
     ///
-    /// assert_eq!(text.as_ref(), "foo");
+    /// assert_eq!(text.as_str(), "foo");
     /// ```
     pub fn truncate_lines(&mut self, new_lines: usize) {
         // <= because we want to remove \n in the end of text if it is present there.
@@ -439,9 +444,25 @@ impl Text {
     /// # Examples
     ///
     /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "text\ntext\r\ntext very big".into();
+    /// text.truncate_columns(4);
+    ///
+    /// assert_eq!(text.as_str(), "text\ntext\r\ntext");
     /// ```
     pub fn truncate_columns(&mut self, new_columns: usize) {
-        todo!()
+        if new_columns < self.columns() {
+            let mut count = 0;
+            self.retain(|g| {
+                count += 1;
+
+                if g == "\n" || g == "\r\n" {
+                    count = 0;
+                }
+
+                count <= new_columns
+            });
+        }
     }
 
     /// Returns the length of this `Text` in `graphemes`.
@@ -455,7 +476,7 @@ impl Text {
     /// assert_eq!(text.len(), 5);
     /// ```
     pub fn len(&self) -> usize {
-        RawText::create_graphemes(self.as_ref()).count()
+        RawText::create_graphemes(self.as_str()).count()
     }
 
     /// Check description for [std::reserve](std::string::String::reserve).
@@ -645,7 +666,7 @@ impl Text {
     /// assert!(!text.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
-        self.raw.as_ref().len() == 0
+        self.raw.as_str().len() == 0
     }
 
     /// Returns `true` if text content is borrowed and `false` otherwise.
@@ -701,18 +722,169 @@ impl<'a> Iterator for GraphemeIter<'a> {
 
 impl AsRef<str> for Text {
     fn as_ref(&self) -> &str {
-        self.raw.as_ref()
+        self.as_str()
+    }
+}
+
+impl AsRef<[u8]> for Text {
+    fn as_ref(&self) -> &[u8] {
+        self.as_str().as_bytes()
+    }
+}
+
+impl Borrow<str> for Text {
+    fn borrow(&self) -> &str {
+        self.as_str()
     }
 }
 
 impl From<&'static str> for Text {
     fn from(s: &'static str) -> Self {
-        Self::new(s)
+        Self { raw: s.into(), ..Self::default() }
     }
 }
 
 impl From<String> for Text {
     fn from(s: String) -> Self {
-        Self::new(s)
+        Self { raw: s.into(), ..Self::default() }
     }
 }
+
+impl From<char> for Text {
+    fn from(c: char) -> Self {
+        String::from(c).into()
+    }
+}
+
+impl Add<&str> for Text {
+    type Output = Text;
+
+    fn add(mut self, rhs: &str) -> Self::Output {
+        self.push_str(rhs);
+        self
+    }
+}
+
+impl AddAssign<&str> for Text {
+    fn add_assign(&mut self, rhs: &str) {
+        self.push_str(rhs);
+    }
+}
+
+impl Display for Text {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self.as_str(), f)
+    }
+}
+
+impl FromStr for Text {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.to_owned().into())
+    }
+}
+
+/// Implements the [] on the `Text`.
+///
+/// It works with `graphemes` in current `Text` and not bytes or chars.
+/// This is an *O(*n*)* operation.
+///
+/// # Examples
+///
+/// ```
+/// # use yatui::text::Text;
+/// let text: Text = "老y\u{0306}\r\n".into();
+///
+/// assert_eq!(&text[0..1], "老");
+/// assert_eq!(&text[1..2], "y\u{0306}");
+/// assert_eq!(&text[2..3], "\r\n");
+/// // assert_eq!(&text[3..4], "\r\n"); <-- panic here
+/// ```
+impl<R> Index<R> for Text
+where
+    R: RangeBounds<usize>,
+{
+    type Output = str;
+
+    fn index(&self, index: R) -> &Self::Output {
+        let (g1, g2) = get_graphemes_info(self.graphemes(), index);
+        &self.as_str()[g1.start()..=g2.end()]
+    }
+}
+
+macro_rules! impl_trait_wrapper {
+    (extend, [$($type:ty $(,)?)*]) => {
+        $(
+            #[allow(clippy::extra_unused_lifetimes)]
+            impl<'a> Extend<$type> for Text {
+                fn extend<T: IntoIterator<Item = $type>>(&mut self, iter: T) {
+                    self.modify(|string| string.extend(iter));
+                }
+            }
+        )*
+    };
+
+    (from_iterator, [$($type:ty $(,)?)*]) => {
+        $(
+            #[allow(clippy::extra_unused_lifetimes)]
+            impl<'a> FromIterator<$type> for Text {
+                fn from_iter<T: IntoIterator<Item = $type>>(iter: T) -> Self {
+                    let mut result = Self::new();
+                    result.extend(iter);
+                    result
+                }
+            }
+        )*
+    };
+
+    (partial_eq, [$($type:ty $(,)?)*]) => {
+        $(
+            #[allow(clippy::extra_unused_lifetimes)]
+            impl<'a> PartialEq<$type> for Text {
+                fn eq(&self, other: &$type) -> bool {
+                    self.as_str() == *other
+                }
+            }
+
+            #[allow(clippy::extra_unused_lifetimes)]
+            impl<'a> PartialEq<Text> for $type {
+                fn eq(&self, other: &Text) -> bool {
+                    *self == other.as_str()
+                }
+            }
+        )*
+    };
+}
+
+impl_trait_wrapper!(
+    extend,
+    [
+        &'a char,
+        &'a str,
+        Box<str>,
+        Cow<'a, str>,
+        String,
+        char
+    ]
+);
+
+impl_trait_wrapper!(
+    from_iterator,
+    [
+        &'a char,
+        &'a str,
+        Box<str>,
+        Cow<'a, str>,
+        String,
+    ]
+);
+
+impl_trait_wrapper!(
+    partial_eq,
+    [
+        &'a str,
+        Cow<'a, str>,
+        String,
+    ]
+);

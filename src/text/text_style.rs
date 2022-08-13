@@ -1,6 +1,8 @@
-use crate::text::Style;
+use super::Grapheme;
+use crate::text::{utils::bound_to_range, Style};
 
 use std::{
+    cmp::{Eq, PartialEq},
     collections::{btree_set::Iter as BIter, BTreeSet},
     ops::{
         Add, AddAssign,
@@ -9,12 +11,9 @@ use std::{
     },
 };
 
-use super::Grapheme;
-use crate::text::utils::bound_to_range;
-
 pub type StyleInfo = (RangeInclusive<usize>, Style);
 
-#[derive(Default, Clone)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct TextStyle {
     data: BTreeSet<RangeStyle>,
 }
@@ -281,6 +280,12 @@ impl Into<Vec<StyleInfo>> for TextStyle {
 impl PartialEq for RangeStyle {
     fn eq(&self, other: &Self) -> bool {
         self.range().eq(other.range())
+    }
+}
+
+impl std::hash::Hash for RangeStyle {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.info.0.hash(state);
     }
 }
 
