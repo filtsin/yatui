@@ -79,10 +79,6 @@ impl TextStyle {
         self.data.remove(&range.into());
     }
 
-    pub fn split_off(&mut self, at: usize) -> TextStyle {
-        TextStyle { data: self.data.split_off(&(at..=at).into()) }
-    }
-
     /// Remove all styles for the `range`.
     ///
     /// Unlike [`remove_range`][Self::remove_range] it removes all intersections

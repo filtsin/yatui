@@ -250,6 +250,10 @@ fn insert_str() {
     assert_eq!(str.as_str(), "foo老 hello\nnew content");
     assert_eq!(str.columns(), 11);
     assert_eq!(str.lines(), 2);
+
+    let mut str: Text = "".into();
+    str.insert_str(0, "hello");
+    assert_eq!(str.as_str(), "hello");
 }
 
 #[test]

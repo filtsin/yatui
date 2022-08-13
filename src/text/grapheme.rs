@@ -67,6 +67,11 @@ impl GraphemeInfo {
     pub fn bytes_range(&self) -> RangeInclusive<usize> {
         self.start()..=self.end()
     }
+
+    pub fn bytes_to(&self, g2: GraphemeInfo) -> RangeInclusive<usize> {
+        debug_assert!(self.start() <= g2.start());
+        self.start()..=g2.end()
+    }
 }
 
 impl AsRef<str> for Grapheme<'_> {

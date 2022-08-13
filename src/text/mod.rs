@@ -80,7 +80,7 @@ impl Text {
         RawText::create_graphemes(self.as_str())
     }
 
-    /// Modify text in place with a given closure.
+    /// Modify text in place with a given closure. Closure can return value.
     ///
     /// # Examples
     ///
@@ -95,11 +95,20 @@ impl Text {
     /// assert_eq!(text.as_str(), "HI LOOK");
     /// assert_eq!(text.columns(), 7);
     /// ```
-    pub fn modify<F>(&mut self, mut f: F)
+    ///
+    /// ```
+    /// # use yatui::text::Text;
+    /// let mut text: Text = "hi".into();
+    /// let vec: Vec<u8> = text.modify(|string| std::mem::take(string).into_bytes());
+    ///
+    /// assert_eq!(text.as_str(), "");
+    /// assert_eq!(vec, [104, 105]);
+    /// ```
+    pub fn modify<F, R>(&mut self, mut f: F) -> R
     where
-        F: FnOnce(&mut String),
+        F: FnOnce(&mut String) -> R,
     {
-        self.raw.modify(f);
+        self.raw.modify(f)
     }
 
     /// Appends a given string slice onto the end of this `Text`.
@@ -113,8 +122,10 @@ impl Text {
     ///
     /// assert_eq!(text.as_str(), "hello world");
     /// ```
-    pub fn push_str(&mut self, string: &str) {
-        self.raw.push_str(string);
+    pub fn push_str(&mut self, s: &str) {
+        self.modify(|string| {
+            string.push_str(s);
+        });
     }
 
     /// Remove a `grapheme` from this text at `grapheme_idx` position.
@@ -173,7 +184,9 @@ impl Text {
         R: RangeBounds<usize>,
     {
         let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_str()), range);
-        self.raw.replace_range(g1.start()..=g2.end(), replace_with);
+        self.modify(|string| {
+            string.replace_range(g1.bytes_to(g2), replace_with);
+        });
     }
 
     /// Remove the specified `range` in the text, and replaces it with the given string.
@@ -203,7 +216,10 @@ impl Text {
         R: RangeBounds<usize>,
     {
         let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_str()), range);
-        self.raw.replace_range(g1.start()..=g2.end(), replace_with);
+
+        self.modify(|string| {
+            string.replace_range(g1.bytes_to(g2), replace_with);
+        });
 
         self.style.remove(g1.index()..=g2.index());
 
@@ -233,7 +249,9 @@ impl Text {
     pub fn pop(&mut self) {
         if let Some(g) = RawText::create_graphemes(self.as_str()).last() {
             let info = g.info();
-            self.raw.replace_range(info.bytes_range(), "");
+            self.modify(|string| {
+                string.replace_range(info.bytes_range(), "");
+            });
         }
     }
 
@@ -249,7 +267,9 @@ impl Text {
     /// assert_eq!(text.as_str(), "foo1");
     /// ```
     pub fn push(&mut self, c: char) {
-        self.raw.push(c);
+        self.modify(|string| {
+            string.push(c);
+        });
     }
 
     /// Inserts a string slice into this `Text` at `grapheme` index.
@@ -267,14 +287,16 @@ impl Text {
     ///
     /// assert_eq!(text.as_str(), "老y\u{0306}barf");
     /// ```
-    pub fn insert_str(&mut self, grapheme_idx: usize, string: &str) {
-        if grapheme_idx == 0 {
-            self.raw.insert_str(0, string);
-            return;
-        }
+    pub fn insert_str(&mut self, grapheme_idx: usize, s: &str) {
+        self.modify(|string| {
+            let offset = if grapheme_idx == 0 {
+                0
+            } else {
+                RawText::create_graphemes(string).nth(grapheme_idx - 1).unwrap().info().end() + 1
+            };
 
-        let g = self.graphemes().nth(grapheme_idx - 1).unwrap().info();
-        self.raw.insert_str(g.end() + 1, string);
+            string.insert_str(offset, s);
+        });
     }
 
     /// Retains only the `graphemes` specified by the predicate.
@@ -306,7 +328,7 @@ impl Text {
     where
         F: FnMut(&str) -> bool,
     {
-        let mut vec = self.raw.take().into_bytes();
+        let mut vec = self.modify(|string| std::mem::take(string).into_bytes());
 
         let mut byte_pos = 0;
         let mut shift = 0;
@@ -333,7 +355,7 @@ impl Text {
         // UTF-8 because old string was valid UTF-8 and all we did was move some graphemes.
         unsafe {
             vec.set_len(byte_pos - shift);
-            self.raw.modify(|string| *string = String::from_utf8_unchecked(vec));
+            self.modify(|string| *string = String::from_utf8_unchecked(vec));
         };
     }
 
@@ -366,8 +388,10 @@ impl Text {
         styles.remove(..at);
         styles.negative_shift(at, at);
 
-        let g = self.graphemes().nth(at).unwrap();
-        Text { raw: self.raw.split_off(g.start()), style: styles }
+        let g = self.graphemes().nth(at).unwrap().info();
+
+        let new_string: String = self.modify(|string| string.split_off(g.start()));
+        Text { raw: new_string.into(), style: styles }
     }
 
     /// Shortens this `Text` to the specified length in graphemes.
@@ -394,7 +418,9 @@ impl Text {
     /// ```
     pub fn truncate(&mut self, new_len: usize) {
         if let Some(pos) = self.graphemes().nth(new_len).map(|g| g.info().start()) {
-            self.raw.replace_range(pos.., "");
+            self.modify(|string| {
+                string.truncate(pos);
+            });
         }
     }
 
@@ -496,7 +522,9 @@ impl Text {
     /// assert_eq!(text.capacity(), 15);
     /// ```
     pub fn reserve(&mut self, additional: usize) {
-        self.raw.reserve(additional);
+        self.modify(|string| {
+            string.reserve(additional);
+        });
     }
 
     /// Check description for [std::reserve_exact](std::string::String::reserve_exact).
@@ -516,7 +544,9 @@ impl Text {
     /// assert_eq!(text.capacity(), 15);
     /// ```
     pub fn reserve_exact(&mut self, additional: usize) {
-        self.raw.reserve_exact(additional);
+        self.modify(|string| {
+            string.reserve_exact(additional);
+        });
     }
 
     /// Shrinks the capacity of this `Text` to match its length. If the `Text` is borrowed
@@ -591,7 +621,9 @@ impl Text {
     /// assert!(!text.styles().is_empty());
     /// ```
     pub fn clear(&mut self) {
-        self.raw.clear();
+        self.modify(|string| {
+            string.clear();
+        });
     }
 
     /// Removing all graphemes and styles from the text.
@@ -608,7 +640,7 @@ impl Text {
     /// assert!(text.styles().is_empty());
     /// ```
     pub fn clear_all(&mut self) {
-        self.raw.clear();
+        self.clear();
         self.style.clear();
     }
 
