@@ -2,7 +2,7 @@ mod grapheme;
 mod raw_text;
 mod style;
 mod text_style;
-mod utils;
+pub(crate) mod utils;
 
 pub use grapheme::Grapheme;
 pub use style::{Color, Modifier, Style};
