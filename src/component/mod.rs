@@ -10,7 +10,7 @@ use crate::{
     cb,
     compositor::context::Context,
     state::State,
-    terminal::{buffer::MappedBuffer, region::Region, size::Size},
+    terminal::{buffer::MappedBuffer, Region, Size},
 };
 use derive_more::From;
 

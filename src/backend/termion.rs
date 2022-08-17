@@ -1,7 +1,7 @@
 use crate::{
     backend::Backend,
     error::Result,
-    terminal::{buffer::Buffer, cursor::Cursor, size::Size},
+    terminal::{buffer::Buffer, Cursor, Size},
 };
 
 use termion::{

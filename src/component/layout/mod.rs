@@ -14,12 +14,7 @@ use crate::{
     cb,
     compositor::context::Context,
     state::State,
-    terminal::{
-        buffer::MappedBuffer,
-        cursor::{Cursor, Index},
-        region::Region,
-        size::Size,
-    },
+    terminal::{buffer::MappedBuffer, Cursor, Index, Region, Size},
 };
 
 use super::{cb::SizeFn, text, Cb, Component, DrawFn, LayoutFn};

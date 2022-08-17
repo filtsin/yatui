@@ -7,7 +7,6 @@ use crate::{
         event::{controller, Event},
         Compositor,
     },
-    terminal::cursor::Cursor,
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use once_cell::sync::OnceCell;

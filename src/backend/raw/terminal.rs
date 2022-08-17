@@ -64,9 +64,7 @@ impl Terminal {
     }
 
     pub fn write_str(&mut self, s: &str, styles: Style) {
-        println!("Write {}", s);
         for g in UnicodeSegmentation::graphemes(s, true) {
-            println!("g = {}", g);
             let width = UnicodeWidthStr::width(g);
 
             if width == 0 {
@@ -99,6 +97,7 @@ impl Terminal {
         }
     }
 
+    /// Fill from current cursor position to the end with **1** grapheme with width = 1.
     pub fn fill(&mut self, s: &str) {
         assert_eq!(UnicodeSegmentation::graphemes(s, true).count(), 1);
         assert_eq!(UnicodeWidthStr::width(s), 1);
@@ -137,7 +136,6 @@ impl Terminal {
 
         for l in line {
             for c in column.clone() {
-                println!("Get style from {} {} is {:?}", c, l, self.get(c, l).style);
                 let cell = self.get(c, l);
                 assert_eq!(cell.style, style, " (column {}, line {})", c, l);
             }

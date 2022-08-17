@@ -4,7 +4,7 @@ use crate::cassowary::*;
 
 use crate::{
     error::{Error, LayoutEquationProblem},
-    terminal::{cursor::Index, region::Region, size::Size},
+    terminal::{Index, Region, Size},
 };
 
 use super::children::Child;

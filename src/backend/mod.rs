@@ -5,7 +5,7 @@ mod termion;
 
 use crate::{
     error::Result,
-    terminal::{buffer::Buffer, cursor::Cursor, size::Size},
+    terminal::{buffer::Buffer, Cursor, Size},
 };
 
 pub use self::{raw::Raw, termion::Termion};

@@ -1,8 +1,4 @@
-use yatui::terminal::{
-    cursor::{Cursor, Index},
-    region::Region,
-    size::Size,
-};
+use yatui::terminal::{Cursor, Index, Region, Size};
 
 #[test]
 fn create() {

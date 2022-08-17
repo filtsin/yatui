@@ -1,6 +1,6 @@
 use crate::{
     compositor::context::Context,
-    terminal::{buffer::MappedBuffer, region::Region, size::Size},
+    terminal::{buffer::MappedBuffer, Region, Size},
 };
 use std::ops::{Deref, DerefMut};
 

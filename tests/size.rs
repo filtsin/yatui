@@ -1,4 +1,4 @@
-use yatui::terminal::{cursor::Index, size::Size};
+use yatui::terminal::{Index, Size};
 
 #[test]
 fn add_width() {

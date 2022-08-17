@@ -4,11 +4,7 @@ mod terminal;
 use crate::{
     backend::Backend,
     error::Result,
-    terminal::{
-        buffer::Buffer,
-        cursor::{Cursor, Index},
-        size::Size,
-    },
+    terminal::{buffer::Buffer, Cursor, Index, Size},
 };
 
 use self::terminal::Terminal;

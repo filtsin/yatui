@@ -7,7 +7,7 @@ use std::{
 use crate::{
     compositor::Watcher,
     state::{controller::Id, Controller, State},
-    terminal::size::Size,
+    terminal::Size,
 };
 
 #[derive(Clone, Copy)]

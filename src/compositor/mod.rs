@@ -16,9 +16,7 @@ use crate::{
     state::{controller::Id, Controller},
     terminal::{
         buffer::{Buffer, MappedBuffer},
-        cursor::Cursor,
-        region::Region,
-        size::Size,
+        Cursor, Region, Size,
     },
 };
 

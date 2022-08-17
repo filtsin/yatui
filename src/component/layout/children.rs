@@ -3,12 +3,7 @@ use std::cell::RefCell;
 use crate::{
     component::Component,
     compositor::context::Context,
-    terminal::{
-        buffer::MappedBuffer,
-        cursor::{Cursor, Index},
-        region::Region,
-        size::Size,
-    },
+    terminal::{buffer::MappedBuffer, Cursor, Index, Region, Size},
 };
 
 #[derive(Default)]
