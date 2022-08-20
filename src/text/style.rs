@@ -65,6 +65,20 @@ impl Style {
         *self
     }
 
+    pub fn merge(&mut self, rhs: Style) -> Self {
+        if rhs.fg.is_some() {
+            self.fg = rhs.fg;
+        }
+
+        if rhs.bg.is_some() {
+            self.bg = rhs.bg;
+        }
+
+        self.modifier |= rhs.modifier;
+
+        *self
+    }
+
     pub fn get_fg(&self) -> Option<Color> {
         self.fg
     }

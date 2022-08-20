@@ -20,6 +20,10 @@ impl Raw {
     pub fn new(width: Index, height: Index) -> Self {
         Self { terminal: Terminal::new(width.into(), height.into()), cursor_show: true }
     }
+
+    pub fn lines_to_vec(&self) -> Vec<String> {
+        self.terminal.lines_to_vec()
+    }
 }
 
 impl Backend for Raw {

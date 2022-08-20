@@ -17,9 +17,9 @@ pub struct RawText {
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
-struct RawTextSize {
-    columns: usize,
-    lines: usize,
+pub(crate) struct RawTextSize {
+    pub(crate) columns: usize,
+    pub(crate) lines: usize,
 }
 
 impl RawText {
@@ -79,7 +79,7 @@ impl RawText {
         &self.content
     }
 
-    fn compute_size(s: &str) -> RawTextSize {
+    pub(crate) fn compute_size(s: &str) -> RawTextSize {
         let mut columns = 0;
         let mut lines = 0;
 

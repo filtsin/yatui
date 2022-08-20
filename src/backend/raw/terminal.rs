@@ -19,7 +19,7 @@ pub(crate) struct Terminal {
     cursor: Cursor,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct Cursor {
     column: usize,
     line: usize,
@@ -102,8 +102,11 @@ impl Terminal {
         assert_eq!(UnicodeSegmentation::graphemes(s, true).count(), 1);
         assert_eq!(UnicodeWidthStr::width(s), 1);
 
-        while self.cursor.column != self.width - 1 && self.cursor.line != self.height - 1 {
+        loop {
             *self.current_cell() = Cell::new_str(s);
+            if self.cursor.line == self.height - 1 && self.cursor.column == self.width - 1 {
+                break;
+            }
             self.next_column();
         }
     }
@@ -252,5 +255,15 @@ mod tests {
         assert_eq!(terminal[(2, 2)].style, Style::new().fg(Color::Green));
         assert_eq!(terminal[(3, 2)].style, Style::new().fg(Color::Yellow));
         assert_eq!(terminal[(4, 2)].style, Style::new().fg(Color::Magenta));
+    }
+
+    #[test]
+    fn fill() {
+        let mut terminal = Terminal::new(5, 5);
+        terminal.fill("h");
+
+        let lines = vec!["hhhhh"; 5];
+
+        assert_eq!(terminal.lines_to_vec(), lines);
     }
 }

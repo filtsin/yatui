@@ -1,7 +1,8 @@
 mod grapheme;
 mod raw_text;
 mod style;
-mod text_style;
+pub mod styled_str;
+pub mod text_style;
 pub(crate) mod utils;
 
 pub use grapheme::Grapheme;
@@ -29,7 +30,7 @@ use std::{
 
 use self::grapheme::GraphemeInfo;
 
-#[derive(Default, Debug, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Text {
     raw: RawText,
     style: TextStyle,

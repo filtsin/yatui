@@ -1,7 +1,7 @@
 use crate::{
     backend::Backend,
     terminal::{Cursor, Index, Region, Size},
-    text::Text,
+    text::styled_str::StyledStr,
 };
 
 /// Printer is allow you to write some data to the terminal window.
@@ -45,19 +45,10 @@ impl<'a> Printer<'a> {
     /// Write text with styles to the current mapped region.
     ///
     /// If the text does not fit in the current region, it will be cut off.
-    pub fn write<C>(&mut self, start_from: C, text: &Text)
+    pub fn write<C, T>(&mut self, start_from: C, text: T)
     where
         C: Into<Cursor>,
-    {
-        todo!()
-    }
-
-    /// Write text without styles to the current mapped region.
-    ///
-    /// If the text does not fit in the current region, it will be cut off.
-    pub fn write_str<C>(&mut self, start_from: C, s: &str)
-    where
-        C: Into<Cursor>,
+        T: StyledStr,
     {
         todo!()
     }
@@ -65,14 +56,10 @@ impl<'a> Printer<'a> {
     /// Fill current region with `text`.
     ///
     /// `text` will be repeated until all region is changed.
-    pub fn fill(&mut self, text: &Text) {
-        todo!()
-    }
-
-    /// Fill current region with `s`.
-    ///
-    /// `s` will be repeated until all region is changed.
-    pub fn fill_str(&mut self, s: &str) {
+    pub fn fill<T>(&mut self, text: T)
+    where
+        T: StyledStr,
+    {
         todo!()
     }
 
@@ -81,9 +68,17 @@ impl<'a> Printer<'a> {
         todo!()
     }
 
-    /// Set padding for current mapped region and return new printer.
+    ///
     pub fn padding(&mut self, padding: Index) -> Printer<'_> {
-        todo!()
+        self.try_padding(padding).unwrap()
+    }
+
+    ///
+    pub fn try_padding(&mut self, padding: Index) -> Option<Printer<'_>> {
+        let new_x = self.local_region().right_bottom().column().checked_sub(padding)?;
+        let new_y = self.local_region().right_bottom().row().checked_sub(padding)?;
+        println!("{}-{}", new_x, new_y);
+        Some(self.map(Region::new(Cursor::new(padding, padding), Cursor::new(new_x, new_y))))
     }
 
     /// Try to remap current `printer` region to the inner `region`.
@@ -115,18 +110,48 @@ impl<'a> Printer<'a> {
     /// # Panics
     ///
     /// Panics if `line` is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::{backend::Raw, terminal::{Cursor, Printer, Region}};
+    /// # let mut backend = Raw::new(5, 5);
+    /// # let mut printer = Printer::new(&mut backend);
+    /// let printer = printer.map_line(1);
+    /// assert_eq!(printer.height(), 1);
+    /// ```
     pub fn map_line(&mut self, line: Index) -> Printer<'_> {
-        todo!()
+        self.map(Region::new(Cursor::new(0, line), Cursor::new(self.width() - 1, line)))
     }
 
     /// Map first line to the new printer. Never panics because first line always exists.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::{backend::Raw, terminal::{Cursor, Printer, Region}};
+    /// # let mut backend = Raw::new(5, 5);
+    /// # let mut printer = Printer::new(&mut backend);
+    /// let printer = printer.map_first_line();
+    /// assert_eq!(printer.height(), 1);
+    /// ```
     pub fn map_first_line(&mut self) -> Printer<'_> {
-        todo!()
+        self.map_line(0)
     }
 
     /// Map last line to the new printer. Never panics because last line always exists.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::{backend::Raw, terminal::{Cursor, Printer, Region}};
+    /// # let mut backend = Raw::new(5, 5);
+    /// # let mut printer = Printer::new(&mut backend);
+    /// let printer = printer.map_last_line();
+    /// assert_eq!(printer.height(), 1);
+    /// ```
     pub fn map_last_line(&mut self) -> Printer<'_> {
-        todo!()
+        self.map_line(self.height() - 1)
     }
 
     /// Map specified `column` to new printer.
@@ -134,18 +159,48 @@ impl<'a> Printer<'a> {
     /// # Panics
     ///
     /// Panics if `column` is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::{backend::Raw, terminal::{Cursor, Printer, Region}};
+    /// # let mut backend = Raw::new(5, 5);
+    /// # let mut printer = Printer::new(&mut backend);
+    /// let printer = printer.map_column(1);
+    /// assert_eq!(printer.width(), 1);
+    /// ```
     pub fn map_column(&mut self, column: Index) -> Printer<'_> {
-        todo!()
+        self.map(Region::new(Cursor::new(column, 0), Cursor::new(column, self.height() - 1)))
     }
 
     /// Map first column to the new printer. Never panics because first column always exists.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::{backend::Raw, terminal::{Cursor, Printer, Region}};
+    /// # let mut backend = Raw::new(5, 5);
+    /// # let mut printer = Printer::new(&mut backend);
+    /// let printer = printer.map_first_column();
+    /// assert_eq!(printer.width(), 1);
+    /// ```
     pub fn map_first_column(&mut self) -> Printer<'_> {
-        todo!()
+        self.map_column(0)
     }
 
     /// Map last column to the new printer. Never panics because last column always exists.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::{backend::Raw, terminal::{Cursor, Printer, Region}};
+    /// # let mut backend = Raw::new(5, 5);
+    /// # let mut printer = Printer::new(&mut backend);
+    /// let printer = printer.map_last_column();
+    /// assert_eq!(printer.width(), 1);
+    /// ```
     pub fn map_last_column(&mut self) -> Printer<'_> {
-        todo!()
+        self.map_column(self.width() - 1)
     }
 
     /// Map current `printer` region to the inner `region`.

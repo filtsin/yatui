@@ -14,6 +14,7 @@ impl Region {
     /// # Panics
     /// Panic if `right_bottom` < `left_top`
     pub fn new(left_top: Cursor, right_bottom: Cursor) -> Self {
+        println!("{:?} - {:?}", left_top, right_bottom);
         Self::try_new(left_top, right_bottom).unwrap()
     }
 
