@@ -153,6 +153,8 @@ impl TextStyle {
         self.len() == 0
     }
 
+    /// TODO: New ranges can intersect each other if usize::MAX use or usize::MAX - n with delta >=
+    /// n. Deal with it
     pub(crate) fn positive_shift(&mut self, start_from: usize, delta: usize) {
         if delta == 0 {
             return;
@@ -169,6 +171,9 @@ impl TextStyle {
             .collect();
     }
 
+    ///  TODO: It is very unsafe method, because new ranges can overlap. Refactor this method
+    ///  with using remove existing ranges. Set panic on intersect and uncomment
+    ///  `negative_shift_with_overlap` test.
     pub(crate) fn negative_shift(&mut self, start_from: usize, delta: usize) {
         if delta == 0 {
             return;
@@ -187,10 +192,10 @@ impl TextStyle {
 
     // Variants:
     //
-    // Top range is `range` from arguments
+    // Top range is `range` from argument
     // Bottom range is range from current map
     //
-    // i.
+    // i. x' < x && y' >= y
     //
     //       ─────────────
     //       x           y
@@ -198,13 +203,13 @@ impl TextStyle {
     // x'                     y'
     //
     // Split [x', y'] to 3 ranges:
-    //      - [x', x): Existing styles
+    //      - [x', x): With existing styles
     //      - [x, y]: Merge existing styles and `style`
-    //      - (y, y']: Existing styles
+    //      - (y, y']: With existing styles
     // Stop, because no one existing range can overlap `range`.
     //
     //
-    // ii.
+    // ii. x' > x && y' >= y
     //
     //       ─────────────
     //       x           y
@@ -217,7 +222,7 @@ impl TextStyle {
     //      - (y, y'): With existing styles
     // Stop, because no one existing range can overlap `range`.
     //
-    // iii.
+    // iii. x' > x && y ' < y
     //
     //       ─────────────
     //       x           y
@@ -229,7 +234,7 @@ impl TextStyle {
     //      - [x', y']: Merge existing styles and `style`
     //      - (y', y]: Do not add now, replace `range` with it and do next iteration
     //
-    // iv.
+    // iv. x' < x && y' < y
     //
     //       ─────────────
     //       x           y
@@ -241,7 +246,7 @@ impl TextStyle {
     //      - [x, y']: Merge existing styles and `style`
     //      - (y', y]: Do not add now, replace `range` with it and do next iteration
     //
-    // v.
+    // v. x = x', y' >= y
     //
     //       ─────────────
     //       x           y
@@ -253,7 +258,7 @@ impl TextStyle {
     //      - (y, y']: Existing styles
     // Stop, because no one existing range can overlap `range`.
     //
-    // vi.
+    // vi. x = x', y' < y
     //       ─────────────
     //       x           y
     //       ─────────
@@ -261,13 +266,9 @@ impl TextStyle {
     //
     //  Split [x', y'] to 2 ranges:
     //      - [x', y]: Merge existing styles and `style`
-    //      - (y, y']: Do not add not, replace `range` with it and do next iteration
-    //
-    //
-    //
+    //      - (y, y']: Do not add now, replace `range` with it and do next iteration
     fn add_inner<R: RangeBounds<usize>>(&mut self, range: R, style: Style) {
-        let mut range = bound_to_range(range);
-
+        let mut range = RangeWrapper::new(bound_to_range(range));
         let end_range = RangeWrapper::new(range.end()..);
 
         let mut previous: Bound<RangeWrapper> = Unbounded;
@@ -275,10 +276,10 @@ impl TextStyle {
         while let Some((cur_range, cur_styles)) = self
             .data
             .range((previous.clone(), Included(end_range.clone())))
-            .find(|(r, _)| r.overlap_with(range.clone()))
+            .find(|(r, _)| r.overlap_with(range.range()))
             .map(|(range, styles)| (range.clone(), *styles))
         {
-            // If ranges are equal do not erase and istert it again, just modify styles in place
+            // If ranges are equal do not erase and insert it again, just modify styles in place
             if cur_range == range {
                 self.data.get_mut(&cur_range).unwrap().merge(style);
                 return;
@@ -286,68 +287,44 @@ impl TextStyle {
 
             self.data.remove(&cur_range);
 
-            let [left, middle, right] = cur_range.split_to_3(range.clone());
+            let intersection = cur_range.intersection(range.range()).unwrap();
+            self.data.insert(intersection.clone(), Style::new().merge(cur_styles).merge(style));
 
-            debug_assert!(left.is_some());
+            let [left, middle, right] = cur_range.split_to_3(range.range());
+            let left = left.unwrap();
+            let middle = middle.unwrap();
 
-            // Variants v. and vi. Simplest way.
-            if cur_range.start() == *range.start() {
-                debug_assert!(middle.is_some());
-                debug_assert!(right.is_none());
+            if left != intersection {
+                let style = if cur_range.overlap_with(left.range()) { cur_styles } else { style };
+                self.data.insert(left, style);
+            }
 
-                if cur_range.end() > *range.end() {
-                    let left = (left.unwrap(), Style::new().merge(cur_styles).merge(style));
-                    let middle = (
-                        middle.unwrap(),
-                        if cur_range.end() < *range.end() { style } else { cur_styles },
-                    );
-                    self.data.extend([left, middle]);
-
+            // Only v and vi variants
+            if middle != intersection {
+                if cur_range.overlap_with(middle.range()) {
+                    self.data.insert(middle, cur_styles);
                     return;
                 } else {
-                    let left = (left.unwrap(), Style::new().merge(cur_styles).merge(style));
-
-                    self.data.extend([left.clone()]);
-
-                    range = middle.unwrap().range();
-                    previous = Included((left.0.end()..).into());
-
+                    previous = Included((middle.start()..=middle.start()).into());
+                    range = middle;
                     continue;
                 }
             }
 
-            // Variants i. and ii.
-            if cur_range.end() >= *range.end() {
-                let left = (
-                    left.unwrap(),
-                    if cur_range.start() < *range.start() { cur_styles } else { style },
-                );
-                let middle =
-                    middle.map(|middle| (middle, Style::new().merge(cur_styles).merge(style)));
-                let right = right.map(|right| (right, cur_styles));
-
-                let iter = [Some(left), middle, right].into_iter().flatten();
-                self.data.extend(iter);
-                return;
+            if let Some(right) = right {
+                if range.overlap_with(right.range()) {
+                    previous = Included((right.start()..=right.start()).into());
+                    range = right;
+                } else {
+                    self.data.insert(right, cur_styles);
+                    return;
+                }
             } else {
-                // Variants iii and iv. Hardest way.
-                debug_assert!(middle.is_some());
-                debug_assert!(right.is_some());
-
-                let left = (
-                    left.unwrap(),
-                    if cur_range.start() < *range.start() { cur_styles } else { style },
-                );
-                let middle = (middle.unwrap(), Style::new().merge(cur_styles).merge(style));
-
-                self.data.extend([left, middle.clone()]);
-
-                range = right.unwrap().range();
-                previous = Included((middle.0.end()..).into());
+                return;
             }
         }
 
-        self.data.insert(RangeWrapper::new(range), style);
+        self.data.insert(range, style);
     }
 }
 
@@ -411,39 +388,46 @@ impl RangeWrapper {
         [left, right]
     }
 
-    fn split_to_3<R: RangeBounds<usize>>(&self, range: R) -> [Option<RangeWrapper>; 3] {
+    fn intersection<R: RangeBounds<usize>>(&self, range: R) -> Option<RangeWrapper> {
         let range = bound_to_range(range);
 
-        if (!self.overlap_with(range.clone())) {
-            return [None, None, None];
+        if self.overlap_with(range.clone()) {
+            let left = std::cmp::max(self.start(), *range.start());
+            let right = std::cmp::min(self.end(), *range.end());
+            Some((left..=right).into())
+        } else {
+            None
         }
+    }
 
-        let mut left = self.clone();
-        let mut right = RangeWrapper::new(range);
+    fn split_to_3<R: RangeBounds<usize>>(&self, range: R) -> [Option<RangeWrapper>; 3] {
+        let range: RangeWrapper = bound_to_range(range).into();
 
-        if (left == right) {
-            return [Some(left), None, None];
+        if let Some(intersection) = self.intersection(range.range()) {
+            if self.start() == range.start() {
+                let bigger_range = if self.len() > range.len() { self.clone() } else { range };
+                return [
+                    Some(intersection.clone()),
+                    bigger_range.cut(intersection.range())[1].clone(),
+                    None,
+                ];
+            }
+
+            let min_start = std::cmp::min(self.start(), range.start());
+            let max_end = std::cmp::max(self.end(), range.end());
+
+            let left_result = Some((min_start..intersection.start()).into());
+            let middle_result = Some(intersection.clone());
+            let right_result = if intersection.end() < max_end {
+                Some((intersection.end() + 1..=max_end).into())
+            } else {
+                None
+            };
+
+            [left_result, middle_result, right_result]
+        } else {
+            [None, None, None]
         }
-
-        let min_end = std::cmp::min(left.end(), right.end());
-        let max_end = std::cmp::max(left.end(), right.end());
-
-        if left.start() > right.start() {
-            std::mem::swap(&mut left, &mut right);
-        } else if left.start() == right.start() {
-            return [
-                Some((left.start()..=min_end).into()),
-                Some((min_end + 1..=max_end).into()),
-                None,
-            ];
-        }
-
-        let left_result = Some(RangeWrapper::new(left.start()..right.start()));
-        let middle_result = Some(RangeWrapper::new(right.start()..=min_end));
-        let right_result =
-            if min_end < max_end { Some(RangeWrapper::new(min_end + 1..=max_end)) } else { None };
-
-        [left_result, middle_result, right_result]
     }
 
     fn overlap_with<R: RangeBounds<usize>>(&self, range: R) -> bool {
@@ -461,6 +445,10 @@ impl RangeWrapper {
 
     fn range(&self) -> RangeInclusive<usize> {
         self.range.clone()
+    }
+
+    fn len(&self) -> usize {
+        self.end() - self.start() + 1
     }
 }
 
@@ -548,7 +536,7 @@ mod tests {
 
     #[test]
     fn cut() {
-        let mut s: RangeWrapper = (0..=4).into();
+        let s: RangeWrapper = (0..=4).into();
 
         let [left, right] = s.cut(1..=2);
         assert_eq!(left, Some((0..=0).into()));
@@ -562,7 +550,7 @@ mod tests {
         assert_eq!(left, Some((0..=2).into()));
         assert_eq!(right, None);
 
-        let mut s: RangeWrapper = (1..=2).into();
+        let s: RangeWrapper = (1..=2).into();
 
         let [left, right] = s.cut(1..=2);
         assert_eq!(left, None);
@@ -572,7 +560,7 @@ mod tests {
         assert_eq!(left, None);
         assert_eq!(right, None);
 
-        let mut s: RangeWrapper = (1..=1).into();
+        let s: RangeWrapper = (1..=1).into();
 
         let [left, right] = s.cut(3..=5);
         assert_eq!(left, Some((1..=1).into()));
@@ -581,129 +569,130 @@ mod tests {
         let [left, right] = s.cut(0..=0);
         assert_eq!(left, Some((1..=1).into()));
         assert_eq!(right, None);
+
+        let s: RangeWrapper = (2..=10).into();
+        let [left, right] = s.cut(2..=5);
+        assert_eq!(left, None);
+        assert_eq!(right, Some((6..=10).into()));
     }
 
     #[test]
-    fn split_to_3() {
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(0..=10);
-        assert_eq!(left, Some((0..=1).into()));
-        assert_eq!(middle, Some((2..=5).into()));
-        assert_eq!(right, Some((6..=10).into()));
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(0..=5);
-        assert_eq!(left, Some((0..=1).into()));
-        assert_eq!(middle, Some((2..=5).into()));
-        assert_eq!(right, None);
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(3..=10);
-        assert_eq!(left, Some((2..=2).into()));
-        assert_eq!(middle, Some((3..=5).into()));
-        assert_eq!(right, Some((6..=10).into()));
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(3..=5);
-        assert_eq!(left, Some((2..=2).into()));
-        assert_eq!(middle, Some((3..=5).into()));
-        assert_eq!(right, None);
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(3..=4);
-        assert_eq!(left, Some((2..=2).into()));
-        assert_eq!(middle, Some((3..=4).into()));
-        assert_eq!(right, Some((5..=5).into()));
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(0..=3);
-        assert_eq!(left, Some((0..=1).into()));
-        assert_eq!(middle, Some((2..=3).into()));
-        assert_eq!(right, Some((4..=5).into()));
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(0..=5);
-        assert_eq!(left, Some((0..=1).into()));
-        assert_eq!(middle, Some((2..=5).into()));
-        assert_eq!(right, None);
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(0..=2);
-        assert_eq!(left, Some((0..=1).into()));
-        assert_eq!(middle, Some((2..=2).into()));
-        assert_eq!(right, Some((3..=5).into()));
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(2..=5);
-        assert_eq!(left, Some((2..=5).into()));
-        assert_eq!(middle, None);
-        assert_eq!(right, None);
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(2..=10);
-        assert_eq!(left, Some((2..=5).into()));
-        assert_eq!(middle, Some((6..=10).into()));
-        assert_eq!(right, None);
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(0..=1);
-        assert_eq!(left, None);
-        assert_eq!(middle, None);
-        assert_eq!(right, None);
-
-        let mut s: RangeWrapper = (2..=5).into();
-        let [left, middle, right] = s.split_to_3(6..=8);
-        assert_eq!(left, None);
-        assert_eq!(middle, None);
-        assert_eq!(right, None);
+    fn intersection() {
+        let s: RangeWrapper = (2..=5).into();
+        assert_eq!(s.intersection(0..=1), None);
+        assert_eq!(s.intersection(3..=8), Some((3..=5).into()));
+        assert_eq!(s.intersection(1..=3), Some((2..=3).into()));
     }
-    //
+
+    //     ─────────────
+    // ───                          - 1
+    // ────                         - 2
+    // ──────────                   - 3
+    // ─────────────────            - 4
+    // ───────────────────────      - 5
+    //     ─────                    - 6
+    //     ─────────────            - 7
+    //     ───────────────────      - 8
+    //           ────               - 9
+    //           ───────            - 10
+    //           ─────────────      - 11
+    //                  ──────      - 12
+    //                      ──────  - 13
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 0   2            5
+    #[test]
+    fn split_to_3() {
+        let s: RangeWrapper = (2..=5).into();
+        assert_eq!(s.split_to_3(0..=1), [None, None, None]); // 1
+        assert_eq!(
+            s.split_to_3(0..=2),
+            [Some((0..=1).into()), Some((2..=2).into()), Some((3..=5).into())]
+        ); // 2
+        assert_eq!(
+            s.split_to_3(0..=4),
+            [Some((0..=1).into()), Some((2..=4).into()), Some((5..=5).into())]
+        ); // 3
+        assert_eq!(s.split_to_3(0..=5), [Some((0..=1).into()), Some((2..=5).into()), None]); // 4
+        assert_eq!(
+            s.split_to_3(0..=10),
+            [Some((0..=1).into()), Some((2..=5).into()), Some((6..=10).into())]
+        ); // 5
+        assert_eq!(s.split_to_3(2..=3), [Some((2..=3).into()), Some((4..=5).into()), None]); // 6
+        assert_eq!(s.split_to_3(2..=5), [Some((2..=5).into()), None, None]); // 7
+        assert_eq!(s.split_to_3(2..=10), [Some((2..=5).into()), Some((6..=10).into()), None]); // 8
+        assert_eq!(
+            s.split_to_3(3..=4),
+            [Some((2..=2).into()), Some((3..=4).into()), Some((5..=5).into())]
+        ); // 9
+        assert_eq!(s.split_to_3(3..=5), [Some((2..=2).into()), Some((3..=5).into()), None]); // 10
+        assert_eq!(
+            s.split_to_3(3..=10),
+            [Some((2..=2).into()), Some((3..=5).into()), Some((6..=10).into())]
+        ); // 11
+        assert_eq!(
+            s.split_to_3(5..=10),
+            [Some((2..=4).into()), Some((5..=5).into()), Some((6..=10).into())]
+        ); // 12
+        assert_eq!(s.split_to_3(6..=10), [None, None, None]); // 13
+    }
+
+    #[test]
+    fn positive_shift() {
+        let mut styles = TextStyle::new();
+
+        styles.add(..=4, Style::new().bg(Color::Red));
+        styles.add(6..=7, Style::new().bg(Color::Yellow));
+        styles.add(8..12, Style::new().bg(Color::Black));
+        styles.add(12..14, Style::new().bg(Color::Green));
+        styles.add(14.., Style::new().bg(Color::White));
+
+        println!("{:?}", styles.clone().into_vec());
+
+        styles.positive_shift(7, 10);
+
+        let result = vec![
+            (0..=4, Style::new().bg(Color::Red)),
+            (6..=7, Style::new().bg(Color::Yellow)),
+            (18..=21, Style::new().bg(Color::Black)),
+            (22..=23, Style::new().bg(Color::Green)),
+            (24..=usize::MAX, Style::new().bg(Color::White)),
+        ];
+
+        assert_eq!(styles.into_vec(), result);
+    }
+
+    #[test]
+    fn negative_shift() {
+        let mut styles = TextStyle::new();
+
+        styles.add(..=0, Style::new().bg(Color::Blue));
+        styles.add(1..=4, Style::new().bg(Color::Red));
+        styles.add(5..=6, Style::new().bg(Color::Yellow));
+        styles.add(17..=26, Style::new().bg(Color::Yellow));
+        styles.add(27.., Style::new().bg(Color::Yellow));
+
+        styles.negative_shift(7, 10);
+
+        let result = vec![
+            (0..=0, Style::new().bg(Color::Blue)),
+            (1..=4, Style::new().bg(Color::Red)),
+            (5..=6, Style::new().bg(Color::Yellow)),
+            (7..=16, Style::new().bg(Color::Yellow)),
+            (17..=std::usize::MAX - 10, Style::new().bg(Color::Yellow)),
+        ];
+
+        assert_eq!(styles.into_vec(), result);
+    }
+
     // #[test]
-    // fn positive_shift() {
+    // #[should_panic]
+    // fn negative_shift_with_overlap() {
     //     let mut styles = TextStyle::new();
     //
-    //     styles.add(..=4, Style::new().bg(Color::Red));
-    //     styles.add(3..=6, Style::new().bg(Color::Yellow));
-    //     styles.add(6..12, Style::new().bg(Color::Black));
-    //     styles.add(8..10, Style::new().bg(Color::Green));
-    //     styles.add(15.., Style::new().bg(Color::White));
+    //     styles.add(..=0, Style::new().bg(Color::Blue));
+    //     styles.add(1..=4, Style::new().bg(Color::Red));
+    //     styles.add(5..=10, Style::new().bg(Color::Red));
     //
-    //     println!("{:?}", styles.clone().into_vec());
-    //
-    //     styles.positive_shift(7, 10);
-    //
-    //     let result = vec![
-    //         (0..=4, Style::new().bg(Color::Red)),
-    //         (3..=6, Style::new().bg(Color::Yellow)),
-    //         (6..=11, Style::new().bg(Color::Black)),
-    //         (18..=19, Style::new().bg(Color::Green)),
-    //         (25..=usize::MAX, Style::new().bg(Color::White)),
-    //     ];
-    //
-    //     assert_eq!(styles.into_vec(), result);
-    // }
-    //
-    // #[test]
-    // fn negative_shift() {
-    //     let mut styles = TextStyle::new();
-    //
-    //     styles.add(0..=0, Style::new().bg(Color::Blue));
-    //     styles.add(..=4, Style::new().bg(Color::Red));
-    //     styles.add(3..=6, Style::new().bg(Color::Yellow));
-    //     styles.add(6..12, Style::new().bg(Color::Black));
-    //     styles.add(8..10, Style::new().bg(Color::Green));
-    //     styles.add(15.., Style::new().bg(Color::White));
-    //
-    //     styles.negative_shift(7, 10);
-    //
-    //     let result = vec![
-    //         (0..=0, Style::new().bg(Color::Green)),
-    //         (0..=4, Style::new().bg(Color::Red)),
-    //         (3..=6, Style::new().bg(Color::Yellow)),
-    //         (5..=usize::MAX - 10, Style::new().bg(Color::White)),
-    //         (6..=11, Style::new().bg(Color::Black)),
-    //     ];
-    //
-    //     assert_eq!(styles.into_vec(), result);
+    //     styles.negative_shift(5, 3);
     // }
 }

@@ -27,8 +27,6 @@ struct Cursor {
 
 impl Terminal {
     pub fn new(width: usize, height: usize) -> Self {
-        assert!(width > 1 && height > 1);
-
         let grid = vec![Cell::default(); width * height];
         Self { grid, width, height, ..Self::default() }
     }

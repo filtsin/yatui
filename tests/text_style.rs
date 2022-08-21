@@ -18,100 +18,100 @@ fn change_styles_non_overlapping() {
 
     assert_eq!(styles.into_vec(), result);
 }
-//
-// // ─────────────
-// // x           y
-// // ─────────────
-// // x'          y'
-// #[test]
-// fn change_styles_overlapping_1() {
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=10, Style::new().fg(Color::Red));
-//     styles.add(0..=10, Style::new().bg(Color::Blue));
-//
-//     let result = vec![(0..=10, Style::new().fg(Color::Red).bg(Color::Blue))];
-//
-//     assert_eq!(styles.into_vec(), result);
-// }
-//
-// // ─────────────
-// // x           y
-// // ───────────────
-// // x'            y'
-// #[test]
-// fn change_styles_overlapping_2() {
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=10, Style::new().fg(Color::Red));
-//     styles.add(0..=15, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (11..=15, Style::new().bg(Color::Blue)),
-//     ];
-//
-//     assert_eq!(styles.into_vec(), result);
-// }
-//
-// // ─────────────
-// // x           y
-// //   ────────
-// //   x'     y'
-// #[test]
-// fn change_styles_overlapping_3() {
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=10, Style::new().fg(Color::Red));
-//     styles.add(3..=5, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=2, Style::new().fg(Color::Red)),
-//         (3..=5, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (6..=10, Style::new().bg(Color::Blue)),
-//     ];
-//
-//     assert_eq!(styles.into_vec(), result);
-// }
-//
+
+// ─────────────
+// x           y
+// ─────────────
+// x'          y'
+#[test]
+fn change_styles_overlapping_1() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=10, Style::new().fg(Color::Red));
+    styles.add(0..=10, Style::new().bg(Color::Blue));
+
+    let result = vec![(0..=10, Style::new().fg(Color::Red).bg(Color::Blue))];
+
+    assert_eq!(styles.into_vec(), result);
+}
+
+// ─────────────
+// x           y
+// ───────────────
+// x'            y'
+#[test]
+fn change_styles_overlapping_2() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=10, Style::new().fg(Color::Red));
+    styles.add(0..=15, Style::new().bg(Color::Blue));
+
+    let result = vec![
+        (0..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
+        (11..=15, Style::new().bg(Color::Blue)),
+    ];
+
+    assert_eq!(styles.into_vec(), result);
+}
+
+// ─────────────
+// x           y
+//   ────────
+//   x'     y'
+#[test]
+fn change_styles_overlapping_3() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=10, Style::new().fg(Color::Red));
+    styles.add(3..=5, Style::new().bg(Color::Blue));
+
+    let result = vec![
+        (0..=2, Style::new().fg(Color::Red)),
+        (3..=5, Style::new().fg(Color::Red).bg(Color::Blue)),
+        (6..=10, Style::new().fg(Color::Red)),
+    ];
+
+    assert_eq!(styles.into_vec(), result);
+}
+
 // // ─────────────
 // // x           y
 // //    ──────────
 // //    x'     y'
-// #[test]
-// fn change_styles_overlapping_4() {
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=10, Style::new().fg(Color::Red));
-//     styles.add(3..=10, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=2, Style::new().fg(Color::Red)),
-//         (3..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//     ];
-//
-//     assert_eq!(styles.into_vec(), result);
-// }
-//
-// // ─────────────
-// // x           y
-// //    ────────────
-// //    x'         y'
-// #[test]
-// fn change_styles_overlapping_5() {
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=10, Style::new().fg(Color::Red));
-//     styles.add(3..=15, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=2, Style::new().fg(Color::Red)),
-//         (3..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (11..=15, Style::new().bg(Color::Blue)),
-//     ];
-//
-//     assert_eq!(styles.into_vec(), result);
-// }
+#[test]
+fn change_styles_overlapping_4() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=10, Style::new().fg(Color::Red));
+    styles.add(3..=10, Style::new().bg(Color::Blue));
+
+    let result = vec![
+        (0..=2, Style::new().fg(Color::Red)),
+        (3..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
+    ];
+
+    assert_eq!(styles.into_vec(), result);
+}
+
+// ─────────────
+// x           y
+//    ────────────
+//    x'         y'
+#[test]
+fn change_styles_overlapping_5() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=10, Style::new().fg(Color::Red));
+    styles.add(3..=15, Style::new().bg(Color::Blue));
+
+    let result = vec![
+        (0..=2, Style::new().fg(Color::Red)),
+        (3..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
+        (11..=15, Style::new().bg(Color::Blue)),
+    ];
+
+    assert_eq!(styles.into_vec(), result);
+}
 
 //
 //      ─────────────
@@ -234,6 +234,50 @@ fn change_styles_overlapping_11() {
         (4..=4, Style::new().modifier(Modifier::BOLD)),
         (5..=10, Style::new().bg(Color::Red).modifier(Modifier::BOLD)),
         (11..=12, Style::new().modifier(Modifier::BOLD)),
+    ];
+
+    assert_eq!(styles.into_vec(), result);
+}
+
+//  ───────     ─────
+//  x''  y''    x'  y'
+//  ──────────────
+//  x            y
+#[test]
+fn change_styles_overlapping_12() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=3, Style::new().fg(Color::Red));
+    styles.add(5..=10, Style::new().bg(Color::Red));
+    styles.add(0..=8, Style::new().modifier(Modifier::BOLD));
+
+    let result = vec![
+        (0..=3, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
+        (4..=4, Style::new().modifier(Modifier::BOLD)),
+        (5..=8, Style::new().bg(Color::Red).modifier(Modifier::BOLD)),
+        (9..=10, Style::new().bg(Color::Red)),
+    ];
+
+    assert_eq!(styles.into_vec(), result);
+}
+
+//  ───── ───── ─────
+//  ──────────────
+//  x            y
+#[test]
+fn change_styles_overlapping_13() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=3, Style::new().fg(Color::Red));
+    styles.add(4..=7, Style::new().fg(Color::Green));
+    styles.add(8..=10, Style::new().bg(Color::Red));
+    styles.add(0..=8, Style::new().modifier(Modifier::BOLD));
+
+    let result = vec![
+        (0..=3, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
+        (4..=7, Style::new().fg(Color::Green).modifier(Modifier::BOLD)),
+        (8..=8, Style::new().bg(Color::Red).modifier(Modifier::BOLD)),
+        (9..=10, Style::new().bg(Color::Red)),
     ];
 
     assert_eq!(styles.into_vec(), result);

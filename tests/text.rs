@@ -305,40 +305,40 @@ fn truncate() {
     assert_eq!(str.as_str(), "");
 }
 
-// #[test]
-// fn split_off_polite() {
-//     let mut str: Text = "hey\u{0306}it\n is me".into();
-//     str.styles_mut().add(0..2, Style::new().fg(Color::Red));
-//     str.styles_mut().add(.., Style::new().fg(Color::Blue));
-//     str.styles_mut().add(4..=6, Style::new().fg(Color::Green));
-//     str.styles_mut().add(1..=8, Style::new().fg(Color::Yellow));
-//
-//     let str2 = str.split_off_polite(3);
-//
-//     assert_eq!(str.as_str(), "hey\u{0306}");
-//     assert_eq!(str2.as_str(), "it\n is me");
-//
-//     assert_eq!(str.columns(), 3);
-//     assert_eq!(str.lines(), 1);
-//     assert_eq!(str2.columns(), 6);
-//     assert_eq!(str2.lines(), 2);
-//
-//     let styles_left = vec![
-//         (0..=1, Style::new().fg(Color::Red)),
-//         (0..=usize::MAX, Style::new().fg(Color::Blue)),
-//         (1..=8, Style::new().fg(Color::Yellow)),
-//         (4..=6, Style::new().fg(Color::Green)),
-//     ];
-//
-//     let styles_right = vec![
-//         (0..=5, Style::new().fg(Color::Yellow)),
-//         (0..=usize::MAX - 3, Style::new().fg(Color::Blue)),
-//         (1..=3, Style::new().fg(Color::Green)),
-//     ];
-//
-//     assert_eq!(str.styles().clone().into_vec(), styles_left);
-//     assert_eq!(str2.styles().clone().into_vec(), styles_right);
-// }
+#[test]
+fn split_off_polite() {
+    let mut str: Text = "hey\u{0306}it\n is me".into();
+    str.styles_mut().add(0..2, Style::new().fg(Color::Red));
+    str.styles_mut().add(2..=3, Style::new().fg(Color::Blue));
+    str.styles_mut().add(4..=6, Style::new().fg(Color::Green));
+    str.styles_mut().add(7.., Style::new().fg(Color::Yellow));
+
+    let str2 = str.split_off_polite(3);
+
+    assert_eq!(str.as_str(), "hey\u{0306}");
+    assert_eq!(str2.as_str(), "it\n is me");
+
+    assert_eq!(str.columns(), 3);
+    assert_eq!(str.lines(), 1);
+    assert_eq!(str2.columns(), 6);
+    assert_eq!(str2.lines(), 2);
+
+    let styles_left = vec![
+        (0..=1, Style::new().fg(Color::Red)),
+        (2..=3, Style::new().fg(Color::Blue)),
+        (4..=6, Style::new().fg(Color::Green)),
+        (7..=std::usize::MAX, Style::new().fg(Color::Yellow)),
+    ];
+
+    let styles_right = vec![
+        (0..=0, Style::new().fg(Color::Blue)),
+        (1..=3, Style::new().fg(Color::Green)),
+        (4..=std::usize::MAX - 3, Style::new().fg(Color::Yellow)),
+    ];
+
+    assert_eq!(str.styles().clone().into_vec(), styles_left);
+    assert_eq!(str2.styles().clone().into_vec(), styles_right);
+}
 
 #[test]
 #[should_panic]

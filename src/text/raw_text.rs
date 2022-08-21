@@ -18,8 +18,8 @@ pub struct RawText {
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub(crate) struct RawTextSize {
-    pub(crate) columns: usize,
-    pub(crate) lines: usize,
+    pub(super) columns: usize,
+    pub(super) lines: usize,
 }
 
 impl RawText {

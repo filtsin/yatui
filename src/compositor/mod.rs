@@ -56,36 +56,36 @@ where
     B: Backend,
 {
     pub(crate) fn draw(&mut self) {
-        let current_size = self.backend.get_size().unwrap();
-
-        if self.buffer.size() != current_size {
-            self.buffer.resize(current_size);
-        } else if self.watcher.is_empty() {
-            return;
-        }
-
-        if let Some(component) = &mut self.root {
-            let context = Context::new(&self.controller, &self.watcher, self.buffer.size());
-
-            let mapped_region = Region::from(self.buffer.size());
-
-            let mut mapped_buffer = self.buffer.map(mapped_region);
-            mapped_buffer.clear();
-
-            component.size_hint(context);
-            component.layout(mapped_region, context);
-            component.draw(mapped_buffer, context);
-
-            self.backend.hide_cursor();
-            self.backend.clear_screen();
-
-            self.backend.move_cursor(Cursor::new(0, 0));
-
-            self.backend.draw(&self.buffer);
-            self.backend.flush();
-
-            self.watcher.remove_all();
-        }
+        // let current_size = self.backend.get_size().unwrap();
+        //
+        // if self.buffer.size() != current_size {
+        //     self.buffer.resize(current_size);
+        // } else if self.watcher.is_empty() {
+        //     return;
+        // }
+        //
+        // if let Some(component) = &mut self.root {
+        //     let context = Context::new(&self.controller, &self.watcher, self.buffer.size());
+        //
+        //     let mapped_region = Region::from(self.buffer.size());
+        //
+        //     let mut mapped_buffer = self.buffer.map(mapped_region);
+        //     mapped_buffer.clear();
+        //
+        //     component.size_hint(context);
+        //     component.layout(mapped_region, context);
+        //     component.draw(mapped_buffer, context);
+        //
+        //     self.backend.hide_cursor();
+        //     self.backend.clear_screen();
+        //
+        //     self.backend.move_cursor(Cursor::new(0, 0));
+        //
+        //     self.backend.draw(&self.buffer);
+        //     self.backend.flush();
+        //
+        //     self.watcher.remove_all();
+        // }
     }
 
     pub(crate) fn process_event(&mut self, event: Event) {

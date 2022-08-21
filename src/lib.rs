@@ -1,4 +1,4 @@
-// #![warn(missing_debug_implementations, missing_docs, rust_2018_idioms)]
+//#![warn(missing_debug_implementations, missing_docs, rust_2018_idioms)]
 #![allow(dead_code)]
 #![allow(unused)]
 
