@@ -30,7 +30,7 @@ impl<'a> Printer<'a> {
     /// Printer do not listen `backend` events (e.g. resize), so the size of created `printer`
     /// does not change. It is user responsobility to update `printer` for correct terminal size.
     /// Usually if `terminal` resized and `printer` have old size nothing bad will happen but
-    /// some text will be cut in the `terminal`. If you do not create `printer` manually, you
+    /// some text will be truncated in the `terminal`. If you do not create `printer` manually, you
     /// have nothing to worry about: `printer` will be updated by the tui application's main
     /// thread.
     ///
@@ -77,7 +77,6 @@ impl<'a> Printer<'a> {
     pub fn try_padding(&mut self, padding: Index) -> Option<Printer<'_>> {
         let new_x = self.local_region().right_bottom().column().checked_sub(padding)?;
         let new_y = self.local_region().right_bottom().row().checked_sub(padding)?;
-        println!("{}-{}", new_x, new_y);
         Some(self.map(Region::new(Cursor::new(padding, padding), Cursor::new(new_x, new_y))))
     }
 

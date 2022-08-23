@@ -3,8 +3,12 @@ use crate::text::{utils::bound_to_range, Style};
 
 use std::{
     cmp::{Eq, PartialEq},
-    collections::{btree_map::Iter as BIter, BTreeMap},
+    collections::{
+        btree_map::{Iter as BIter, Range as BRange},
+        BTreeMap,
+    },
     hash::Hash,
+    iter::FusedIterator,
     ops::{
         Add, AddAssign,
         Bound::{self, Excluded, Included, Unbounded},
@@ -20,7 +24,7 @@ pub struct TextStyle {
 }
 
 #[derive(Debug, Clone, Eq)]
-pub(crate) struct RangeWrapper {
+struct RangeWrapper {
     range: RangeInclusive<usize>,
 }
 
@@ -31,6 +35,15 @@ pub(crate) struct RangeWrapper {
 #[derive(Clone)]
 pub struct Iter<'a> {
     inner: BIter<'a, RangeWrapper, Style>,
+}
+
+/// An iterator over the items of `TextStyle`.
+///
+/// This struct is created by the [`range`](TextStyle::range) method on [`TextStyle`](TextStyle).
+pub struct Range<'a> {
+    inner: BRange<'a, RangeWrapper, Style>,
+    start: usize,
+    end: usize,
 }
 
 impl TextStyle {
@@ -132,9 +145,22 @@ impl TextStyle {
     }
 
     /// Gets an iterator that visits the elements in the `TextStyle` in ascending order.
-    /// If you want get non-overlaping ranges look [`ranges`](Self::ranges)
     pub fn iter(&self) -> Iter<'_> {
         Iter::new(self.data.iter())
+    }
+
+    /// Gets an iterator over a sub-range of styles. Iterator will yield all styles for specified
+    /// `range`.
+    pub fn range<R>(&self, range: R) -> Range<'_>
+    where
+        R: RangeBounds<usize>,
+    {
+        let range = RangeWrapper::new(bound_to_range(range));
+
+        let end: RangeWrapper = (range.end()..).into();
+
+        let inner = self.data.range((Unbounded, Included(end)));
+        Range::new(inner, range.start(), range.end())
     }
 
     pub fn into_vec(self) -> Vec<StyleInfo> {
@@ -153,41 +179,44 @@ impl TextStyle {
         self.len() == 0
     }
 
-    /// TODO: New ranges can intersect each other if usize::MAX use or usize::MAX - n with delta >=
-    /// n. Deal with it
-    pub(crate) fn positive_shift(&mut self, start_from: usize, delta: usize) {
-        if delta == 0 {
-            return;
+    // TODO: Update doc
+    /// Shift all existing styles in `range` with `delta` parameter.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui::text::*;
+    /// let mut style = TextStyle::new();
+    /// style.add(0..=3, Style::new().bg(Color::Green));
+    /// style.add(4..=6, Style::new().fg(Color::Red));
+    ///
+    /// style.shift_add(4..=6, -1);
+    ///
+    /// assert_eq!(
+    ///     style.into_vec(),
+    ///     vec![
+    ///         (0..=2, Style::new().bg(Color::Green)),
+    ///         (3..=3, Style::new().bg(Color::Green).fg(Color::Red)),
+    ///         (4..=5, Style::new().fg(Color::Red))
+    ///     ]
+    /// );
+    /// ```
+    pub fn shift_add<R>(&mut self, range: R, delta: i64)
+    where
+        R: RangeBounds<usize>,
+    {
+        let range = bound_to_range(range);
+        let mut styles: Vec<_> = self.range(range).collect();
+
+        for (ref mut range, _) in &mut styles {
+            self.remove(range.clone());
+
+            let mut wrapper: RangeWrapper = range.clone().into();
+            wrapper += delta;
+            *range = wrapper.range();
         }
 
-        self.data = std::mem::take(&mut self.data)
-            .into_iter()
-            .map(|(mut range, style)| {
-                if range.start() >= start_from {
-                    range += delta;
-                }
-                (range, style)
-            })
-            .collect();
-    }
-
-    ///  TODO: It is very unsafe method, because new ranges can overlap. Refactor this method
-    ///  with using remove existing ranges. Set panic on intersect and uncomment
-    ///  `negative_shift_with_overlap` test.
-    pub(crate) fn negative_shift(&mut self, start_from: usize, delta: usize) {
-        if delta == 0 {
-            return;
-        }
-
-        self.data = std::mem::take(&mut self.data)
-            .into_iter()
-            .map(|(mut range, style)| {
-                if range.start() >= start_from {
-                    range -= delta;
-                }
-                (range, style)
-            })
-            .collect();
+        self.extend(styles);
     }
 
     // Variants:
@@ -315,6 +344,7 @@ impl TextStyle {
                 if range.overlap_with(right.range()) {
                     previous = Included((right.start()..=right.start()).into());
                     range = right;
+                    continue;
                 } else {
                     self.data.insert(right, cur_styles);
                     return;
@@ -328,9 +358,30 @@ impl TextStyle {
     }
 }
 
+impl Extend<StyleInfo> for TextStyle {
+    fn extend<T: IntoIterator<Item = StyleInfo>>(&mut self, iter: T) {
+        for (range, style) in iter.into_iter() {
+            self.add(range, style);
+        }
+    }
+}
+
 impl<'a> Iter<'a> {
-    pub(crate) fn new(inner: BIter<'a, RangeWrapper, Style>) -> Self {
+    fn new(inner: BIter<'a, RangeWrapper, Style>) -> Self {
         Self { inner }
+    }
+}
+
+impl<'a> Range<'a> {
+    fn new(inner: BRange<'a, RangeWrapper, Style>, start: usize, end: usize) -> Self {
+        Self { inner, start, end }
+    }
+
+    fn process_inner(&self, range: &RangeWrapper, style: &Style) -> StyleInfo {
+        let start = if range.start() < self.start { self.start } else { range.start() };
+        let end = if range.end() > self.end { self.end } else { range.end() };
+
+        (start..=end, *style)
     }
 }
 
@@ -363,6 +414,33 @@ impl DoubleEndedIterator for Iter<'_> {
         self.inner.next_back().map(|(r, style)| (r.range(), *style))
     }
 }
+
+impl Iterator for Range<'_> {
+    type Item = StyleInfo;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for (r, style) in self.inner.by_ref() {
+            if r.overlap_with(self.start..=self.end) {
+                return Some(self.process_inner(r, style));
+            }
+        }
+        None
+    }
+}
+
+impl DoubleEndedIterator for Range<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        while let Some((r, style)) = self.inner.next_back() {
+            if r.overlap_with(self.start..=self.end) {
+                return Some(self.process_inner(r, style));
+            }
+        }
+        None
+    }
+}
+
+impl FusedIterator for Range<'_> {}
+impl FusedIterator for Iter<'_> {}
 
 impl RangeWrapper {
     fn new<R: RangeBounds<usize>>(range: R) -> Self {
@@ -492,6 +570,27 @@ impl PartialOrd for RangeWrapper {
 impl<R: RangeBounds<usize>> From<R> for RangeWrapper {
     fn from(range: R) -> Self {
         Self::new(range)
+    }
+}
+
+impl Add<i64> for RangeWrapper {
+    type Output = Self;
+
+    fn add(mut self, rhs: i64) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl AddAssign<i64> for RangeWrapper {
+    fn add_assign(&mut self, rhs: i64) {
+        if rhs < 0 {
+            let rhs: usize = (-rhs).try_into().unwrap();
+            *self -= rhs;
+        } else {
+            let rhs: usize = rhs.try_into().unwrap();
+            *self += rhs;
+        }
     }
 }
 
@@ -635,64 +734,4 @@ mod tests {
         ); // 12
         assert_eq!(s.split_to_3(6..=10), [None, None, None]); // 13
     }
-
-    #[test]
-    fn positive_shift() {
-        let mut styles = TextStyle::new();
-
-        styles.add(..=4, Style::new().bg(Color::Red));
-        styles.add(6..=7, Style::new().bg(Color::Yellow));
-        styles.add(8..12, Style::new().bg(Color::Black));
-        styles.add(12..14, Style::new().bg(Color::Green));
-        styles.add(14.., Style::new().bg(Color::White));
-
-        println!("{:?}", styles.clone().into_vec());
-
-        styles.positive_shift(7, 10);
-
-        let result = vec![
-            (0..=4, Style::new().bg(Color::Red)),
-            (6..=7, Style::new().bg(Color::Yellow)),
-            (18..=21, Style::new().bg(Color::Black)),
-            (22..=23, Style::new().bg(Color::Green)),
-            (24..=usize::MAX, Style::new().bg(Color::White)),
-        ];
-
-        assert_eq!(styles.into_vec(), result);
-    }
-
-    #[test]
-    fn negative_shift() {
-        let mut styles = TextStyle::new();
-
-        styles.add(..=0, Style::new().bg(Color::Blue));
-        styles.add(1..=4, Style::new().bg(Color::Red));
-        styles.add(5..=6, Style::new().bg(Color::Yellow));
-        styles.add(17..=26, Style::new().bg(Color::Yellow));
-        styles.add(27.., Style::new().bg(Color::Yellow));
-
-        styles.negative_shift(7, 10);
-
-        let result = vec![
-            (0..=0, Style::new().bg(Color::Blue)),
-            (1..=4, Style::new().bg(Color::Red)),
-            (5..=6, Style::new().bg(Color::Yellow)),
-            (7..=16, Style::new().bg(Color::Yellow)),
-            (17..=std::usize::MAX - 10, Style::new().bg(Color::Yellow)),
-        ];
-
-        assert_eq!(styles.into_vec(), result);
-    }
-
-    // #[test]
-    // #[should_panic]
-    // fn negative_shift_with_overlap() {
-    //     let mut styles = TextStyle::new();
-    //
-    //     styles.add(..=0, Style::new().bg(Color::Blue));
-    //     styles.add(1..=4, Style::new().bg(Color::Red));
-    //     styles.add(5..=10, Style::new().bg(Color::Red));
-    //
-    //     styles.negative_shift(5, 3);
-    // }
 }

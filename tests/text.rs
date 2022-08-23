@@ -159,6 +159,7 @@ fn replace_range_polite() {
     str.styles_mut().add(1..2, Style::new().fg(Color::Red)); // ö
     str.styles_mut().add(5..7, Style::new().fg(Color::Blue)); // 老虎
     str.styles_mut().add(8..=8, Style::new().fg(Color::Yellow)); // y\u{0306}
+    str.styles_mut().add(20.., Style::new().fg(Color::Yellow));
     let mut str2 = str.clone();
 
     str.replace_range_polite(3..=5, " New text ");
@@ -170,6 +171,7 @@ fn replace_range_polite() {
         (1..=1, Style::new().fg(Color::Red)),
         (13..=13, Style::new().fg(Color::Blue)),
         (15..=15, Style::new().fg(Color::Yellow)),
+        (27..=usize::MAX, Style::new().fg(Color::Yellow)),
     ];
 
     assert_eq!(str.styles().clone().into_vec(), styles);
@@ -182,6 +184,7 @@ fn replace_range_polite() {
         (1..=1, Style::new().fg(Color::Red)),
         (4..=4, Style::new().fg(Color::Blue)),
         (6..=6, Style::new().fg(Color::Yellow)),
+        (18..=usize::MAX - 2, Style::new().fg(Color::Yellow)),
     ];
 
     assert_eq!(str2.styles().clone().into_vec(), styles);

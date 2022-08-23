@@ -12,7 +12,6 @@ use std::{
 #[derive(Debug, Default, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct RawText {
     content: Cow<'static, str>,
-    // Cached sizes for content
     size: RawTextSize,
 }
 

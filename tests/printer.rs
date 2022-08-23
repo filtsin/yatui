@@ -152,32 +152,28 @@ fn map_column_out_of_bounds() {
     printer.map_column(100);
 }
 
-// #[test]
-// fn padding() {
-//     let mut backend = Raw::new(5, 5);
-//     let mut printer = Printer::new(&mut backend);
-//
-//     let mut printer2 = printer.padding(1);
-//     assert_eq!(printer2.mapped_region(), Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
-//
-//     let region = printer2.padding(1).mapped_region();
-//     assert_eq!(printer.padding(2).mapped_region(), region);
-//
-//     let region = printer.padding(0).mapped_region();
-//     assert_eq!(printer.mapped_region(), region);
-//
-//     let mut backend = Raw::new(2, 2);
-//     let mut printer = Printer::new(&mut backend);
-//     printer.padding(1);
-// }
-//
-// #[test]
-// #[should_panic]
-// fn padding_out_of_bounds() {
-//     let mut backend = Raw::new(5, 5);
-//     let mut printer = Printer::new(&mut backend);
-//     printer.padding(3);
-// }
+#[test]
+fn padding() {
+    let mut backend = Raw::new(5, 5);
+    let mut printer = Printer::new(&mut backend);
+
+    let mut printer2 = printer.padding(1);
+    assert_eq!(printer2.mapped_region(), Region::new(Cursor::new(1, 1), Cursor::new(3, 3)));
+
+    let region = printer2.padding(1).mapped_region();
+    assert_eq!(printer.padding(2).mapped_region(), region);
+
+    let region = printer.padding(0).mapped_region();
+    assert_eq!(printer.mapped_region(), region);
+}
+
+#[test]
+#[should_panic]
+fn padding_out_of_bounds() {
+    let mut backend = Raw::new(5, 5);
+    let mut printer = Printer::new(&mut backend);
+    printer.padding(3);
+}
 
 // #[test]
 // fn write_text_without_styles() {

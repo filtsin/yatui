@@ -28,7 +28,7 @@ use std::{
     str::FromStr,
 };
 
-use self::grapheme::GraphemeInfo;
+use self::{grapheme::GraphemeInfo, text_style::StyleInfo};
 
 #[derive(Default, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Text {
@@ -153,7 +153,8 @@ impl Text {
     /// Remove the specified `range` in the text, and replaces it with the given string.
     ///
     /// The given string doesn't need to be the same length as the range. Be careful, because
-    /// styles don't change. Method looks like [std::replace_range][std::string::String::replace_range]
+    /// styles don't changes. Method looks like
+    /// [std::replace_range][std::string::String::replace_range]
     /// but `range` in the std points to [`char`] boundaries, but in this method to `grapheme`
     /// boundaries. `range` contains startings point and end point of text graphemes.
     ///
@@ -226,12 +227,8 @@ impl Text {
 
         let old_len = g2.index() - g1.index() + 1;
         let new_len = RawText::create_graphemes(replace_with).count();
-
-        if old_len > new_len {
-            self.styles_mut().negative_shift(g2.index().checked_add(1).unwrap(), old_len - new_len);
-        } else {
-            self.styles_mut().positive_shift(g2.index().checked_add(1).unwrap(), new_len - old_len);
-        }
+        let delta: i64 = new_len as i64 - old_len as i64;
+        self.styles_mut().shift_add(g2.index() + 1.., delta);
     }
 
     /// Removes the last `grapheme` from the text.
@@ -387,7 +384,7 @@ impl Text {
     pub fn split_off_polite(&mut self, at: usize) -> Text {
         let mut styles = self.style.clone();
         styles.remove(..at);
-        styles.negative_shift(at, at);
+        styles.shift_add(at.., -(at as i64));
 
         let g = self.graphemes().nth(at).unwrap().info();
 
@@ -832,7 +829,7 @@ impl FromStr for Text {
 /// assert_eq!(&text[0..1], "老");
 /// assert_eq!(&text[1..2], "y\u{0306}");
 /// assert_eq!(&text[2..3], "\r\n");
-/// // assert_eq!(&text[3..4], "\r\n"); <-- panic here
+/// // let _ = &text[3..4]; <-- panic here
 /// ```
 impl<R> Index<R> for Text
 where

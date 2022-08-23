@@ -343,52 +343,72 @@ fn clear() {
     assert_eq!(styles.into_vec(), vec![]);
 }
 
-// #[test]
-// fn ranges() {
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=1, Style::new().fg(Color::Red));
-//     styles.add(2..=3, Style::new().fg(Color::Blue));
-//
-//     let result = vec![(0..=1, Style::new().fg(Color::Red)), (2..=3, Style::new().fg(Color::Blue))];
-//     assert_eq!(styles.ranges().collect::<Vec<_>>(), result);
-//
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=2, Style::new().fg(Color::Red));
-//     styles.add(0..=3, Style::new().bg(Color::Blue));
-//     styles.add(4..=5, Style::new().fg(Color::Green));
-//
-//     let result = vec![
-//         (0..=2, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (3..=3, Style::new().bg(Color::Blue)),
-//         (4..=5, Style::new().fg(Color::Green)),
-//     ];
-//     assert_eq!(styles.ranges().collect::<Vec<_>>(), result);
-//
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=2, Style::new().fg(Color::Red));
-//     styles.add(1..=2, Style::new().bg(Color::Blue));
-//     styles.add(4..=5, Style::new().fg(Color::Green));
-//
-//     let result = vec![
-//         (0..=1, Style::new().fg(Color::Red)),
-//         (2..=2, Style::new().bg(Color::Blue)),
-//         (4..=5, Style::new().fg(Color::Green)),
-//     ];
-//     assert_eq!(styles.ranges().collect::<Vec<_>>(), result);
-//
-//     let mut styles = TextStyle::new();
-//
-//     styles.add(0..=2, Style::new().fg(Color::Red));
-//     styles.add(1..=3, Style::new().bg(Color::Blue));
-//     styles.add(4..=5, Style::new().fg(Color::Green));
-//
-//     let result = vec![
-//         (0..=1, Style::new().fg(Color::Red)),
-//         (2..=3, Style::new().bg(Color::Blue)),
-//         (4..=5, Style::new().fg(Color::Green)),
-//     ];
-//     assert_eq!(styles.ranges().collect::<Vec<_>>(), result);
-// }
+#[test]
+fn range() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=1, Style::new().bg(Color::Red));
+    styles.add(2..=4, Style::new().bg(Color::Red));
+    styles.add(5..=5, Style::new().bg(Color::Green));
+    styles.add(6..=9, Style::new().bg(Color::Yellow));
+
+    let styles_for_range = styles.range(3..=7).collect::<Vec<_>>();
+    assert_eq!(
+        styles_for_range,
+        vec![
+            (3..=4, Style::new().bg(Color::Red)),
+            (5..=5, Style::new().bg(Color::Green)),
+            (6..=7, Style::new().bg(Color::Yellow))
+        ]
+    );
+
+    let styles_for_range = styles.range(3..=7).rev().collect::<Vec<_>>();
+    assert_eq!(
+        styles_for_range,
+        vec![
+            (6..=7, Style::new().bg(Color::Yellow)),
+            (5..=5, Style::new().bg(Color::Green)),
+            (3..=4, Style::new().bg(Color::Red))
+        ]
+    );
+
+    let styles_for_range = styles.range(12..).collect::<Vec<_>>();
+    assert_eq!(styles_for_range, vec![]);
+}
+
+#[test]
+fn shift_add() {
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=3, Style::new().fg(Color::Red));
+    styles.add(4..=5, Style::new().modifier(Modifier::BOLD));
+    styles.add(10.., Style::new().bg(Color::Yellow));
+
+    styles.shift_add(1.., -5);
+
+    assert_eq!(
+        styles.into_vec(),
+        vec![
+            (0..=0, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
+            (5..=usize::MAX - 5, Style::new().bg(Color::Yellow))
+        ]
+    );
+
+    let mut styles = TextStyle::new();
+
+    styles.add(0..=3, Style::new().fg(Color::Red));
+    styles.add(4..=7, Style::new().modifier(Modifier::BOLD));
+    styles.add(10.., Style::new().bg(Color::Yellow));
+
+    styles.shift_add(5.., 10);
+
+    assert_eq!(
+        styles.clone().into_vec(),
+        vec![
+            (0..=3, Style::new().fg(Color::Red)),
+            (4..=4, Style::new().modifier(Modifier::BOLD)),
+            (15..=17, Style::new().modifier(Modifier::BOLD)),
+            (20..=usize::MAX, Style::new().bg(Color::Yellow))
+        ]
+    );
+}
