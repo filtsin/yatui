@@ -99,7 +99,7 @@ impl ComponentBuilder {
     }
 
     pub fn build(self) -> Component {
-        let draw = self.draw_fn.unwrap_or_else(|| return cb!(|_, _| {}));
+        let draw = self.draw_fn.unwrap_or_else(|| cb!(|_, _| {}));
 
         let mut component = Component::new(draw);
         component.layout_fn = self.layout_fn;

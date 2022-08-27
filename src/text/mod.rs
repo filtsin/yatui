@@ -1,13 +1,13 @@
 mod grapheme;
+pub mod mask;
 mod raw_text;
 mod style;
 pub mod styled_str;
-pub mod text_style;
 pub(crate) mod utils;
 
 pub use grapheme::Grapheme;
+pub use mask::Mask;
 pub use style::{Color, Modifier, Style};
-pub use text_style::TextStyle;
 
 use raw_text::RawText;
 use unicode_segmentation::GraphemeIndices;
@@ -28,12 +28,12 @@ use std::{
     str::FromStr,
 };
 
-use self::{grapheme::GraphemeInfo, text_style::StyleInfo};
+use self::{grapheme::GraphemeInfo, mask::StyleInfo};
 
 #[derive(Default, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Text {
     raw: RawText,
-    style: TextStyle,
+    mask: Mask,
 }
 
 #[derive(Clone)]
@@ -52,7 +52,7 @@ impl Text {
 
     /// Return parts of `Text`.
     ///
-    /// This method allow iterate over graphemes of this `Text` and change styles at the same time.
+    /// This method allow iterate over graphemes of this `Text` and change mask at the same time.
     ///
     /// # Examples
     ///
@@ -61,10 +61,10 @@ impl Text {
     /// ```
     /// # use yatui::text::Text;
     /// let mut text: Text = "hello".into();
-    /// let (graphemes, styles) = text.parts();
+    /// let (graphemes, mask) = text.parts();
     /// ```
-    pub fn parts(&mut self) -> (GraphemeIter<'_>, &'_ mut TextStyle) {
-        (RawText::create_graphemes(self.raw.as_str()), &mut self.style)
+    pub fn parts(&mut self) -> (GraphemeIter<'_>, &'_ mut Mask) {
+        (RawText::create_graphemes(self.raw.as_str()), &mut self.mask)
     }
 
     /// Return iterator over graphemes for this `Text`.
@@ -153,12 +153,12 @@ impl Text {
     /// Remove the specified `range` in the text, and replaces it with the given string.
     ///
     /// The given string doesn't need to be the same length as the range. Be careful, because
-    /// styles don't changes. Method looks like
+    /// mask don't change. Method looks like
     /// [std::replace_range][std::string::String::replace_range]
     /// but `range` in the std points to [`char`] boundaries, but in this method to `grapheme`
     /// boundaries. `range` contains startings point and end point of text graphemes.
     ///
-    /// If you want to replace some text with styles clearings look on
+    /// If you want to replace some text with mask look on
     /// [replace_range_polite](Self::replace_range_polite).
     ///
     /// # Panics
@@ -171,13 +171,13 @@ impl Text {
     /// use yatui::text::{Color, Style, Text};
     ///
     /// let mut text: Text = "hello".into();
-    /// text.styles_mut().add(1..=3, Style::new().bg(Color::Red));
-    /// text.styles_mut().add(4..=4, Style::new().bg(Color::Yellow));
+    /// text.mask_mut().add(1..=3, Style::new().bg(Color::Red));
+    /// text.mask_mut().add(4..=4, Style::new().bg(Color::Yellow));
     /// text.replace_range(1..=3, " new content ");
     ///
     /// assert_eq!(text.as_str(), "h new content o");
     /// assert_eq!(
-    ///     text.styles().clone().into_vec(),
+    ///     text.mask().clone().into_vec(),
     ///     vec![(1..=3, Style::new().bg(Color::Red)), (4..=4, Style::new().bg(Color::Yellow))]
     /// );
     /// ```
@@ -192,8 +192,9 @@ impl Text {
     }
 
     /// Remove the specified `range` in the text, and replaces it with the given string.
-    /// All styles in the `range` will be removed and shifted so that the old text retains its
-    /// styles. Look the difference between this method and [replace_range](Self::replace_range).
+    /// All styles in mask in the `range` will be removed and shifted so that the old text retains
+    /// its styles. Look the difference between this method
+    /// and [replace_range](Self::replace_range).
     ///
     /// # Panics
     ///
@@ -205,12 +206,12 @@ impl Text {
     /// use yatui::text::{Color, Style, Text};
     ///
     /// let mut text: Text = "hello".into();
-    /// text.styles_mut().add(1..=3, Style::new().bg(Color::Red));
-    /// text.styles_mut().add(4..=4, Style::new().bg(Color::Yellow));
+    /// text.mask_mut().add(1..=3, Style::new().bg(Color::Red));
+    /// text.mask_mut().add(4..=4, Style::new().bg(Color::Yellow));
     /// text.replace_range_polite(1..=3, " new content ");
     ///
     /// assert_eq!(text.as_str(), "h new content o");
-    /// assert_eq!(text.styles().clone().into_vec(), vec![(14..=14, Style::new().bg(Color::Yellow))]);
+    /// assert_eq!(text.mask().clone().into_vec(), vec![(14..=14, Style::new().bg(Color::Yellow))]);
     /// // So the grapheme 'o' saved style after replacing string because it is not in range.
     /// ```
     pub fn replace_range_polite<R>(&mut self, range: R, replace_with: &str)
@@ -223,12 +224,17 @@ impl Text {
             string.replace_range(g1.bytes_to(g2), replace_with);
         });
 
-        self.style.remove(g1.index()..=g2.index());
+        self.mask_mut().remove(g1.index()..=g2.index());
 
         let old_len = g2.index() - g1.index() + 1;
         let new_len = RawText::create_graphemes(replace_with).count();
-        let delta: i64 = new_len as i64 - old_len as i64;
-        self.styles_mut().shift_add(g2.index() + 1.., delta);
+        let range = g2.index() + 1..;
+
+        if old_len < new_len {
+            self.mask_mut().shift_add(range, new_len - old_len);
+        } else {
+            self.mask_mut().shift_sub(range, old_len - new_len);
+        }
     }
 
     /// Removes the last `grapheme` from the text.
@@ -362,7 +368,7 @@ impl Text {
     /// Returns a newly allocated `Text`. `self` contains graphemes `[0, at)`, and the returned
     /// `Text` contains graphemes `[at, len)`. This method is polite. This means
     /// that new `Text` will save his styles like in the original `Text`.
-    /// Wherein original `Text` in `self` doesn't change.
+    /// Wherein original mask of `self` doesn't change.
     ///
     /// # Panics
     ///
@@ -373,23 +379,23 @@ impl Text {
     /// ```
     /// # use yatui::text::{Text, Style, Color};
     /// let mut text: Text = "foobar".into();
-    /// text.styles_mut().add(3..=5, Style::new().fg(Color::Red)); // bar is red
+    /// text.mask_mut().add(3..=5, Style::new().fg(Color::Red)); // bar is red
     /// let mut new_text = text.split_off_polite(3);
     ///
     /// assert_eq!(text.as_str(), "foo");
     /// assert_eq!(new_text.as_str(), "bar");
-    /// assert_eq!(text.styles().clone().into_vec(), vec![(3..=5, Style::new().fg(Color::Red))]);
-    /// assert_eq!(new_text.styles().clone().into_vec(), vec![(0..=2, Style::new().fg(Color::Red))]);
+    /// assert_eq!(text.mask().clone().into_vec(), vec![(3..=5, Style::new().fg(Color::Red))]);
+    /// assert_eq!(new_text.mask().clone().into_vec(), vec![(0..=2, Style::new().fg(Color::Red))]);
     /// ```
     pub fn split_off_polite(&mut self, at: usize) -> Text {
-        let mut styles = self.style.clone();
-        styles.remove(..at);
-        styles.shift_add(at.., -(at as i64));
+        let mut mask = self.mask.clone();
+        mask.remove(..at);
+        mask.shift_sub(at.., at);
 
         let g = self.graphemes().nth(at).unwrap().info();
 
         let new_string: String = self.modify(|string| string.split_off(g.start()));
-        Text { raw: new_string.into(), style: styles }
+        Text { raw: new_string.into(), mask }
     }
 
     /// Shortens this `Text` to the specified length in graphemes.
@@ -612,11 +618,11 @@ impl Text {
     /// ```
     /// # use yatui::text::{Text, Color, Style};
     /// let mut text: Text = "hello".into();
-    /// text.styles_mut().add(.., Style::new().bg(Color::Red));
+    /// text.mask_mut().add(.., Style::new().bg(Color::Red));
     /// text.clear();
     ///
     /// assert!(text.is_empty());
-    /// assert!(!text.styles().is_empty());
+    /// assert!(!text.mask_mut().is_empty());
     /// ```
     pub fn clear(&mut self) {
         self.modify(|string| {
@@ -624,32 +630,32 @@ impl Text {
         });
     }
 
-    /// Removing all graphemes and styles from the text.
+    /// Removing all graphemes and mask from the text.
     ///
     /// # Examples
     ///
     /// ```
     /// # use yatui::text::{Text, Color, Style};
     /// let mut text: Text = "hello".into();
-    /// text.styles_mut().add(.., Style::new().bg(Color::Red));
+    /// text.mask_mut().add(.., Style::new().bg(Color::Red));
     /// text.clear_all();
     ///
     /// assert!(text.is_empty());
-    /// assert!(text.styles().is_empty());
+    /// assert!(text.mask().is_empty());
     /// ```
     pub fn clear_all(&mut self) {
         self.clear();
-        self.style.clear();
+        self.mask_mut().clear();
     }
 
-    /// Styles of this `Text`
-    pub fn styles(&self) -> &TextStyle {
-        &self.style
+    /// Mask of this `Text`
+    pub fn mask(&self) -> &Mask {
+        &self.mask
     }
 
-    /// Styles of this `Text`
-    pub fn styles_mut(&mut self) -> &mut TextStyle {
-        &mut self.style
+    /// Mask of this `Text`
+    pub fn mask_mut(&mut self) -> &mut Mask {
+        &mut self.mask
     }
 
     /// Count of lines in text. It is *O(*1*)* operation.

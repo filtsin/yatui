@@ -1,7 +1,7 @@
 use crate::terminal::{Index, Size};
 
 use super::{
-    text_style::{Iter, StyleInfo},
+    mask::{Iter, StyleInfo},
     Text,
 };
 
@@ -41,7 +41,7 @@ impl<'a> StyledStr for &'a Text {
     }
 
     fn styles_iter(&self) -> Self::Iter {
-        self.styles().iter()
+        self.mask().iter()
     }
 
     fn size(&self) -> Size {

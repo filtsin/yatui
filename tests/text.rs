@@ -1,4 +1,4 @@
-use yatui::text::{Color, Modifier, Style, Text};
+use yatui::text::{Color, Style, Text};
 
 #[test]
 fn create_borrowed_and_owned_strings() {
@@ -47,23 +47,23 @@ fn lines_columns_length() {
 #[test]
 fn clear() {
     let mut str: Text = "Hello".into();
-    str.styles_mut().add(0..=5, Style::new().fg(Color::Red));
+    str.mask_mut().add(0..=5, Style::new().fg(Color::Red));
 
     str.clear();
 
     assert_eq!((str.lines(), str.columns()), (0, 0));
-    assert_eq!(str.styles().iter().count(), 1);
+    assert_eq!(str.mask().iter().count(), 1);
 }
 
 #[test]
 fn clear_all() {
     let mut str: Text = "Hello".into();
-    str.styles_mut().add(0..=5, Style::new().fg(Color::Red));
+    str.mask_mut().add(0..=5, Style::new().fg(Color::Red));
 
     str.clear_all();
 
     assert_eq!((str.lines(), str.columns()), (0, 0));
-    assert_eq!(str.styles().iter().count(), 0);
+    assert_eq!(str.mask().iter().count(), 0);
 }
 
 #[test]
@@ -90,12 +90,12 @@ fn remove() {
     assert_eq!(str.columns(), 8);
 
     let mut str: Text = "Hello".into();
-    str.styles_mut().add(.., Style::new());
+    str.mask_mut().add(.., Style::new());
     str.remove(4);
 
     assert_eq!(str.as_str(), "Hell");
     assert_eq!(str.columns(), 4);
-    assert_eq!(str.styles().iter().count(), 1);
+    assert_eq!(str.mask().iter().count(), 1);
 }
 
 #[test]
@@ -138,12 +138,12 @@ fn replace_range() {
     assert_eq!(str.columns(), 7);
 
     let mut str: Text = "老Löwe 虎".into();
-    str.styles_mut().add(.., Style::new());
+    str.mask_mut().add(.., Style::new());
     str.replace_range(1.., "T");
 
     assert_eq!(str.as_str(), "老T");
     assert_eq!(str.columns(), 3);
-    assert_eq!(str.styles().iter().count(), 1);
+    assert_eq!(str.mask().iter().count(), 1);
 }
 
 #[test]
@@ -156,10 +156,10 @@ fn replace_range_out_of_bound() {
 #[test]
 fn replace_range_polite() {
     let mut str: Text = "Löwe 老虎 y\u{0306}!".into();
-    str.styles_mut().add(1..2, Style::new().fg(Color::Red)); // ö
-    str.styles_mut().add(5..7, Style::new().fg(Color::Blue)); // 老虎
-    str.styles_mut().add(8..=8, Style::new().fg(Color::Yellow)); // y\u{0306}
-    str.styles_mut().add(20.., Style::new().fg(Color::Yellow));
+    str.mask_mut().add(1..2, Style::new().fg(Color::Red)); // ö
+    str.mask_mut().add(5..7, Style::new().fg(Color::Blue)); // 老虎
+    str.mask_mut().add(8..=8, Style::new().fg(Color::Yellow)); // y\u{0306}
+    str.mask_mut().add(20.., Style::new().fg(Color::Yellow));
     let mut str2 = str.clone();
 
     str.replace_range_polite(3..=5, " New text ");
@@ -167,27 +167,27 @@ fn replace_range_polite() {
     assert_eq!(str.as_str(), "Löw New text 虎 y\u{0306}!");
     assert_eq!(str.columns(), 18);
 
-    let styles = vec![
+    let mask = vec![
         (1..=1, Style::new().fg(Color::Red)),
         (13..=13, Style::new().fg(Color::Blue)),
         (15..=15, Style::new().fg(Color::Yellow)),
         (27..=usize::MAX, Style::new().fg(Color::Yellow)),
     ];
 
-    assert_eq!(str.styles().clone().into_vec(), styles);
+    assert_eq!(str.mask().clone().into_vec(), mask);
 
     str2.replace_range_polite(3..=5, "1");
     assert_eq!(str2.as_str(), "Löw1虎 y\u{0306}!");
     assert_eq!(str2.columns(), 9);
 
-    let styles = vec![
+    let mask = vec![
         (1..=1, Style::new().fg(Color::Red)),
         (4..=4, Style::new().fg(Color::Blue)),
         (6..=6, Style::new().fg(Color::Yellow)),
         (18..=usize::MAX - 2, Style::new().fg(Color::Yellow)),
     ];
 
-    assert_eq!(str2.styles().clone().into_vec(), styles);
+    assert_eq!(str2.mask().clone().into_vec(), mask);
 }
 
 #[test]
@@ -311,10 +311,10 @@ fn truncate() {
 #[test]
 fn split_off_polite() {
     let mut str: Text = "hey\u{0306}it\n is me".into();
-    str.styles_mut().add(0..2, Style::new().fg(Color::Red));
-    str.styles_mut().add(2..=3, Style::new().fg(Color::Blue));
-    str.styles_mut().add(4..=6, Style::new().fg(Color::Green));
-    str.styles_mut().add(7.., Style::new().fg(Color::Yellow));
+    str.mask_mut().add(0..2, Style::new().fg(Color::Red));
+    str.mask_mut().add(2..=3, Style::new().fg(Color::Blue));
+    str.mask_mut().add(4..=6, Style::new().fg(Color::Green));
+    str.mask_mut().add(7.., Style::new().fg(Color::Yellow));
 
     let str2 = str.split_off_polite(3);
 
@@ -326,21 +326,21 @@ fn split_off_polite() {
     assert_eq!(str2.columns(), 6);
     assert_eq!(str2.lines(), 2);
 
-    let styles_left = vec![
+    let mask_left = vec![
         (0..=1, Style::new().fg(Color::Red)),
         (2..=3, Style::new().fg(Color::Blue)),
         (4..=6, Style::new().fg(Color::Green)),
         (7..=std::usize::MAX, Style::new().fg(Color::Yellow)),
     ];
 
-    let styles_right = vec![
+    let mask_right = vec![
         (0..=0, Style::new().fg(Color::Blue)),
         (1..=3, Style::new().fg(Color::Green)),
         (4..=std::usize::MAX - 3, Style::new().fg(Color::Yellow)),
     ];
 
-    assert_eq!(str.styles().clone().into_vec(), styles_left);
-    assert_eq!(str2.styles().clone().into_vec(), styles_right);
+    assert_eq!(str.mask().clone().into_vec(), mask_left);
+    assert_eq!(str2.mask().clone().into_vec(), mask_right);
 }
 
 #[test]

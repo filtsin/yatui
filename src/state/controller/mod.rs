@@ -40,10 +40,13 @@ impl Controller {
     /// Add new value in `Controller`. Ref counter will be equal 1.
     ///
     /// # Safety
+    ///
     /// 1. `data` must be a valid pointer for both reads and writes
     /// 2. `data` must be properly aligned
     /// 3. `data` must outlive `self` if no `remove` called
+    ///
     /// # Panics
+    ///
     /// Panics if `id` already exists in `Controller`
     pub unsafe fn insert(&mut self, id: Id, data: Data, destructor: CallBack) {
         if self.data.insert(id, ControllerContent::new(data, destructor)).is_some() {
@@ -54,11 +57,10 @@ impl Controller {
     /// Replace exists value in `Controller`
     ///
     /// # Safety
+    ///
     /// 1. `data` must be a valid pointer for both reads and writes
     /// 2. `data` must be properly aligned
     /// 3. `data` must outlive `self` if no `remove` called
-    /// # Panics
-    /// Panics if `id` already exists in `Controller`
     pub unsafe fn set(&mut self, id: Id, data: Data, destructor: CallBack) {
         let ref_count = self.ref_count(id);
 
@@ -70,6 +72,7 @@ impl Controller {
     /// Remove value with `id` in `Controller` ignoring its ref counter
     ///
     /// # Panics
+    ///
     /// Panics if `id` is not exists in `Controller` or `destructor` panics
     pub fn remove(&mut self, id: Id) {
         self.data
@@ -80,6 +83,7 @@ impl Controller {
     /// Increment ref counter
     ///
     /// # Panics
+    ///
     /// Panics if `id` is not exists in `Controller`
     pub fn subscribe(&mut self, id: Id) {
         self.data.get_mut(&id).unwrap().inc_count();
@@ -97,6 +101,7 @@ impl Controller {
     }
 
     /// # Panics
+    ///
     /// Panics if `id` is not exists in `Controller`
     pub fn get(&self, id: Id) -> ControllerRef<'_> {
         ControllerRef { data: self.content(id).data, marker: PhantomData }
