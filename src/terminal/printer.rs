@@ -50,7 +50,6 @@ impl<'a> Printer<'a> {
         C: Into<Cursor>,
         T: StyledStr,
     {
-        todo!()
     }
 
     /// Fill current region with `text`.

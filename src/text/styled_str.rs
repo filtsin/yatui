@@ -2,13 +2,13 @@ use crate::terminal::{Index, Size};
 
 use super::{
     mask::{Iter, StyleInfo},
-    Text,
+    GraphemeIter, Text,
 };
 
 pub trait StyledStr {
     type Iter: IntoIterator<Item = StyleInfo>;
 
-    fn str(&self) -> &str;
+    fn graphemes(&self) -> GraphemeIter<'_>;
     fn styles_iter(&self) -> Self::Iter;
     fn size(&self) -> Size;
 }
@@ -16,8 +16,8 @@ pub trait StyledStr {
 impl StyledStr for &str {
     type Iter = std::iter::Empty<StyleInfo>;
 
-    fn str(&self) -> &str {
-        self
+    fn graphemes(&self) -> GraphemeIter<'_> {
+        Text::create_graphemes(self)
     }
 
     fn styles_iter(&self) -> Self::Iter {
@@ -36,8 +36,8 @@ impl StyledStr for &str {
 impl<'a> StyledStr for &'a Text {
     type Iter = Iter<'a>;
 
-    fn str(&self) -> &str {
-        self.as_str()
+    fn graphemes(&self) -> GraphemeIter<'_> {
+        Text::create_graphemes(self.as_str())
     }
 
     fn styles_iter(&self) -> Self::Iter {

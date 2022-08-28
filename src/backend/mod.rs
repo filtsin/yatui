@@ -6,6 +6,7 @@ mod termion;
 use crate::{
     error::Result,
     terminal::{buffer::Buffer, Cursor, Size},
+    text::Style,
 };
 
 pub use self::{raw::Raw, termion::Termion};
@@ -17,6 +18,6 @@ pub trait Backend {
     fn show_cursor(&mut self);
     fn clear_screen(&mut self);
 
-    fn draw(&mut self, buffer: &Buffer);
+    fn draw(&mut self, s: &str, style: Style);
     fn flush(&mut self);
 }

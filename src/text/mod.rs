@@ -10,7 +10,7 @@ pub use mask::Mask;
 pub use style::{Color, Modifier, Style};
 
 use raw_text::RawText;
-use unicode_segmentation::GraphemeIndices;
+use unicode_segmentation::{GraphemeIndices, UnicodeSegmentation};
 use unicode_width::UnicodeWidthStr;
 use utils::get_graphemes_info;
 
@@ -64,7 +64,7 @@ impl Text {
     /// let (graphemes, mask) = text.parts();
     /// ```
     pub fn parts(&mut self) -> (GraphemeIter<'_>, &'_ mut Mask) {
-        (RawText::create_graphemes(self.raw.as_str()), &mut self.mask)
+        (Self::create_graphemes(self.raw.as_str()), &mut self.mask)
     }
 
     /// Return iterator over graphemes for this `Text`.
@@ -78,7 +78,7 @@ impl Text {
     /// assert_eq!(text.graphemes().collect::<Vec<_>>(), vec!["y\u{0306}", "e", "l", "l", "o", "老"]);
     /// ```
     pub fn graphemes(&self) -> GraphemeIter<'_> {
-        RawText::create_graphemes(self.as_str())
+        Self::create_graphemes(self.as_str())
     }
 
     /// Modify text in place with a given closure. Closure can return value.
@@ -185,7 +185,7 @@ impl Text {
     where
         R: RangeBounds<usize>,
     {
-        let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_str()), range);
+        let (g1, g2) = get_graphemes_info(self.graphemes(), range);
         self.modify(|string| {
             string.replace_range(g1.bytes_to(g2), replace_with);
         });
@@ -218,7 +218,7 @@ impl Text {
     where
         R: RangeBounds<usize>,
     {
-        let (g1, g2) = get_graphemes_info(RawText::create_graphemes(self.as_str()), range);
+        let (g1, g2) = get_graphemes_info(self.graphemes(), range);
 
         self.modify(|string| {
             string.replace_range(g1.bytes_to(g2), replace_with);
@@ -227,7 +227,7 @@ impl Text {
         self.mask_mut().remove(g1.index()..=g2.index());
 
         let old_len = g2.index() - g1.index() + 1;
-        let new_len = RawText::create_graphemes(replace_with).count();
+        let new_len = Self::create_graphemes(replace_with).count();
         let range = g2.index() + 1..;
 
         if old_len < new_len {
@@ -251,7 +251,7 @@ impl Text {
     /// assert_eq!(text.as_str(), "fo");
     /// ```
     pub fn pop(&mut self) {
-        if let Some(g) = RawText::create_graphemes(self.as_str()).last() {
+        if let Some(g) = self.graphemes().last() {
             let info = g.info();
             self.modify(|string| {
                 string.replace_range(info.bytes_range(), "");
@@ -296,7 +296,7 @@ impl Text {
             let offset = if grapheme_idx == 0 {
                 0
             } else {
-                RawText::create_graphemes(string).nth(grapheme_idx - 1).unwrap().info().end() + 1
+                Self::create_graphemes(string).nth(grapheme_idx - 1).unwrap().info().end() + 1
             };
 
             string.insert_str(offset, s);
@@ -340,7 +340,7 @@ impl Text {
         while let Some(g) = {
             // Safety: we moving by graphemes in valid UTF-8 string so it is valid UTF-8
             let str = unsafe { std::str::from_utf8_unchecked(&vec[byte_pos..]) };
-            RawText::create_graphemes(str).next()
+            Self::create_graphemes(str).next()
         } {
             let result = f(g.data());
             let g = g.info();
@@ -506,7 +506,7 @@ impl Text {
     /// assert_eq!(text.len(), 5);
     /// ```
     pub fn len(&self) -> usize {
-        RawText::create_graphemes(self.as_str()).count()
+        self.graphemes().count()
     }
 
     /// Check description for [std::reserve](std::string::String::reserve).
@@ -735,6 +735,10 @@ impl Text {
     /// ```
     pub fn is_owned(&self) -> bool {
         self.raw.is_owned()
+    }
+
+    pub fn create_graphemes(s: &str) -> GraphemeIter<'_> {
+        GraphemeIter::new(UnicodeSegmentation::grapheme_indices(s, true).enumerate())
     }
 }
 

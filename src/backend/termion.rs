@@ -2,6 +2,7 @@ use crate::{
     backend::Backend,
     error::Result,
     terminal::{buffer::Buffer, Cursor, Size},
+    text::Style,
 };
 
 use termion::{
@@ -51,8 +52,8 @@ impl<W: Write + Send> Backend for Termion<W> {
         write!(self.output, "{}", clear::All).unwrap();
     }
 
-    fn draw(&mut self, buffer: &Buffer) {
-        write!(self.output, "{}", buffer).unwrap();
+    fn draw(&mut self, s: &str, style: Style) {
+        todo!()
     }
 
     fn flush(&mut self) {

@@ -91,10 +91,6 @@ impl RawText {
 
         RawTextSize { columns, lines }
     }
-
-    pub fn create_graphemes(s: &str) -> GraphemeIter<'_> {
-        GraphemeIter::new(UnicodeSegmentation::grapheme_indices(s, true).enumerate())
-    }
 }
 
 impl AsRef<str> for RawText {

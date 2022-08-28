@@ -1,10 +1,13 @@
 mod cell;
 mod terminal;
 
+use std::ops::RangeBounds;
+
 use crate::{
     backend::Backend,
     error::Result,
     terminal::{buffer::Buffer, Cursor, Index, Size},
+    text::Style,
 };
 
 use self::terminal::Terminal;
@@ -23,6 +26,13 @@ impl Raw {
 
     pub fn lines_to_vec(&self) -> Vec<String> {
         self.terminal.lines_to_vec()
+    }
+
+    pub fn assert_styles<R>(&self, column: R, line: R, style: Style)
+    where
+        R: RangeBounds<usize>,
+    {
+        self.terminal.assert_styles(column, line, style);
     }
 }
 
@@ -49,8 +59,8 @@ impl Backend for Raw {
         self.terminal.fill(" ");
     }
 
-    fn draw(&mut self, buffer: &Buffer) {
-        // nothing here NOW
+    fn draw(&mut self, s: &str, style: Style) {
+        self.terminal.write_str(s, style)
     }
 
     fn flush(&mut self) {

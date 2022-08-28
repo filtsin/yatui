@@ -175,47 +175,60 @@ fn padding_out_of_bounds() {
     printer.padding(3);
 }
 
-// #[test]
-// fn write_text_without_styles() {
-//     let mut backend = Raw::new(5, 4);
-//     let mut printer = Printer::new(&mut backend);
-//
-//     let text: Text = "hello world".into();
-//     printer.write((0, 0), &text);
-//
-//     #[rustfmt::skip]
-//     let lines = vec![
-//         "hello",
-//         " worl",
-//         "d    ",
-//         "     "
-//     ];
-//
-//     assert_eq!(backend.lines_to_vec(), lines);
-// }
-//
-// #[test]
-// fn write_text_with_styles() {
-//     let mut backend = Raw::new(5, 4);
-//     let mut printer = Printer::new(&mut backend);
-//
-//     let mut text: Text = "hello world".into();
-//     text.styles_mut().add(0..=1, Style::new().fg(Color::Red));
-//     text.styles_mut().add(0..=2, Style::new().bg(Color::Green));
-//     text.styles_mut().add(0..=3, Style::new().modifier(Modifier::BOLD));
-//     text.styles_mut().add(1..=2, Style::new().fg(Color::Yellow));
-//     text.styles_mut().add(4..=6, Style::new().fg(Color::Black));
-//     text.styles_mut().add(.., Style::new().modifier(Modifier::ITALIC));
-//
-//     printer.write((0, 0), &text);
-//
-//     #[rustfmt::skip]
-//     let lines = vec![
-//         "hello",
-//         " worl",
-//         "d    ",
-//         "     "
-//     ];
-//
-//     assert_eq!(backend.lines_to_vec(), lines);
-// }
+#[test]
+fn write_text() {
+    let mut backend = Raw::new(20, 4);
+    let mut printer = Printer::new(&mut backend);
+
+    let mut text: Text =
+        "hel\tlo world\nline\r\nanother big line very very big\nanother content\nnew line".into();
+
+    printer.write((3, 0), &text);
+
+    #[rustfmt::skip]
+    let result = vec![
+        "   hello world      ",
+        "line                ",
+        "another big line ver",
+        "another content     ",
+    ];
+
+    assert_eq!(backend.lines_to_vec(), result);
+
+    text.mask_mut().add(1..=7, Style::new().fg(Color::Green)); // el\tlo w
+    text.mask_mut().add(8..=14, Style::new().fg(Color::Yellow)); // orld\nli
+    text.mask_mut().add(21..=26, Style::new().fg(Color::Black)); // ther b
+    text.mask_mut().add(40..=44, Style::new().fg(Color::Magenta)); // very b
+    text.mask_mut().add(46..=48, Style::new().fg(Color::Blue)); // ig\n
+    text.mask_mut().add(49..=63, Style::new().fg(Color::Red)); // another content
+    text.mask_mut().add(65.., Style::new().fg(Color::Cyan)); // new line
+
+    let mut backend = Raw::new(20, 4);
+    let mut printer = Printer::new(&mut backend);
+    printer.write((3, 0), &text);
+
+    assert_eq!(backend.lines_to_vec(), result);
+
+    backend.assert_styles(4..=9, 0..=0, Style::new().fg(Color::Green));
+    backend.assert_styles(10..=13, 0..=0, Style::new().fg(Color::Yellow));
+    backend.assert_styles(0..=1, 1..=1, Style::new().fg(Color::Yellow));
+    backend.assert_styles(3..=8, 2..=2, Style::new().fg(Color::Black));
+    backend.assert_styles(0..=14, 3..=3, Style::new().fg(Color::Red));
+}
+
+#[test]
+fn write_text_with_double_width() {
+    let mut backend = Raw::new(10, 3);
+    let mut printer = Printer::new(&mut backend);
+
+    printer.write((0, 0), "老\t老h老老老老老\n老老老老\r\n老老老老老\n老老老老老老");
+
+    #[rustfmt::skip]
+    let result = vec![
+        "老老h老老 ",
+        "老老老老  ",
+        "老老老老老",
+    ];
+
+    assert_eq!(backend.lines_to_vec(), result);
+}
