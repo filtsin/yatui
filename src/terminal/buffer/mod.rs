@@ -72,7 +72,7 @@ impl Buffer {
 
     // get index for `data` vec for specified `cursor`
     pub fn get_index(&self, cursor: &Cursor) -> usize {
-        self.region.width() as usize * cursor.row() as usize + cursor.column() as usize
+        self.region.width() as usize * cursor.line() as usize + cursor.column() as usize
     }
 }
 

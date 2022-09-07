@@ -8,19 +8,19 @@ use super::{
 pub trait StyledStr {
     type Iter: IntoIterator<Item = StyleInfo>;
 
-    fn graphemes(&self) -> GraphemeIter<'_>;
-    fn styles_iter(&self) -> Self::Iter;
+    fn str(&self) -> &str;
+    fn styles(&self) -> Self::Iter;
     fn size(&self) -> Size;
 }
 
 impl StyledStr for &str {
     type Iter = std::iter::Empty<StyleInfo>;
 
-    fn graphemes(&self) -> GraphemeIter<'_> {
-        Text::create_graphemes(self)
+    fn str(&self) -> &str {
+        self
     }
 
-    fn styles_iter(&self) -> Self::Iter {
+    fn styles(&self) -> Self::Iter {
         std::iter::empty()
     }
 
@@ -36,11 +36,11 @@ impl StyledStr for &str {
 impl<'a> StyledStr for &'a Text {
     type Iter = Iter<'a>;
 
-    fn graphemes(&self) -> GraphemeIter<'_> {
-        Text::create_graphemes(self.as_str())
+    fn str(&self) -> &str {
+        self.as_str()
     }
 
-    fn styles_iter(&self) -> Self::Iter {
+    fn styles(&self) -> Self::Iter {
         self.mask().iter()
     }
 

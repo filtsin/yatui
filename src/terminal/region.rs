@@ -14,14 +14,13 @@ impl Region {
     /// # Panics
     /// Panic if `right_bottom` < `left_top`
     pub fn new(left_top: Cursor, right_bottom: Cursor) -> Self {
-        println!("{:?} - {:?}", left_top, right_bottom);
         Self::try_new(left_top, right_bottom).unwrap()
     }
 
     pub fn try_new(left_top: Cursor, right_bottom: Cursor) -> Option<Self> {
         match (
             right_bottom.column().checked_sub(left_top.column()),
-            right_bottom.row().checked_sub(left_top.row()),
+            right_bottom.line().checked_sub(left_top.line()),
         ) {
             (Some(_), Some(_)) => Some(Self { left_top, right_bottom }),
             _ => None,
@@ -29,35 +28,51 @@ impl Region {
     }
 
     pub fn first_line(&self) -> Region {
-        let mut right_bottom = self.right_bottom();
-        right_bottom.set_row(self.left_top().row());
-        Region { left_top: self.left_top, right_bottom }
+        let v = self.n_line(0);
+        // SAFETY: first line is always exists
+        unsafe { self.n_line(0).unwrap_unchecked() }
     }
 
     pub fn last_line(&self) -> Region {
-        let mut left_top = self.left_top();
-        left_top.set_row(self.right_bottom().row());
-        Region { left_top, right_bottom: self.right_bottom }
+        let v = self.n_line(self.height() - 1);
+        // SAFETY: last line is always exists
+        unsafe { v.unwrap_unchecked() }
     }
 
     pub fn first_column(&self) -> Region {
-        let mut right_bottom = self.right_bottom();
-        right_bottom.set_column(self.left_top().column());
-        Region { left_top: self.left_top, right_bottom }
+        let v = self.n_column(0);
+        // SAFETY: first column is always exists
+        unsafe { v.unwrap_unchecked() }
     }
 
     pub fn last_column(&self) -> Region {
-        let mut left_top = self.left_top();
-        left_top.set_column(self.right_bottom().column());
-        Region { left_top, right_bottom: self.right_bottom }
+        let v = self.n_column(self.width() - 1);
+        // SAFETY: last column is always exists
+        unsafe { v.unwrap_unchecked() }
     }
 
-    pub fn n_line(&self, i: usize) -> Option<Region> {
-        todo!()
+    pub fn n_line(&self, line: Index) -> Option<Region> {
+        if line < self.height() {
+            let line = self.left_top().line() + line;
+            Some(Region::new(
+                Cursor::new(self.left_top().column(), line),
+                Cursor::new(self.right_bottom().column(), line),
+            ))
+        } else {
+            None
+        }
     }
 
-    pub fn n_column(&self, i: usize) -> Option<Region> {
-        todo!()
+    pub fn n_column(&self, column: Index) -> Option<Region> {
+        if column < self.width() {
+            let column = self.left_top().column() + column;
+            Some(Region::new(
+                Cursor::new(column, self.left_top().line()),
+                Cursor::new(column, self.right_bottom().line()),
+            ))
+        } else {
+            None
+        }
     }
 
     pub fn with_size(left_top: Cursor, size: Size) -> Self {
@@ -65,7 +80,7 @@ impl Region {
 
         let right_bottom = Cursor::new(
             left_top.column().checked_add(size.width() - 1).unwrap(),
-            left_top.row().checked_add(size.height() - 1).unwrap(),
+            left_top.line().checked_add(size.height() - 1).unwrap(),
         );
 
         Self { left_top, right_bottom }
@@ -90,7 +105,7 @@ impl Region {
 
     /// Count of rows in the region
     pub fn height(&self) -> Index {
-        self.right_bottom.row() - self.left_top.row() + 1
+        self.right_bottom.line() - self.left_top.line() + 1
     }
 
     /// Count of rows multiplied to count of columns in the region
@@ -120,9 +135,9 @@ impl Iterator for RegionIter {
             let mut next_cursor = cursor.next_column();
 
             if next_cursor.column() > self.region.right_bottom().column() {
-                next_cursor = next_cursor.next_row();
+                next_cursor = next_cursor.next_line();
                 next_cursor.set_column(self.region.left_top().column());
-                if next_cursor.row() > self.region.right_bottom().row() {
+                if next_cursor.line() > self.region.right_bottom().line() {
                     return None;
                 }
             }

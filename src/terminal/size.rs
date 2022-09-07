@@ -19,7 +19,7 @@ impl Size {
         Self::new(Index::MAX, Index::MAX)
     }
 
-    pub fn min() -> Self {
+    pub fn zero() -> Self {
         Self::default()
     }
 

@@ -49,7 +49,7 @@ impl Component {
     pub fn size_hint(&mut self, context: Context<'_>) -> Size {
         match self.size {
             Some(ref mut size) => size.get_size(context),
-            None => Size::min(),
+            None => Size::zero(),
         }
     }
 

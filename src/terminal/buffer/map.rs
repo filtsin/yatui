@@ -107,7 +107,7 @@ impl<'a> MappedBuffer<'a> {
 
         for character in c.into().0.into_iter() {
             mapped_buffer.write_character(character, cursor);
-            cursor = cursor.next_row();
+            cursor = cursor.next_line();
         }
     }
 
@@ -136,7 +136,7 @@ impl<'a> MappedBuffer<'a> {
     // Converts local row to the global
     fn global_row(&self, local_row: Index) -> Option<Index> {
         if local_row < self.mapped_region.height() {
-            Some(local_row + self.mapped_region.left_top().row())
+            Some(local_row + self.mapped_region.left_top().line())
         } else {
             None
         }
@@ -154,7 +154,7 @@ impl<'a> MappedBuffer<'a> {
     fn global_cursor(&self, local_cursor: Cursor) -> Option<Cursor> {
         Some(Cursor::new(
             self.global_column(local_cursor.column())?,
-            self.global_row(local_cursor.row())?,
+            self.global_row(local_cursor.line())?,
         ))
     }
 }

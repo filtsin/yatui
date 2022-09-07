@@ -105,11 +105,11 @@ impl ChildRegion {
     }
 
     pub fn left_y(&mut self, value: Index) {
-        self.left_top.set_row(value);
+        self.left_top.set_line(value);
     }
 
     pub fn right_y(&mut self, value: Index) {
-        self.right_bottom.set_row(value);
+        self.right_bottom.set_line(value);
     }
 }
 

@@ -3,11 +3,19 @@ use std::{
     ops::{Deref, RangeInclusive},
 };
 
+use unicode_width::UnicodeWidthStr;
+
 #[derive(Debug, Clone, Eq)]
 pub struct Grapheme<'a> {
     g: &'a str,
     byte_offset: usize,
     index: usize,
+}
+
+pub enum GraphemeWidth {
+    Zero,
+    One,
+    Two,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,6 +44,15 @@ impl<'a> Grapheme<'a> {
 
     pub fn end(&self) -> usize {
         self.clone().info().end()
+    }
+
+    pub fn width(&self) -> GraphemeWidth {
+        match UnicodeWidthStr::width(self.data()) {
+            0 => GraphemeWidth::Zero,
+            1 => GraphemeWidth::One,
+            2 => GraphemeWidth::Two,
+            _ => unreachable!(),
+        }
     }
 
     pub(crate) fn info(self) -> GraphemeInfo {

@@ -1,51 +1,62 @@
-use std::cmp::{Ord, Ordering};
-
-/// For row and column indexing (u16 should be enough?)
 pub type Index = u16;
 
-/// Cursor points to a row and column of terminal
-/// ((0, 0)-based) where (0,0) is top-left cell
+/// Cursor points to a column (x-coord) and line (y-coord) of terminal
+/// ((0, 0)-based) where (0,0) is left-top cell
 #[derive(Eq, PartialEq, Debug, Default, Clone, Copy)]
 pub struct Cursor {
     column: Index,
-    row: Index,
+    line: Index,
 }
 
 impl Cursor {
-    pub fn new(column: Index, row: Index) -> Self {
-        Self { column, row }
+    pub fn new(column: Index, line: Index) -> Self {
+        Self { column, line }
     }
 
-    pub fn row(&self) -> Index {
-        self.row
+    pub fn line(&self) -> Index {
+        self.line
     }
 
     pub fn column(&self) -> Index {
         self.column
     }
 
+    pub fn map_line<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut Index),
+    {
+        f(&mut self.line)
+    }
+
+    pub fn map_column<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut Index),
+    {
+        f(&mut self.column)
+    }
+
     #[must_use]
-    pub fn next_row(self) -> Cursor {
-        Cursor { row: self.row() + 1, ..self }
+    pub fn next_line(self) -> Cursor {
+        Self::new(self.column, self.line.saturating_add(1))
+    }
+
+    #[must_use]
+    pub fn prev_line(self) -> Cursor {
+        Self::new(self.column, self.line.saturating_sub(1))
     }
 
     #[must_use]
     pub fn next_column(self) -> Cursor {
-        Cursor { column: self.column() + 1, ..self }
-    }
-
-    #[must_use]
-    pub fn prev_row(self) -> Cursor {
-        Cursor { row: self.row() - 1, ..self }
+        Self::new(self.column.saturating_add(1), self.line)
     }
 
     #[must_use]
     pub fn prev_column(self) -> Cursor {
-        Cursor { column: self.column() - 1, ..self }
+        Self::new(self.column.saturating_sub(1), self.line)
     }
 
-    pub fn set_row(&mut self, row: Index) {
-        self.row = row;
+    pub fn set_line(&mut self, line: Index) {
+        self.line = line;
     }
 
     pub fn set_column(&mut self, column: Index) {
@@ -54,7 +65,7 @@ impl Cursor {
 }
 
 impl From<(Index, Index)> for Cursor {
-    fn from((column, row): (Index, Index)) -> Self {
-        Self::new(column, row)
+    fn from((column, line): (Index, Index)) -> Self {
+        Self::new(column, line)
     }
 }

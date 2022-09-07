@@ -1,10 +1,10 @@
 use crate::{
     backend::Backend,
     terminal::{Cursor, Index, Region, Size},
-    text::styled_str::StyledStr,
+    text::{mask::StyleInfo, styled_str::StyledStr, Grapheme, GraphemeWidth, Text},
 };
 
-/// Printer is allow you to write some data to the terminal window.
+/// Printer allows you to write some data to the terminal window.
 ///
 /// Printer can write data only to the `mapped region`. This prevents components from writing
 /// to a region occupied by another component. Component gets the `printer` object with
@@ -21,7 +21,6 @@ pub struct Printer<'a> {
     backend: &'a mut dyn Backend,
 
     region: Region,
-    mapped_region: Region,
 }
 
 impl<'a> Printer<'a> {
@@ -39,17 +38,36 @@ impl<'a> Printer<'a> {
     /// Panics if terminal size is undefined.
     pub fn new(backend: &'a mut dyn Backend) -> Self {
         let region = Region::with_size(Cursor::default(), backend.get_size().unwrap());
-        Self { backend, region, mapped_region: region }
+        Self { backend, region }
     }
 
     /// Write text with styles to the current mapped region.
     ///
     /// If the text does not fit in the current region, it will be cut off.
-    pub fn write<C, T>(&mut self, start_from: C, text: T)
+    pub fn write<C, T>(&mut self, start_from: C, styled: T)
     where
         C: Into<Cursor>,
         T: StyledStr,
     {
+        let mut current_cursor = start_from.into();
+
+        let text = Text::create_graphemes(styled.str());
+        let mut styles = styled.styles().into_iter();
+
+        let mut cur_style = styles.next();
+
+        for g in text {
+            match g.width() {
+                GraphemeWidth::Zero => {
+                    if g == "\r\n" || g == "\n" {
+                        current_cursor = current_cursor.next_line();
+                    }
+                    continue;
+                }
+                GraphemeWidth::One => todo!(),
+                GraphemeWidth::Two => todo!(),
+            }
+        }
     }
 
     /// Fill current region with `text`.
@@ -75,7 +93,7 @@ impl<'a> Printer<'a> {
     ///
     pub fn try_padding(&mut self, padding: Index) -> Option<Printer<'_>> {
         let new_x = self.local_region().right_bottom().column().checked_sub(padding)?;
-        let new_y = self.local_region().right_bottom().row().checked_sub(padding)?;
+        let new_y = self.local_region().right_bottom().line().checked_sub(padding)?;
         Some(self.map(Region::new(Cursor::new(padding, padding), Cursor::new(new_x, new_y))))
     }
 
@@ -96,11 +114,7 @@ impl<'a> Printer<'a> {
     pub fn try_map(&mut self, region: Region) -> Option<Printer<'_>> {
         let global_left = self.local_to_global(region.left_top())?;
         let global_right = self.local_to_global(region.right_bottom())?;
-        Some(Printer {
-            backend: self.backend,
-            region: self.region,
-            mapped_region: Region::new(global_left, global_right),
-        })
+        Some(Printer { backend: self.backend, region: Region::new(global_left, global_right) })
     }
 
     /// Map specified `line` to new printer.
@@ -119,7 +133,7 @@ impl<'a> Printer<'a> {
     /// assert_eq!(printer.height(), 1);
     /// ```
     pub fn map_line(&mut self, line: Index) -> Printer<'_> {
-        self.map(Region::new(Cursor::new(0, line), Cursor::new(self.width() - 1, line)))
+        self.map(self.local_region().n_line(line).unwrap())
     }
 
     /// Map first line to the new printer. Never panics because first line always exists.
@@ -168,7 +182,7 @@ impl<'a> Printer<'a> {
     /// assert_eq!(printer.width(), 1);
     /// ```
     pub fn map_column(&mut self, column: Index) -> Printer<'_> {
-        self.map(Region::new(Cursor::new(column, 0), Cursor::new(column, self.height() - 1)))
+        self.map(self.local_region().n_column(column).unwrap())
     }
 
     /// Map first column to the new printer. Never panics because first column always exists.
@@ -224,7 +238,7 @@ impl<'a> Printer<'a> {
     /// assert_eq!(printer.height(), 5);
     /// ```
     pub fn height(&self) -> Index {
-        self.mapped_region.height()
+        self.region.height()
     }
 
     /// Width of current `mapped region`.
@@ -239,7 +253,7 @@ impl<'a> Printer<'a> {
     /// assert_eq!(printer.width(), 6);
     /// ```
     pub fn width(&self) -> Index {
-        self.mapped_region.width()
+        self.region.width()
     }
 
     /// Local region of this printer. Always starts from **(0, 0)**.
@@ -260,13 +274,13 @@ impl<'a> Printer<'a> {
     /// Return current mapped region to the region. This region contains
     /// global coordinates of terminal. Possibly you look for [`local_region`](Self::local_region)
     pub fn mapped_region(&self) -> Region {
-        self.mapped_region
+        self.region
     }
 
     // Converts local row to the global.
     fn local_to_global_row(&self, local_row: Index) -> Option<Index> {
-        if local_row < self.mapped_region.height() {
-            Some(local_row + self.mapped_region.left_top().row())
+        if local_row < self.region.height() {
+            Some(local_row + self.region.left_top().line())
         } else {
             None
         }
@@ -274,8 +288,8 @@ impl<'a> Printer<'a> {
 
     // Converts local column to the global.
     fn local_to_global_column(&self, local_column: Index) -> Option<Index> {
-        if local_column < self.mapped_region.width() {
-            Some(local_column + self.mapped_region.left_top().column())
+        if local_column < self.region.width() {
+            Some(local_column + self.region.left_top().column())
         } else {
             None
         }
@@ -284,7 +298,7 @@ impl<'a> Printer<'a> {
     fn local_to_global(&self, local_cursor: Cursor) -> Option<Cursor> {
         Some(Cursor::new(
             self.local_to_global_column(local_cursor.column())?,
-            self.local_to_global_row(local_cursor.row())?,
+            self.local_to_global_row(local_cursor.line())?,
         ))
     }
 }

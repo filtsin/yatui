@@ -36,8 +36,8 @@ impl<W: Write + Send> Backend for Termion<W> {
     }
 
     fn move_cursor(&mut self, pos: Cursor) {
-        let based1_pos = pos.next_row().next_column();
-        write!(self.output, "{}", cursor::Goto(based1_pos.row(), based1_pos.column())).unwrap();
+        let based1_pos = pos.next_line().next_column();
+        write!(self.output, "{}", cursor::Goto(based1_pos.line(), based1_pos.column())).unwrap();
     }
 
     fn hide_cursor(&mut self) {

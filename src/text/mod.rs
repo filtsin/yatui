@@ -5,7 +5,7 @@ mod style;
 pub mod styled_str;
 pub(crate) mod utils;
 
-pub use grapheme::Grapheme;
+pub use grapheme::{Grapheme, GraphemeWidth};
 pub use mask::Mask;
 pub use style::{Color, Modifier, Style};
 

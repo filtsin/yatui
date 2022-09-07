@@ -44,7 +44,7 @@ impl Backend for Raw {
     }
 
     fn move_cursor(&mut self, pos: Cursor) {
-        self.terminal.move_cursor(pos.column().into(), pos.row().into());
+        self.terminal.move_cursor(pos.column().into(), pos.line().into());
     }
 
     fn hide_cursor(&mut self) {
