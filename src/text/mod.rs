@@ -1,13 +1,15 @@
 mod grapheme;
 pub mod mask;
+pub mod part;
 mod raw_text;
 mod style;
-pub mod styled_str;
+mod styled_str;
 pub(crate) mod utils;
 
 pub use grapheme::{Grapheme, GraphemeWidth};
 pub use mask::Mask;
 pub use style::{Color, Modifier, Style};
+pub use styled_str::StyledStr;
 
 use raw_text::RawText;
 use unicode_segmentation::{GraphemeIndices, UnicodeSegmentation};
@@ -17,15 +19,8 @@ use utils::get_graphemes_info;
 use std::{
     borrow::{Borrow, Cow},
     cmp::{Eq, PartialEq},
-    collections::BTreeSet,
-    fmt::Display,
-    iter::{Enumerate, FromIterator},
-    ops::{
-        Add, AddAssign,
-        Bound::{self, Excluded, Included, Unbounded},
-        Index, Range, RangeBounds, RangeInclusive, RangeTo,
-    },
-    str::FromStr,
+    iter::Enumerate,
+    ops::{Add, AddAssign, Index, RangeBounds},
 };
 
 use self::{grapheme::GraphemeInfo, mask::StyleInfo};
@@ -811,13 +806,13 @@ impl AddAssign<&str> for Text {
     }
 }
 
-impl Display for Text {
+impl std::fmt::Display for Text {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(self.as_str(), f)
+        std::fmt::Display::fmt(self.as_str(), f)
     }
 }
 
-impl FromStr for Text {
+impl std::str::FromStr for Text {
     type Err = std::convert::Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

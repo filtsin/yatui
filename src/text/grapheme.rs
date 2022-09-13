@@ -12,6 +12,7 @@ pub struct Grapheme<'a> {
     index: usize,
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum GraphemeWidth {
     Zero,
     One,
@@ -120,5 +121,21 @@ impl Hash for Grapheme<'_> {
 impl PartialEq for Grapheme<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.g == other.g
+    }
+}
+
+impl From<GraphemeWidth> for usize {
+    fn from(val: GraphemeWidth) -> Self {
+        match val {
+            GraphemeWidth::Zero => 0,
+            GraphemeWidth::One => 1,
+            GraphemeWidth::Two => 2,
+        }
+    }
+}
+
+impl GraphemeWidth {
+    pub fn num(self) -> usize {
+        self.into()
     }
 }

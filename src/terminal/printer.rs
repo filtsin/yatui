@@ -1,7 +1,10 @@
 use crate::{
     backend::Backend,
     terminal::{Cursor, Index, Region, Size},
-    text::{mask::StyleInfo, styled_str::StyledStr, Grapheme, GraphemeWidth, Text},
+    text::{
+        mask::{range::Range, StyleInfo},
+        Grapheme, GraphemeWidth, StyledStr, Text,
+    },
 };
 
 /// Printer allows you to write some data to the terminal window.
@@ -52,22 +55,7 @@ impl<'a> Printer<'a> {
         let mut current_cursor = start_from.into();
 
         let text = Text::create_graphemes(styled.str());
-        let mut styles = styled.styles().into_iter();
-
-        let mut cur_style = styles.next();
-
-        for g in text {
-            match g.width() {
-                GraphemeWidth::Zero => {
-                    if g == "\r\n" || g == "\n" {
-                        current_cursor = current_cursor.next_line();
-                    }
-                    continue;
-                }
-                GraphemeWidth::One => todo!(),
-                GraphemeWidth::Two => todo!(),
-            }
-        }
+        let mut styles = styled.styles();
     }
 
     /// Fill current region with `text`.

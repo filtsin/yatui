@@ -2,11 +2,12 @@ use crate::terminal::{Index, Size};
 
 use super::{
     mask::{Iter, StyleInfo},
-    GraphemeIter, Text,
+    part::{parts, PartIter},
+    Grapheme, GraphemeIter, Style, Text,
 };
 
 pub trait StyledStr {
-    type Iter: IntoIterator<Item = StyleInfo>;
+    type Iter: Iterator<Item = StyleInfo>;
 
     fn str(&self) -> &str;
     fn styles(&self) -> Self::Iter;
