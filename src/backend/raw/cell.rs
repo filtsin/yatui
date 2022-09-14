@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use compact_str::CompactString;
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Debug, PartialEq, Eq, Default, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct Cell {
     pub grapheme: CompactString,
     pub style: Style,
@@ -37,5 +37,11 @@ impl Cell {
 
     pub fn new_str(s: &str) -> Self {
         Self::new(s, Style::default())
+    }
+}
+
+impl Default for Cell {
+    fn default() -> Self {
+        Self { grapheme: " ".into(), style: Default::default(), flags: Default::default() }
     }
 }

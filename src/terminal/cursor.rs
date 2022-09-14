@@ -55,6 +55,13 @@ impl Cursor {
         Self::new(self.column.saturating_sub(1), self.line)
     }
 
+    #[must_use]
+    pub fn wrap_line(self) -> Cursor {
+        let mut result = self.next_line();
+        result.set_column(0);
+        result
+    }
+
     pub fn set_line(&mut self, line: Index) {
         self.line = line;
     }

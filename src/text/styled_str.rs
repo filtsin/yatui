@@ -6,8 +6,8 @@ use super::{
     Grapheme, GraphemeIter, Style, Text,
 };
 
-pub trait StyledStr {
-    type Iter: Iterator<Item = StyleInfo>;
+pub trait StyledStr: Clone {
+    type Iter: Iterator<Item = StyleInfo> + Clone;
 
     fn str(&self) -> &str;
     fn styles(&self) -> Self::Iter;

@@ -62,14 +62,15 @@ impl Terminal {
     }
 
     pub fn write_str(&mut self, s: &str, styles: Style) {
+        println!("write_str {:?}", s);
         for g in UnicodeSegmentation::graphemes(s, true) {
             let width = UnicodeWidthStr::width(g);
 
             if width == 0 {
                 match g {
                     "\n" | "\r\n" => {
-                        *self.current_cell() = Cell::default();
                         self.next_line();
+                        continue;
                     }
                     _ => {}
                 }
@@ -244,7 +245,14 @@ mod tests {
 
         terminal.write_str("y\u{0306}et more tex@", Style::default());
 
-        let lines = vec!["hello", "老!34", "1234 ", "老y\u{0306}et", " mor@"];
+        #[rustfmt::skip]
+        let lines = vec![
+            "hello", 
+            "老!34", 
+            "1234 ", 
+            "老y\u{0306}et", 
+            " mor@"
+        ];
 
         assert_eq!(terminal.lines_to_vec(), lines);
         terminal.assert_styles(0..=4, 1..=1, Style::new().bg(Color::Yellow));
@@ -253,6 +261,22 @@ mod tests {
         assert_eq!(terminal[(2, 2)].style, Style::new().fg(Color::Green));
         assert_eq!(terminal[(3, 2)].style, Style::new().fg(Color::Yellow));
         assert_eq!(terminal[(4, 2)].style, Style::new().fg(Color::Magenta));
+    }
+
+    #[test]
+    fn write_str_with_new_line() {
+        let mut terminal = Terminal::new(4, 3);
+
+        terminal.write_str("tex\ntext\nt", Style::default());
+
+        #[rustfmt::skip]
+        let lines = vec![
+            "tex ",
+            "text",
+            "t   "
+        ];
+
+        assert_eq!(terminal.lines_to_vec(), lines);
     }
 
     #[test]

@@ -27,6 +27,13 @@ impl Region {
         }
     }
 
+    pub fn have_cursor(&self, cursor: Cursor) -> bool {
+        self.left_top().column() <= cursor.column()
+            && self.left_top().line() <= cursor.line()
+            && self.right_bottom().column() >= cursor.column()
+            && self.right_bottom().line() >= cursor.line()
+    }
+
     pub fn first_line(&self) -> Region {
         let v = self.n_line(0);
         // SAFETY: first line is always exists

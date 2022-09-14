@@ -3,7 +3,8 @@ use crate::{
     terminal::{Cursor, Index, Region, Size},
     text::{
         mask::{range::Range, StyleInfo},
-        Grapheme, GraphemeWidth, StyledStr, Text,
+        part::{parts, Part},
+        Grapheme, Style, StyledStr, Text,
     },
 };
 
@@ -46,39 +47,57 @@ impl<'a> Printer<'a> {
 
     /// Write text with styles to the current mapped region.
     ///
-    /// If the text does not fit in the current region, it will be cut off.
+    /// If the text does not fit in the current region, it will be cut off. This method *does not*
+    /// insert line breaks to prevent text from overflowing its line box, instead it is cut off the
+    /// text.
+    /// Ignore all zero-width graphemes ("\t", "\0", etc.) excluding new line ("\n", "\r\n")
     pub fn write<C, T>(&mut self, start_from: C, styled: T)
     where
         C: Into<Cursor>,
         T: StyledStr,
     {
-        let mut current_cursor = start_from.into();
-
-        let text = Text::create_graphemes(styled.str());
-        let mut styles = styled.styles();
+        let mut part_iter = parts(styled.str(), styled.styles());
+        self.write_with_iter(start_from, part_iter, false);
     }
 
-    /// Fill current region with `text`.
+    /// Write text with styles to the current mapped region.
+    ///
+    /// If the text does not fit in the current region, it will be cut off. This method insert
+    /// line breaks to prevent text from overflowing its line box.
+    /// Ignore all zero-width graphemes ("\t", "\0", etc.) excluding new line ("\n", "\r\n")
+    pub fn write_wrap<C, T>(&mut self, start_from: C, styled: T)
+    where
+        C: Into<Cursor>,
+        T: StyledStr,
+    {
+        let mut part_iter = parts(styled.str(), styled.styles());
+        self.write_with_iter(start_from, part_iter, true);
+    }
+
+    /// Fill current region with `styled`.
     ///
     /// `text` will be repeated until all region is changed.
-    pub fn fill<T>(&mut self, text: T)
+    pub fn fill<T>(&mut self, styled: T)
     where
         T: StyledStr,
     {
-        todo!()
+        let mut part_iter = parts(styled.str(), styled.styles()).cycle();
+        self.write_with_iter((0, 0), part_iter, true);
     }
 
     /// Clear current region with spaces.
     pub fn clear(&mut self) {
-        todo!()
+        self.fill(" ");
     }
 
     ///
+    #[must_use]
     pub fn padding(&mut self, padding: Index) -> Printer<'_> {
         self.try_padding(padding).unwrap()
     }
 
     ///
+    #[must_use]
     pub fn try_padding(&mut self, padding: Index) -> Option<Printer<'_>> {
         let new_x = self.local_region().right_bottom().column().checked_sub(padding)?;
         let new_y = self.local_region().right_bottom().line().checked_sub(padding)?;
@@ -99,6 +118,7 @@ impl<'a> Printer<'a> {
     /// assert!(printer.try_map(Region::new(Cursor::new(1, 1), Cursor::new(3, 3))).is_some());
     /// assert!(printer.try_map(Region::new(Cursor::new(10, 15), Cursor::new(30, 30))).is_none());
     /// ```
+    #[must_use]
     pub fn try_map(&mut self, region: Region) -> Option<Printer<'_>> {
         let global_left = self.local_to_global(region.left_top())?;
         let global_right = self.local_to_global(region.right_bottom())?;
@@ -120,6 +140,7 @@ impl<'a> Printer<'a> {
     /// let printer = printer.map_line(1);
     /// assert_eq!(printer.height(), 1);
     /// ```
+    #[must_use]
     pub fn map_line(&mut self, line: Index) -> Printer<'_> {
         self.map(self.local_region().n_line(line).unwrap())
     }
@@ -135,6 +156,7 @@ impl<'a> Printer<'a> {
     /// let printer = printer.map_first_line();
     /// assert_eq!(printer.height(), 1);
     /// ```
+    #[must_use]
     pub fn map_first_line(&mut self) -> Printer<'_> {
         self.map_line(0)
     }
@@ -150,6 +172,7 @@ impl<'a> Printer<'a> {
     /// let printer = printer.map_last_line();
     /// assert_eq!(printer.height(), 1);
     /// ```
+    #[must_use]
     pub fn map_last_line(&mut self) -> Printer<'_> {
         self.map_line(self.height() - 1)
     }
@@ -169,6 +192,7 @@ impl<'a> Printer<'a> {
     /// let printer = printer.map_column(1);
     /// assert_eq!(printer.width(), 1);
     /// ```
+    #[must_use]
     pub fn map_column(&mut self, column: Index) -> Printer<'_> {
         self.map(self.local_region().n_column(column).unwrap())
     }
@@ -184,6 +208,7 @@ impl<'a> Printer<'a> {
     /// let printer = printer.map_first_column();
     /// assert_eq!(printer.width(), 1);
     /// ```
+    #[must_use]
     pub fn map_first_column(&mut self) -> Printer<'_> {
         self.map_column(0)
     }
@@ -199,6 +224,7 @@ impl<'a> Printer<'a> {
     /// let printer = printer.map_last_column();
     /// assert_eq!(printer.width(), 1);
     /// ```
+    #[must_use]
     pub fn map_last_column(&mut self) -> Printer<'_> {
         self.map_column(self.width() - 1)
     }
@@ -210,6 +236,7 @@ impl<'a> Printer<'a> {
     /// # Panics
     ///
     /// Panics if `region` is not included in the current region.
+    #[must_use]
     pub fn map(&mut self, region: Region) -> Printer<'_> {
         self.try_map(region).unwrap()
     }
@@ -265,6 +292,85 @@ impl<'a> Printer<'a> {
         self.region
     }
 
+    fn write_with_iter<'b, C, I>(&mut self, start_from: C, iter: I, wrap: bool)
+    where
+        C: Into<Cursor>,
+        I: IntoIterator<Item = Part<'b>>,
+    {
+        let mut part_iter = iter.into_iter();
+        let mut cursor = start_from.into();
+
+        if !self.local_region().have_cursor(cursor) {
+            return;
+        }
+
+        for part in part_iter {
+            match part {
+                Part::Str(part_str, part_width, part_style) => {
+                    let mut remainder =
+                        self.write_part_str(&mut cursor, part_str, part_width, part_style);
+
+                    if wrap {
+                        while let Some((remainder_s, remainder_w)) = remainder {
+                            cursor = cursor.wrap_line();
+                            if cursor.line() == self.height() {
+                                return;
+                            }
+
+                            remainder = self.write_part_str(
+                                &mut cursor,
+                                remainder_s,
+                                remainder_w,
+                                part_style,
+                            );
+                        }
+                    }
+                }
+                Part::NewLine => {
+                    cursor = cursor.wrap_line();
+                    if cursor.line() == self.height() {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // Returns the part of text that was cut off and the number of remaining graphemes
+    fn write_part_str<'b>(
+        &mut self,
+        cursor: &mut Cursor,
+        s: &'b str,
+        mut w: usize,
+        style: Style,
+    ) -> Option<(&'b str, usize)> {
+        let avail_width = self.width() - cursor.column();
+
+        if avail_width == 0 {
+            return Some((s, w));
+        }
+
+        if w <= avail_width.into() {
+            self.write_raw_inner(cursor, s, w, style);
+            None
+        } else {
+            let (left, right) = truncate_str_to_width(s, avail_width.into());
+
+            if !left.is_empty() {
+                self.write_raw_inner(cursor, left, avail_width as usize, style);
+                w -= avail_width as usize;
+            }
+
+            Some((right, w))
+        }
+    }
+
+    fn write_raw_inner(&mut self, cursor: &mut Cursor, s: &str, w: usize, style: Style) {
+        self.backend.move_cursor(self.local_to_global(*cursor).unwrap());
+        self.backend.draw(s, style);
+        cursor.map_column(|column| *column = column.saturating_add(w as Index));
+    }
+
     // Converts local row to the global.
     fn local_to_global_row(&self, local_row: Index) -> Option<Index> {
         if local_row < self.region.height() {
@@ -288,5 +394,39 @@ impl<'a> Printer<'a> {
             self.local_to_global_column(local_cursor.column())?,
             self.local_to_global_row(local_cursor.line())?,
         ))
+    }
+}
+
+fn truncate_str_to_width(s: &str, new_width: usize) -> (&str, &str) {
+    if s.is_empty() {
+        return ("", "");
+    }
+
+    let mut width = 0;
+    let mut last_byte = 0;
+
+    for g in Text::create_graphemes(s) {
+        if width + g.width() > new_width {
+            break;
+        }
+        width += g.width();
+        last_byte = g.end();
+    }
+
+    if width == 0 { ("", s) } else { (&s[0..=last_byte], &s[last_byte + 1..]) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::truncate_str_to_width;
+
+    fn truncate_str_to_width_() {
+        let s = "very very big line very very big";
+        assert_eq!(truncate_str_to_width(s, 15), ("very very big l", "ine very very big"));
+    }
+
+    fn truncate_str_to_width_double_width() {
+        let s = "老3456789";
+        assert_eq!(truncate_str_to_width(s, 4), ("老34", "56789"));
     }
 }

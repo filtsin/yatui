@@ -84,7 +84,7 @@ fn part_iter_a_lot_zero_graphemes() {
 
 #[test]
 #[should_panic]
-fn non_increasing_style_ranges() {
+fn not_increasing_style_ranges() {
     let _ = parts(
         "big text",
         [StyleInfo::new(2..3, Style::default()), StyleInfo::new(0..4, Style::default())]

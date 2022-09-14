@@ -12,13 +12,6 @@ pub struct Grapheme<'a> {
     index: usize,
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub enum GraphemeWidth {
-    Zero,
-    One,
-    Two,
-}
-
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GraphemeInfo {
     index: usize,
@@ -47,13 +40,16 @@ impl<'a> Grapheme<'a> {
         self.clone().info().end()
     }
 
-    pub fn width(&self) -> GraphemeWidth {
-        match UnicodeWidthStr::width(self.data()) {
-            0 => GraphemeWidth::Zero,
-            1 => GraphemeWidth::One,
-            2 => GraphemeWidth::Two,
-            _ => unreachable!(),
-        }
+    pub fn width(&self) -> usize {
+        UnicodeWidthStr::width(self.data())
+    }
+
+    pub fn is_zero_width(&self) -> bool {
+        self.width() == 0
+    }
+
+    pub fn is_new_line(&self) -> bool {
+        self.data() == "\n" || self.data() == "\r\n"
     }
 
     pub(crate) fn info(self) -> GraphemeInfo {
@@ -121,21 +117,5 @@ impl Hash for Grapheme<'_> {
 impl PartialEq for Grapheme<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.g == other.g
-    }
-}
-
-impl From<GraphemeWidth> for usize {
-    fn from(val: GraphemeWidth) -> Self {
-        match val {
-            GraphemeWidth::Zero => 0,
-            GraphemeWidth::One => 1,
-            GraphemeWidth::Two => 2,
-        }
-    }
-}
-
-impl GraphemeWidth {
-    pub fn num(self) -> usize {
-        self.into()
     }
 }
