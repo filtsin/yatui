@@ -1,5 +1,3 @@
-pub mod buffer;
-pub mod character;
 mod cursor;
 mod printer;
 mod region;

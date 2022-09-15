@@ -4,6 +4,7 @@ mod solver;
 use std::collections::{hash_map::Keys, HashMap};
 
 pub use children::Children;
+use log::info;
 
 use self::{
     children::Child,
@@ -14,7 +15,7 @@ use crate::{
     cb,
     compositor::context::Context,
     state::State,
-    terminal::{buffer::MappedBuffer, Cursor, Index, Region, Size},
+    terminal::{Cursor, Index, Region, Size},
 };
 
 use super::{cb::SizeFn, text, Cb, Component, DrawFn, LayoutFn};
@@ -40,7 +41,11 @@ where
 
     Component::builder()
         .draw_fn(basic_draw(children.clone()))
-        .layout_fn(basic_layout(column_layout_fn, line_size_fn(children.clone()), children.clone()))
+        .layout_fn(basic_layout(
+            column_layout_fn,
+            column_size_fn(children.clone()),
+            children.clone(),
+        ))
         .size_fn(cb!(column_size_fn(children)))
         .build()
 }
@@ -56,9 +61,6 @@ where
     cb!(move |region, context| {
         let is_changed = context.is_changed(&children);
         let children = context.get(&children);
-
-        // TODO: Remove because we have 2 calls for size
-        size_fn(context);
 
         if is_changed || last_region == Region::default() {
             solver.clear();
@@ -91,17 +93,22 @@ where
         }
 
         children.data.borrow_mut().iter_mut().for_each(|v| v.layout(context));
+
+        for c in children.data.borrow().iter() {
+            info!("region = {:?}", c.region());
+        }
     })
 }
 
 fn basic_draw(children: State<Children>) -> DrawFn {
-    cb!(move |mut buf, context| {
+    cb!(move |printer, context| {
         let children = context.get(&children);
-        children.data.borrow_mut().iter_mut().for_each(|v| v.draw(&mut buf, context));
+        children.data.borrow_mut().iter_mut().for_each(|v| v.draw(printer, context));
     })
 }
 
 fn column_size_fn(children: State<Children>) -> impl FnMut(Context<'_>) -> Size {
+    println!("HERE");
     move |context| {
         let mut size = Size::default();
 

@@ -6,7 +6,7 @@ use std::ops::RangeBounds;
 use crate::{
     backend::Backend,
     error::Result,
-    terminal::{buffer::Buffer, Cursor, Index, Size},
+    terminal::{Cursor, Index, Size},
     text::Style,
 };
 

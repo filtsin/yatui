@@ -14,7 +14,28 @@ pub trait StyledStr: Clone {
     fn size(&self) -> Size;
 }
 
+// TODO: Create macro for common impl
 impl StyledStr for &str {
+    type Iter = std::iter::Empty<StyleInfo>;
+
+    fn str(&self) -> &str {
+        self
+    }
+
+    fn styles(&self) -> Self::Iter {
+        std::iter::empty()
+    }
+
+    fn size(&self) -> Size {
+        use crate::text::raw_text::RawText;
+        let raw_size = RawText::compute_size(self);
+        let width = raw_size.columns.try_into().unwrap_or(Index::MAX);
+        let height = raw_size.lines.try_into().unwrap_or(Index::MAX);
+        Size::new(width, height)
+    }
+}
+
+impl StyledStr for &String {
     type Iter = std::iter::Empty<StyleInfo>;
 
     fn str(&self) -> &str {

@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use crate::{
     component::Component,
     compositor::context::Context,
-    terminal::{buffer::MappedBuffer, Cursor, Index, Region, Size},
+    terminal::{Cursor, Index, Printer, Region, Size},
 };
 
 #[derive(Default)]
@@ -79,10 +79,10 @@ impl Child {
         }
     }
 
-    pub fn draw(&mut self, buf: &mut MappedBuffer<'_>, context: Context<'_>) {
+    pub fn draw(&mut self, printer: &mut Printer<'_>, context: Context<'_>) {
         if let Some(region) = self.region() {
-            let mapped_buf = buf.map(region);
-            self.component.draw(mapped_buf, context);
+            let mut mapped_printer = printer.map(region);
+            self.component.draw(&mut mapped_printer, context);
         }
     }
 

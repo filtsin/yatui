@@ -1,10 +1,11 @@
 use crate::{
     backend::Backend,
     error::Result,
-    terminal::{buffer::Buffer, Cursor, Size},
+    terminal::{Cursor, Size},
     text::Style,
 };
 
+use log::info;
 use termion::{
     clear, color, cursor,
     raw::{IntoRawMode, RawTerminal},
@@ -23,21 +24,18 @@ impl<W: Write> Termion<W> {
             AlternateScreen::from(BufWriter::with_capacity(5_000_000, output).into_raw_mode()?);
         Ok(Termion { output })
     }
-
-    pub fn draw_c(&mut self) {
-        write!(self.output, "{}", color::Fg(color::Red));
-    }
 }
 
 impl<W: Write + Send> Backend for Termion<W> {
     fn get_size(&self) -> Result<Size> {
         let (column, row) = termion::terminal_size()?;
+        info!("Return size {}, {}", column, row);
         Ok(Size::new(column, row))
     }
 
     fn move_cursor(&mut self, pos: Cursor) {
         let based1_pos = pos.next_line().next_column();
-        write!(self.output, "{}", cursor::Goto(based1_pos.line(), based1_pos.column())).unwrap();
+        write!(self.output, "{}", cursor::Goto(based1_pos.column(), based1_pos.line())).unwrap();
     }
 
     fn hide_cursor(&mut self) {
@@ -53,7 +51,8 @@ impl<W: Write + Send> Backend for Termion<W> {
     }
 
     fn draw(&mut self, s: &str, style: Style) {
-        todo!()
+        // TODO: Affect style
+        write!(self.output, "{}", s).unwrap()
     }
 
     fn flush(&mut self) {

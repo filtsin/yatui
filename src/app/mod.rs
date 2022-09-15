@@ -37,10 +37,6 @@ impl<B> App<B> {
         self.compositor.change_root(root);
     }
 
-    pub fn context(&self) -> Context<'_> {
-        self.compositor.context()
-    }
-
     pub fn symbol_table(&self) {
         // TODO
     }
@@ -63,6 +59,10 @@ where
             self.compositor.process_event(event);
         }
         self.compositor.draw();
+    }
+
+    pub fn context(&self) -> Context<'_> {
+        self.compositor.context()
     }
 
     fn main_loop(&mut self) {

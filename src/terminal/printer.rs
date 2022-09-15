@@ -1,3 +1,5 @@
+use log::info;
+
 use crate::{
     backend::Backend,
     terminal::{Cursor, Index, Region, Size},
@@ -42,6 +44,7 @@ impl<'a> Printer<'a> {
     /// Panics if terminal size is undefined.
     pub fn new(backend: &'a mut dyn Backend) -> Self {
         let region = Region::with_size(Cursor::default(), backend.get_size().unwrap());
+        info!("region = {:?}", region);
         Self { backend, region }
     }
 
@@ -307,6 +310,7 @@ impl<'a> Printer<'a> {
         for part in part_iter {
             match part {
                 Part::Str(part_str, part_width, part_style) => {
+                    info!("Write {} on {:?}", part_str, cursor);
                     let mut remainder =
                         self.write_part_str(&mut cursor, part_str, part_width, part_style);
 

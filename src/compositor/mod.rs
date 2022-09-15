@@ -14,15 +14,11 @@ use crate::{
     backend::Backend,
     component::Component,
     state::{controller::Id, Controller},
-    terminal::{
-        buffer::{Buffer, MappedBuffer},
-        Cursor, Region, Size,
-    },
+    terminal::{Cursor, Printer, Region, Size},
 };
 
 pub(crate) struct Compositor<B> {
     backend: B,
-    buffer: Buffer,
 
     root: Option<Component>,
     controller: Controller,
@@ -31,23 +27,13 @@ pub(crate) struct Compositor<B> {
 
 impl<B> Compositor<B> {
     pub(crate) fn new(backend: B) -> Self {
-        Self {
-            backend,
-            buffer: Buffer::default(),
-            root: None,
-            controller: Controller::new(),
-            watcher: Watcher::default(),
-        }
+        Self { backend, root: None, controller: Controller::new(), watcher: Watcher::default() }
     }
 }
 
 impl<B> Compositor<B> {
     pub(crate) fn change_root(&mut self, root: Component) {
         self.root = Some(root);
-    }
-
-    pub(crate) fn context(&self) -> Context<'_> {
-        Context::new(&self.controller, &self.watcher, self.buffer.size())
     }
 }
 
@@ -56,36 +42,27 @@ where
     B: Backend,
 {
     pub(crate) fn draw(&mut self) {
-        // let current_size = self.backend.get_size().unwrap();
-        //
-        // if self.buffer.size() != current_size {
-        //     self.buffer.resize(current_size);
-        // } else if self.watcher.is_empty() {
-        //     return;
-        // }
-        //
-        // if let Some(component) = &mut self.root {
-        //     let context = Context::new(&self.controller, &self.watcher, self.buffer.size());
-        //
-        //     let mapped_region = Region::from(self.buffer.size());
-        //
-        //     let mut mapped_buffer = self.buffer.map(mapped_region);
-        //     mapped_buffer.clear();
-        //
-        //     component.size_hint(context);
-        //     component.layout(mapped_region, context);
-        //     component.draw(mapped_buffer, context);
-        //
-        //     self.backend.hide_cursor();
-        //     self.backend.clear_screen();
-        //
-        //     self.backend.move_cursor(Cursor::new(0, 0));
-        //
-        //     self.backend.draw(&self.buffer);
-        //     self.backend.flush();
-        //
-        //     self.watcher.remove_all();
-        // }
+        // TODO: Do it only in 1st draw attempt
+        self.backend.clear_screen();
+
+        if let Some(component) = &mut self.root {
+            let current_size = self.backend.get_size().unwrap();
+
+            let context = Context::new(&self.controller, &self.watcher, current_size);
+
+            let mut printer = Printer::new(&mut self.backend);
+
+            component.size_hint(context);
+            component.layout(Region::from(current_size), context);
+            component.draw(&mut printer, context);
+
+            // self.backend.hide_cursor();
+            self.backend.flush();
+        }
+    }
+
+    pub(crate) fn context(&self) -> Context<'_> {
+        Context::new(&self.controller, &self.watcher, self.backend.get_size().unwrap())
     }
 
     pub(crate) fn process_event(&mut self, event: Event) {

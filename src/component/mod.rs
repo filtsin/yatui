@@ -10,9 +10,11 @@ use crate::{
     cb,
     compositor::context::Context,
     state::State,
-    terminal::{buffer::MappedBuffer, Region, Size},
+    terminal::{Printer, Region, Size},
+    text::{StyledStr, Text},
 };
 use derive_more::From;
+use log::{info, trace};
 
 pub struct Component {
     draw_fn: DrawFn,
@@ -36,8 +38,8 @@ impl Component {
         ComponentBuilder::default()
     }
 
-    pub fn draw(&mut self, buf: MappedBuffer<'_>, context: Context<'_>) {
-        (self.draw_fn.f)(buf, context)
+    pub fn draw(&mut self, printer: &mut Printer<'_>, context: Context<'_>) {
+        (self.draw_fn.f)(printer, context)
     }
 
     pub fn layout(&mut self, region: Region, context: Context<'_>) {
@@ -111,19 +113,21 @@ impl ComponentBuilder {
 
 pub fn text<S>(content: S) -> Component
 where
-    S: Into<State<String>>,
+    S: Into<State<Text>>,
 {
     let state = content.into();
     let state2 = state.clone();
 
-    let draw_fn: DrawFn = cb!(move |mut buf, context| {
+    let draw_fn: DrawFn = cb!(move |printer, context| {
         let content = context.get(&state);
-        buf.write_line(content, 0);
+        info!("Write {}", content);
+        printer.write((0, 0), content);
     });
 
     let size_fn: SizeFn = cb!(move |context| {
         let content = context.get(&state2);
-        Size::new(content.len().try_into().unwrap(), 1)
+        info!("size = {:?}", content.size());
+        content.size()
     });
 
     Component::builder().draw_fn(draw_fn).size_fn(size_fn).build()

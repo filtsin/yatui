@@ -3,7 +3,10 @@ mod create;
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::component::{layout::Children, Component};
+use crate::{
+    component::{layout::Children, Component},
+    text::Text,
+};
 
 use self::controller::Id;
 pub use self::{
@@ -26,6 +29,7 @@ pub fn try_get_id_from_state<T>(state: State<T>) -> Option<Id> {
     }
 }
 
+// TODO: Write about incorrect mutation
 #[derive(Debug, Eq, PartialEq)]
 pub struct InnerValue<T> {
     pub(crate) pointer: Rc<T>,
@@ -46,6 +50,18 @@ impl<T> From<T> for State<T> {
 impl From<&str> for State<String> {
     fn from(v: &str) -> Self {
         Self::Value(InnerValue { pointer: Rc::new(v.to_owned()) })
+    }
+}
+
+impl From<&'static str> for State<Text> {
+    fn from(v: &'static str) -> Self {
+        Self::Value(InnerValue { pointer: Rc::new(v.into()) })
+    }
+}
+
+impl From<String> for State<Text> {
+    fn from(v: String) -> Self {
+        Self::Value(InnerValue { pointer: Rc::new(v.into()) })
     }
 }
 

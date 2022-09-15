@@ -5,7 +5,7 @@ mod termion;
 
 use crate::{
     error::Result,
-    terminal::{buffer::Buffer, Cursor, Size},
+    terminal::{Cursor, Size},
     text::Style,
 };
 

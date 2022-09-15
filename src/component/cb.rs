@@ -1,6 +1,6 @@
 use crate::{
     compositor::context::Context,
-    terminal::{buffer::MappedBuffer, Region, Size},
+    terminal::{Printer, Region, Size},
 };
 use std::ops::{Deref, DerefMut};
 
@@ -14,7 +14,7 @@ impl<F: ?Sized> Cb<F> {
     }
 }
 
-pub type DrawFn = Cb<dyn FnMut(MappedBuffer<'_>, Context<'_>)>;
+pub type DrawFn = Cb<dyn FnMut(&mut Printer<'_>, Context<'_>)>;
 pub type LayoutFn = Cb<dyn FnMut(Region, Context<'_>)>;
 pub type SizeFn = Cb<dyn FnMut(Context<'_>) -> Size>;
 

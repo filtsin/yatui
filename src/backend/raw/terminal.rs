@@ -26,7 +26,7 @@ struct Cursor {
 }
 
 impl Terminal {
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(mut width: usize, mut height: usize) -> Self {
         let grid = vec![Cell::default(); width * height];
         Self { grid, width, height, ..Self::default() }
     }
@@ -62,7 +62,9 @@ impl Terminal {
     }
 
     pub fn write_str(&mut self, s: &str, styles: Style) {
-        println!("write_str {:?}", s);
+        if self.is_zero_terminal() {
+            return;
+        }
         for g in UnicodeSegmentation::graphemes(s, true) {
             let width = UnicodeWidthStr::width(g);
 
@@ -98,6 +100,10 @@ impl Terminal {
 
     /// Fill from current cursor position to the end with **1** grapheme with width = 1.
     pub fn fill(&mut self, s: &str) {
+        if self.is_zero_terminal() {
+            return;
+        }
+
         assert_eq!(UnicodeSegmentation::graphemes(s, true).count(), 1);
         assert_eq!(UnicodeWidthStr::width(s), 1);
 
@@ -124,6 +130,10 @@ impl Terminal {
 
     pub fn height(&self) -> usize {
         self.height
+    }
+
+    pub fn is_zero_terminal(&self) -> bool {
+        self.width == 0 && self.height == 0
     }
 
     pub fn assert_styles<R>(&self, column: R, line: R, style: Style)

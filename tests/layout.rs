@@ -31,7 +31,9 @@ fn line_elements() {
 
     app.process_event();
 
-    line(state.clone()).layout(region, app.context());
+    let mut line = line(state.clone());
+    line.size_hint(app.context());
+    line.layout(region, app.context());
 
     let regions = vec![
         Some(Region::new(Cursor::new(0, 0), Cursor::new(0, 0))),
@@ -56,7 +58,9 @@ fn column_elements() {
 
     app.process_event();
 
-    column(state.clone()).layout(region, app.context());
+    let mut column = column(state.clone());
+    column.size_hint(app.context());
+    column.layout(region, app.context());
 
     let regions = vec![
         Some(Region::new(Cursor::new(0, 0), Cursor::new(0, 0))),
@@ -81,7 +85,9 @@ fn line_elements_overflow() {
 
     app.process_event();
 
-    line(state.clone()).layout(region, app.context());
+    let mut line = line(state.clone());
+    line.size_hint(app.context());
+    line.layout(region, app.context());
 
     let regions = vec![
         Some(Region::new(Cursor::new(0, 0), Cursor::new(0, 0))),
@@ -106,7 +112,9 @@ fn column_elements_overflow() {
 
     app.process_event();
 
-    column(state.clone()).layout(region, app.context());
+    let mut column = column(state.clone());
+    column.size_hint(app.context());
+    column.layout(region, app.context());
 
     let regions = vec![
         Some(Region::new(Cursor::new(0, 0), Cursor::new(0, 0))),
@@ -137,9 +145,9 @@ fn line_persistent_layout() {
         None,
     ];
 
-    let mut layout = line(state.clone());
-
     for _ in 0..100 {
+        let mut layout = line(state.clone());
+        layout.size_hint(app.context());
         layout.layout(region, app.context());
 
         let layout_regions = app.context().get(&state).get_regions();
@@ -166,9 +174,9 @@ fn column_persistent_layout() {
         None,
     ];
 
-    let mut layout = column(state.clone());
-
     for _ in 0..100 {
+        let mut layout = column(state.clone());
+        layout.size_hint(app.context());
         layout.layout(region, app.context());
 
         let layout_regions = app.context().get(&state).get_regions();
@@ -189,11 +197,13 @@ fn line_state_changed_layout() {
     app.process_event();
 
     let mut layout = line(state.clone());
+    layout.size_hint(app.context());
     layout.layout(region, app.context());
 
     state.update(|v| v.push(widget(2, 2)));
     app.process_event();
 
+    layout.size_hint(app.context());
     layout.layout(region, app.context());
 
     let regions = vec![
@@ -221,11 +231,13 @@ fn column_state_changed_layout() {
     app.process_event();
 
     let mut layout = column(state.clone());
+    layout.size_hint(app.context());
     layout.layout(region, app.context());
 
     state.update(|v| v.push(widget(2, 2)));
     app.process_event();
 
+    layout.size_hint(app.context());
     layout.layout(region, app.context());
 
     let regions = vec![
