@@ -28,7 +28,7 @@ where
 
     Component::builder()
         .draw_fn(basic_draw(children.clone()))
-        .layout_fn(basic_layout(line_layout_fn, line_size_fn(children.clone()), children.clone()))
+        .layout_fn(basic_layout(line_layout_fn, children.clone()))
         .size_fn(cb!(line_size_fn(children)))
         .build()
 }
@@ -41,19 +41,14 @@ where
 
     Component::builder()
         .draw_fn(basic_draw(children.clone()))
-        .layout_fn(basic_layout(
-            column_layout_fn,
-            column_size_fn(children.clone()),
-            children.clone(),
-        ))
+        .layout_fn(basic_layout(column_layout_fn, children.clone()))
         .size_fn(cb!(column_size_fn(children)))
         .build()
 }
 
-fn basic_layout<F, S>(mut layout_fn: F, mut size_fn: S, children: State<Children>) -> LayoutFn
+fn basic_layout<F>(mut layout_fn: F, children: State<Children>) -> LayoutFn
 where
     F: FnMut(&mut Solver, Context<'_>) + 'static,
-    S: FnMut(Context<'_>) -> Size + 'static,
 {
     let mut solver = Solver::new();
     let mut last_region = Region::default();

@@ -18,6 +18,7 @@ trait-set = "0.3.0"
 log = "0.4"
 unicode-segmentation = "1.9.0"
 unicode-width = "0.1"
+taffy = "0.1.0"
 # TODO: Move to dev
 compact_str = "0.5.2"
 
