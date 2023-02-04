@@ -14,6 +14,10 @@ fn mut_state_has_pointer_size() {
     assert_eq!(size_of::<Pointer<i32>>(), size_of::<usize>());
 }
 
+struct S<'a> {
+    value: &'a str,
+}
+
 #[test]
 #[serial]
 fn mut_state_creation() {
@@ -21,6 +25,9 @@ fn mut_state_creation() {
     let mut app = App::new(backend);
 
     let state = mut_state(0);
+
+    let va = "hello".to_string();
+    let state2: Pointer<S> = mut_state(S { value: &va });
 
     app.process_event();
 

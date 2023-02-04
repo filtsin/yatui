@@ -48,10 +48,6 @@ impl<'a> Grapheme<'a> {
         self.width() == 0
     }
 
-    pub fn is_new_line(&self) -> bool {
-        self.data() == "\n" || self.data() == "\r\n"
-    }
-
     pub(crate) fn info(self) -> GraphemeInfo {
         GraphemeInfo::new(self.index, self.g.len(), self.byte_offset)
     }

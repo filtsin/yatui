@@ -130,5 +130,19 @@ where
         content.size()
     });
 
+    app.mount(my_component);
+
     Component::builder().draw_fn(draw_fn).size_fn(size_fn).build()
+}
+
+pub fn my_component() -> Component {
+    let v = use_state("Hello");
+
+    vbox([my_component2(), text(v)])
+}
+
+pub fn my_component2() -> Component {
+    let v = use_state(0);
+
+    text(v) | on_click(|| v += 1)
 }
