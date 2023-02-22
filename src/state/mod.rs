@@ -65,6 +65,12 @@ impl From<String> for State<Text> {
     }
 }
 
+impl<T> From<T> for State<RefCell<T>> {
+    fn from(value: T) -> Self {
+        Self::Value(InnerValue { pointer: Rc::new(RefCell::new(value)) })
+    }
+}
+
 impl<C> From<C> for State<Children>
 where
     C: IntoIterator<Item = Component>,
