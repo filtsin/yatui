@@ -1,13 +1,15 @@
+use std::{cell::RefCell, rc::Rc};
+
 use super::{CallBack, Controller, Data};
 
-struct DropValue<'a> {
-    dropped: Option<&'a mut bool>,
+struct DropValue {
+    dropped: Option<Rc<RefCell<bool>>>,
 }
 
-impl<'a> Drop for DropValue<'a> {
+impl<'a> Drop for DropValue {
     fn drop(&mut self) {
         if let Some(dropped) = self.dropped.as_mut() {
-            **dropped = true;
+            *dropped.borrow_mut() = true;
         }
     }
 }
@@ -16,12 +18,12 @@ fn get_data<T>(data: T) -> Data {
     Data::new(Box::into_raw(Box::new(data)) as *mut u8).unwrap()
 }
 
-impl<'a> DropValue<'a> {
+impl<'a> DropValue {
     fn empty() -> Data {
         get_data(Self { dropped: None })
     }
 
-    fn with(v: &'a mut bool) -> Data {
+    fn with(v: Rc<RefCell<bool>>) -> Data {
         get_data(Self { dropped: Some(v) })
     }
 
@@ -72,49 +74,49 @@ fn get_not_exists_should_panic() {
 
 #[test]
 fn remove_should_drop_value() {
-    let mut dropped = false;
+    let mut dropped = Rc::new(RefCell::new(false));
 
     let mut controller = Controller::default();
 
     unsafe {
-        controller.insert(1, DropValue::with(&mut dropped), DropValue::destructor());
+        controller.insert(1, DropValue::with(dropped.clone()), DropValue::destructor());
     }
 
     controller.remove(1);
 
-    assert!(dropped);
+    assert!(*dropped.borrow());
 }
 
 #[test]
 fn drop_should_drop_value() {
-    let mut dropped = false;
+    let mut dropped = Rc::new(RefCell::new(false));
 
     let mut controller = Controller::default();
 
     unsafe {
-        controller.insert(1, DropValue::with(&mut dropped), DropValue::destructor());
+        controller.insert(1, DropValue::with(dropped.clone()), DropValue::destructor());
     }
 
     drop(controller);
 
-    assert!(dropped);
+    assert!(*dropped.borrow());
 }
 
 #[test]
 fn unsubscribe_should_drop_value() {
-    let mut dropped = false;
+    let mut dropped = Rc::new(RefCell::new(false));
 
     let mut controller = Controller::default();
 
     unsafe {
-        controller.insert(1, DropValue::with(&mut dropped), DropValue::destructor());
+        controller.insert(1, DropValue::with(dropped.clone()), DropValue::destructor());
     }
 
     controller.subscribe(1); // Ref counter = 2
 
     controller.unsubscribe(1); // Ref counter = 1
-    assert!(!dropped);
+    assert!(!*dropped.borrow());
 
     controller.unsubscribe(1); // Ref counter = 0
-    assert!(dropped);
+    assert!(*dropped.borrow());
 }

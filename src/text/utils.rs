@@ -45,7 +45,11 @@ where
 
         assert!(start_idx <= end_idx);
 
-        if end_idx == start_idx { left.clone() } else { iter.nth(end_idx - start_idx - 1).unwrap() }
+        if end_idx == start_idx {
+            left.clone()
+        } else {
+            iter.nth(end_idx - start_idx - 1).unwrap()
+        }
     };
 
     [left, right]
