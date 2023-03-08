@@ -6,5 +6,6 @@ pub mod app;
 pub mod backend;
 pub mod cassowary;
 pub mod error;
+pub mod state;
 pub mod terminal;
 pub mod text;
