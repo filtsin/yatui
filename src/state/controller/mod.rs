@@ -89,6 +89,7 @@ impl Data {
     }
 
     #[cfg(debug_assertions)]
+    #[inline]
     fn construct_debug_panic_info<Expected>(&self) -> String {
         format!(
             "Expected type `{}`, but current type `{}`",

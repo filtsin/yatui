@@ -9,7 +9,7 @@ use log::info;
 use termion::{
     clear, color, cursor,
     raw::{IntoRawMode, RawTerminal},
-    screen::AlternateScreen,
+    screen::{AlternateScreen, IntoAlternateScreen},
 };
 
 use std::io::{BufWriter, Write};
@@ -21,7 +21,7 @@ pub struct Termion<W: Write> {
 impl<W: Write> Termion<W> {
     pub fn new(output: W) -> Result<Termion<W>> {
         let output =
-            AlternateScreen::from(BufWriter::with_capacity(5_000_000, output).into_raw_mode()?);
+            BufWriter::with_capacity(5_000_000, output).into_raw_mode()?.into_alternate_screen()?;
         Ok(Termion { output })
     }
 }
