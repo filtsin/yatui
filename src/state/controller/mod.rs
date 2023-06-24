@@ -42,13 +42,13 @@ impl Controller {
         if from >= self.len() {
             panic!(
                 "Controller panic -- `remove_from`. It is a bug inside yatui.\n
-                From {} index is bigger then current length {}",
+                From {} index is bigger than current length {}",
                 from,
                 self.len()
             );
         }
 
-        self.data.truncate(from)
+        self.data.truncate(from);
     }
 
     pub fn len(&self) -> usize {
@@ -82,6 +82,7 @@ impl Data {
     }
 
     fn cast<T: 'static>(&self) -> &T {
+        // TODO: Reformat error messages
         let value = self.value.as_ref().unwrap_or_else(|| {
             panic!("Cast error for `T` type.\n{}", self.construct_debug_panic_info::<T>());
         });

@@ -1,8 +1,8 @@
 use crate::{
     backend::Backend,
     error::Result,
+    mask::style::Style,
     terminal::{Cursor, Size},
-    text::Style,
 };
 
 use log::info;

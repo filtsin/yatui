@@ -173,7 +173,7 @@ impl Mask {
         self.len() == 0
     }
 
-    // TODO: Update doc
+    // TODO: Update doc, maybe hide from public api
     /// Shift all existing styles in `range` with `delta` parameter.
     ///
     /// # Examples
@@ -208,7 +208,7 @@ impl Mask {
         self.extend(styles);
     }
 
-    // TODO: Update doc
+    // TODO: Update doc, maybe hide from public api
     /// Shift all existing styles in `range` with `delta` parameter.
     ///
     /// # Examples

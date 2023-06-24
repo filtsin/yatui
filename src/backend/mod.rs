@@ -5,8 +5,8 @@ mod termion;
 
 use crate::{
     error::Result,
+    mask::style::Style,
     terminal::{Cursor, Size},
-    text::Style,
 };
 
 pub use self::{raw::Raw, termion::Termion};

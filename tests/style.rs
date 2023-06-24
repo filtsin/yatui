@@ -1,4 +1,4 @@
-use yatui::text::{Color, Modifier, Style};
+use yatui::mask::style::{Color, Modifier, Style};
 
 use pretty_assertions::assert_eq;
 
@@ -51,4 +51,15 @@ fn style_clear_modifier() {
     let style = Style::new().modifier(Modifier::BOLD).clear_modifier();
 
     assert_eq!(style.get_modifier(), Modifier::default());
+}
+
+#[test]
+fn style_merge() {
+    let style1 = Style::new().fg(Color::Red).bg(Color::Green).modifier(Modifier::BOLD);
+    let style2 = Style::new().fg(Color::Blue).bg(Color::Yellow).modifier(Modifier::ITALIC);
+
+    assert_eq!(
+        style1.merge(style2),
+        Style::new().fg(Color::Blue).bg(Color::Yellow).modifier(Modifier::BOLD | Modifier::ITALIC)
+    );
 }

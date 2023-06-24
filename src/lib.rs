@@ -5,8 +5,11 @@
 pub mod app;
 pub mod backend;
 pub mod cassowary;
+pub mod component;
+pub mod element;
 pub mod error;
+pub mod mask;
 pub mod state;
 pub mod terminal;
 pub mod text;
-pub mod component;
+pub mod view;
