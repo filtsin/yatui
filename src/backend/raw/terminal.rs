@@ -1,4 +1,4 @@
-use crate::{backend::raw::cell::Cell, mask::style::Style};
+use crate::{backend::raw::cell::Cell, mask::Style};
 
 use std::ops::{Index, RangeBounds};
 
@@ -186,7 +186,7 @@ impl Index<(usize, usize)> for Terminal {
 
 #[cfg(test)]
 mod tests {
-    use crate::mask::style::Color;
+    use crate::mask::Color;
 
     use super::*;
 

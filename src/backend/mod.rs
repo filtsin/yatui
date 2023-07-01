@@ -5,7 +5,7 @@ mod termion;
 
 use crate::{
     error::Result,
-    mask::style::Style,
+    mask::Style,
     terminal::{Cursor, Size},
 };
 

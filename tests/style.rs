@@ -1,4 +1,4 @@
-use yatui::mask::style::{Color, Modifier, Style};
+use yatui::mask::{Color, Modifier, Style};
 
 use pretty_assertions::assert_eq;
 

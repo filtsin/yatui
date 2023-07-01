@@ -1,4 +1,4 @@
-use crate::mask::style::{Modifier, Style};
+use crate::mask::{Modifier, Style};
 
 use bitflags::bitflags;
 use compact_str::CompactString;
