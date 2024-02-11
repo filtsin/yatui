@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 unicode-segmentation = "1.10"
 unicode-width = "0.1"
-rangemap = "1.5"
 bitflags = "2.4"
+btree-range-map = "0.7"
