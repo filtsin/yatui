@@ -112,7 +112,7 @@ impl std::iter::IntoIterator for Mask {
 
     fn into_iter(self) -> Self::IntoIter {
         /// Gets an owned iterator over all pairs of ranges and their styles. It returns non
-        /// interseting ranges in ascending order with style info.
+        /// intersecting ranges in ascending order with style info.
         Self::IntoIter { inner: self.map.into_iter() }
     }
 }
@@ -208,6 +208,12 @@ mod utils {
         #[should_panic]
         fn bound_to_inclusive_overflow_end() {
             bound_to_inclusive((Included(0), Excluded(0)));
+        }
+
+        #[test]
+        #[should_panic]
+        fn bound_to_inclusive_start_gt_end() {
+            bound_to_inclusive((Included(3), Included(2)));
         }
     }
 }
