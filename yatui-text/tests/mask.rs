@@ -1,9 +1,14 @@
-// use yatui_text::{Color, Mask, Modifier, Style};
-//
-// fn create_mask<I>(styles: I) -> Mask {
-//     [(0..=1, Style::new().fg(Color::Red))].into()
-// }
-//
+use yatui_text::{Color, IdxRange, Mask, Modifier, Style};
+
+#[test]
+fn index_mask() {
+    let mask: Mask = [(0..=1, Style::new().fg(Color::Red))].into();
+
+    assert_eq!(mask[0], mask[1]);
+    assert_eq!(mask[0], Style::new().fg(Color::Red));
+    assert_eq!(mask[2], Style::default());
+}
+
 // #[test]
 // fn add_styles_not_overlapping() {
 //     let mut mask = Mask::new();
@@ -18,6 +23,7 @@
 //         (5..=6, Style::new().fg(Color::Green)),
 //         (7..=usize::MAX, Style::new().fg(Color::Yellow)),
 //     ];
+//
 //     let mask: Vec<_> = mask.into_iter().collect();
 //
 //     assert_eq!(mask, result);

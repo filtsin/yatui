@@ -55,9 +55,19 @@ bitflags! {
 
 // TODO: Impl style
 impl Style {
-    /// Create empty `Style`. It does not jh
-    pub fn new() -> Self {
-        Self::default()
+    /// Creates empty `Style`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui_text::*;
+    /// let style = Style::new();
+    /// assert_eq!(style.fg, None);
+    /// assert_eq!(style.bg, None);
+    /// assert_eq!(style.modifier, Modifier::empty());
+    /// ```
+    pub const fn new() -> Self {
+        Self { bg: None, fg: None, modifier: Modifier::empty() }
     }
 
     /// Set foreground color.
@@ -69,7 +79,7 @@ impl Style {
     /// let style = Style::new().fg(Color::Green);
     /// assert_eq!(style.fg, Some(Color::Green));
     /// ```
-    pub fn fg(mut self, fg: Color) -> Self {
+    pub const fn fg(mut self, fg: Color) -> Self {
         self.fg = Some(fg);
         self
     }

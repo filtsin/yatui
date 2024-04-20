@@ -4,7 +4,7 @@ use std::{
     ops::{Bound, RangeBounds, RangeInclusive},
 };
 
-/// Wrapper about inclusive range [`start`;`end`]. `IdxRange` used by [`Mask`] to specify
+/// Wrapper about inclusive range \[`start`;`end`\]. `IdxRange` used by [`Mask`] to specify
 /// a range of graphemes indexes. `IdxRange` can be constructed from any range from std library.
 ///
 /// [`Mask`]: crate::Mask
@@ -21,11 +21,30 @@ impl IdxRange {
     ///
     /// ```
     /// # use yatui_text::IdxRange;
-    ///
     /// assert_eq!(IdxRange { start: 0, end: 3 }, IdxRange::new(0, 3));
     /// ```
     pub const fn new(start: usize, end: usize) -> Self {
         Self { start, end }
+    }
+
+    /// Creates a new inclusive range from specified bounds.
+    ///
+    /// # Panics
+    ///
+    /// Panics if overflow happened on calculation `start` or `end` for [`Excluded`] bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use yatui_text::IdxRange;
+    /// # use std::ops::Bound;
+    /// assert_eq!(IdxRange::from_bounds((Bound::Included(0), Bound::Excluded(2))),
+    ///            IdxRange::new(0, 1));
+    /// ```
+    ///
+    /// [`Excluded`]: Bound::Excluded
+    pub fn from_bounds(range: impl RangeBounds<usize>) -> Self {
+        utils::bound_to_inclusive(range)
     }
 
     /// Returns `true` if `idx` in the range.
@@ -34,7 +53,6 @@ impl IdxRange {
     ///
     /// ```
     /// # use yatui_text::IdxRange;
-    ///
     /// assert!(IdxRange::new(0, 1).contains(1));
     /// assert!(IdxRange::new(0, 3).contains(2));
     /// assert!(!IdxRange::new(0, 3).contains(4));
@@ -49,7 +67,6 @@ impl IdxRange {
     ///
     /// ```
     /// # use yatui_text::IdxRange;
-    ///
     /// assert!(!IdxRange::new(0, 1).is_empty());
     /// assert!(IdxRange::new(1, 0).is_empty());
     pub const fn is_empty(&self) -> bool {
@@ -62,7 +79,6 @@ impl IdxRange {
     ///
     /// ```
     /// # use yatui_text::IdxRange;
-    ///
     /// assert_eq!(IdxRange::new(0, 1).into_tuple(), (0, 1));
     /// ```
     pub const fn into_tuple(self) -> (usize, usize) {
@@ -75,7 +91,6 @@ impl IdxRange {
     ///
     /// ```
     /// # use yatui_text::IdxRange;
-    ///
     /// assert_eq!(IdxRange::new(0, 1).len(), 2);
     /// assert_eq!(IdxRange::new(0, 0).len(), 1);
     /// assert_eq!(IdxRange::new(1, 0).len(), 0);
@@ -105,6 +120,28 @@ impl RangeBounds<usize> for IdxRange {
     }
 }
 
+impl RangeBounds<usize> for &IdxRange {
+    fn start_bound(&self) -> Bound<&usize> {
+        (*self).start_bound()
+    }
+
+    fn end_bound(&self) -> Bound<&usize> {
+        (*self).end_bound()
+    }
+}
+
+impl btree_range_map::AsRange for IdxRange {
+    type Item = usize;
+
+    fn start(&self) -> Bound<&Self::Item> {
+        self.start_bound()
+    }
+
+    fn end(&self) -> Bound<&Self::Item> {
+        self.end_bound()
+    }
+}
+
 impl IntoIterator for IdxRange {
     type Item = usize;
     type IntoIter = RangeInclusive<usize>;
@@ -119,13 +156,19 @@ macro_rules! impl_traits_std_range {
         $(
             impl From<$range> for IdxRange {
                 fn from(range: $range) -> IdxRange {
-                    utils::bound_to_inclusive(range)
+                    IdxRange::from_bounds(range)
                 }
             }
 
             impl PartialEq<$range> for IdxRange {
                 fn eq(&self, other: &$range) -> bool {
                     Into::<IdxRange>::into(other.clone()) == *self
+                }
+            }
+
+            impl PartialEq<IdxRange> for $range {
+                fn eq(&self, other: &IdxRange) -> bool {
+                    Into::<IdxRange>::into(self.clone()) == *self
                 }
             }
         )*
@@ -157,7 +200,8 @@ mod utils {
         let end = match range.end_bound() {
             std::ops::Bound::Included(&v) => v,
             std::ops::Bound::Excluded(&v) => {
-                v.checked_sub(1).expect("There is no support for excluded and overflowed end bound")
+                if v < start { v.checked_add(1) } else { v.checked_sub(1) }
+                    .expect("There is no support for excluded and overflowed end bound")
             }
             std::ops::Bound::Unbounded => usize::MAX,
         };
