@@ -226,3 +226,18 @@ impl ExactSizeIterator for IntoIter {
     }
 }
 impl FusedIterator for IntoIter {}
+
+#[macro_export]
+macro_rules! mask {
+    () => {
+        $crate::Mask::new()
+    };
+
+    ($($range:expr => $style:expr),+ $(,)?) => {{
+        let mut mask = Mask::new();
+        $(
+            mask.add($range, $style);
+        )*
+        mask
+    }};
+}

@@ -1,4 +1,10 @@
-use yatui_text::{Color, IdxRange, Mask, Modifier, Style};
+use std::ops::RangeInclusive;
+
+use yatui_text::{mask, Color, IdxRange, Mask, Modifier, Style};
+
+fn mask_to_vec(mask: Mask) -> Vec<(RangeInclusive<usize>, Style)> {
+    mask.into_iter().map(|(range, style)| (range.start..=range.end, style)).collect()
+}
 
 #[test]
 fn index_mask() {
@@ -9,25 +15,25 @@ fn index_mask() {
     assert_eq!(mask[2], Style::default());
 }
 
-// #[test]
-// fn add_styles_not_overlapping() {
-//     let mut mask = Mask::new();
-//     mask.add(..2, Style::new().fg(Color::Red));
-//     mask.add(2..5, Style::new().fg(Color::Blue));
-//     mask.add(5..=6, Style::new().fg(Color::Green));
-//     mask.add(7.., Style::new().fg(Color::Yellow));
-//
-//     let result = vec![
-//         (0..=1, Style::new().fg(Color::Red)),
-//         (2..=4, Style::new().fg(Color::Blue)),
-//         (5..=6, Style::new().fg(Color::Green)),
-//         (7..=usize::MAX, Style::new().fg(Color::Yellow)),
-//     ];
-//
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
+#[test]
+fn add_styles_not_overlapping() {
+    let mask = mask_to_vec(mask!(
+        ..2 => Style::new().fg(Color::Red),
+        2..5 => Style::new().fg(Color::Blue),
+        5..=6 => Style::new().fg(Color::Green),
+        7.. => Style::new().fg(Color::Yellow)
+    ));
+
+    let result = vec![
+        (0..=1, Style::new().fg(Color::Red)),
+        (2..=4, Style::new().fg(Color::Blue)),
+        (5..=6, Style::new().fg(Color::Green)),
+        (7..=usize::MAX, Style::new().fg(Color::Yellow)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
 //
 // // ─────────────
 // // x           y
