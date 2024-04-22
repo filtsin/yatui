@@ -33,6 +33,8 @@ impl IdxRange {
     ///
     /// Panics if overflow happened on calculation `start` or `end` for [`Excluded`] bounds.
     ///
+    /// [`Excluded`]: Bound::Excluded
+    ///
     /// # Examples
     ///
     /// ```
@@ -42,9 +44,8 @@ impl IdxRange {
     ///            IdxRange::new(0, 1));
     /// ```
     ///
-    /// [`Excluded`]: Bound::Excluded
     pub fn from_bounds(range: impl RangeBounds<usize>) -> Self {
-        utils::bound_to_inclusive(range)
+        utils::range_bounds_to_idx_range(range)
     }
 
     /// Returns `true` if `idx` in the range.
@@ -130,6 +131,8 @@ impl RangeBounds<usize> for &IdxRange {
     }
 }
 
+/// It is not an public api. Do not use it
+#[doc(hidden)]
 impl btree_range_map::AsRange for IdxRange {
     type Item = usize;
 
@@ -186,24 +189,33 @@ impl_traits_std_range!([
 
 mod utils {
     use crate::IdxRange;
-    use std::ops::{RangeBounds, RangeInclusive};
+    use std::ops::{Bound, RangeBounds, RangeInclusive};
 
-    pub(super) fn bound_to_inclusive(range: impl RangeBounds<usize>) -> IdxRange {
+    fn try_bound_to_usize(bound: Bound<&usize>) -> Option<usize> {
+        match bound {
+            Bound::Included(&v) | Bound::Excluded(&v) => Some(v),
+            Bound::Unbounded => None,
+        }
+    }
+
+    pub(super) fn range_bounds_to_idx_range(range: impl RangeBounds<usize>) -> IdxRange {
+        let start = try_bound_to_usize(range.start_bound()).unwrap_or(0);
+        let end = try_bound_to_usize(range.end_bound()).unwrap_or(usize::MAX);
+
         let start = match range.start_bound() {
-            std::ops::Bound::Included(&v) => v,
-            std::ops::Bound::Excluded(&v) => v
-                .checked_add(1)
-                .expect("There is no support for excluded and overflowed start bound"),
-            std::ops::Bound::Unbounded => 0,
+            Bound::Excluded(_) => {
+                if start <= end { start.checked_add(1) } else { start.checked_sub(1) }
+                    .expect("There is no support for excluded and overflowed start_bound")
+            }
+            _ => start,
         };
 
         let end = match range.end_bound() {
-            std::ops::Bound::Included(&v) => v,
-            std::ops::Bound::Excluded(&v) => {
-                if v < start { v.checked_add(1) } else { v.checked_sub(1) }
-                    .expect("There is no support for excluded and overflowed end bound")
+            Bound::Excluded(_) => {
+                if start <= end { end.checked_sub(1) } else { end.checked_add(1) }
+                    .expect("There is no support for excluded and overflowed end_bound")
             }
-            std::ops::Bound::Unbounded => usize::MAX,
+            _ => end,
         };
 
         IdxRange::new(start, end)
@@ -213,32 +225,48 @@ mod utils {
     mod tests {
         use super::*;
         use std::ops::Bound::{self, Excluded, Included, Unbounded};
+
         #[test]
-        fn bound_to_inclusive_without_overflow() {
-            assert_eq!(bound_to_inclusive((Excluded(1), Excluded(5))), 2..=4);
-            assert_eq!(bound_to_inclusive((Excluded(1), Included(5))), 2..=5);
-            assert_eq!(bound_to_inclusive((Included(1), Excluded(5))), 1..=4);
-            assert_eq!(bound_to_inclusive((Included(1), Included(5))), 1..=5);
-            assert_eq!(bound_to_inclusive((Unbounded, Included(5))), 0..=5);
-            assert_eq!(bound_to_inclusive((Included(1), Unbounded)), 1..=usize::MAX);
-            assert_eq!(bound_to_inclusive((Bound::<usize>::Unbounded, Unbounded)), 0..=usize::MAX);
+        fn bound_to_inclusive_without_overflow_increasing() {
+            assert_eq!(range_bounds_to_idx_range((Excluded(1), Excluded(5))), 2..=4);
+            assert_eq!(range_bounds_to_idx_range((Excluded(1), Included(5))), 2..=5);
+            assert_eq!(range_bounds_to_idx_range((Included(1), Excluded(5))), 1..=4);
+            assert_eq!(range_bounds_to_idx_range((Included(1), Included(5))), 1..=5);
+        }
+
+        #[test]
+        fn bound_to_inclusive_without_overflow_decreasing() {
+            assert_eq!(range_bounds_to_idx_range((Excluded(5), Excluded(1))), 4..=2);
+            assert_eq!(range_bounds_to_idx_range((Included(5), Excluded(1))), 5..=2);
+            assert_eq!(range_bounds_to_idx_range((Excluded(5), Included(1))), 4..=1);
+            assert_eq!(range_bounds_to_idx_range((Included(5), Included(1))), 5..=1);
+        }
+
+        #[test]
+        fn bound_to_inclusive_without_overflow_unbounded() {
+            assert_eq!(range_bounds_to_idx_range((Unbounded, Included(5))), 0..=5);
+            assert_eq!(range_bounds_to_idx_range((Included(1), Unbounded)), 1..=usize::MAX);
+            assert_eq!(
+                range_bounds_to_idx_range((Bound::<usize>::Unbounded, Unbounded)),
+                0..=usize::MAX
+            );
         }
 
         #[test]
         #[should_panic]
         fn bound_to_inclusive_overflow_start() {
-            bound_to_inclusive((Excluded(usize::MAX), Included(usize::MAX)));
+            range_bounds_to_idx_range((Excluded(usize::MAX), Included(usize::MAX)));
         }
 
         #[test]
         #[should_panic]
         fn bound_to_inclusive_overflow_end() {
-            bound_to_inclusive((Included(0), Excluded(0)));
+            range_bounds_to_idx_range((Included(0), Excluded(0)));
         }
 
         #[test]
         fn bound_to_inclusive_start_gt_end() {
-            assert!(bound_to_inclusive((Included(3), Included(2))).is_empty());
+            assert!(range_bounds_to_idx_range((Included(3), Included(2))).is_empty());
         }
     }
 }

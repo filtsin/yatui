@@ -21,7 +21,7 @@ fn add_styles_not_overlapping() {
         ..2 => Style::new().fg(Color::Red),
         2..5 => Style::new().fg(Color::Blue),
         5..=6 => Style::new().fg(Color::Green),
-        7.. => Style::new().fg(Color::Yellow)
+        7.. => Style::new().fg(Color::Yellow),
     ));
 
     let result = vec![
@@ -34,214 +34,320 @@ fn add_styles_not_overlapping() {
     assert_eq!(mask, result);
 }
 
+// 1) x' < x
 //
-// // ─────────────
-// // x           y
-// // ─────────────
-// // x'          y'
-// #[test]
-// fn change_mask_overlapping_full() {
-//     let mut mask = Mask::new();
+// i. y' = x
+//    ─────────────
+//    x           y
+// ────
+// x' y'
 //
-//     mask.add(0..=10, Style::new().fg(Color::Red));
-//     mask.add(0..=10, Style::new().bg(Color::Blue));
+#[test]
+fn mask_add_intersection_1i() {
+    let mask = mask_to_vec(mask!(
+        1..=2 => Style::new().fg(Color::Red),
+        0..=1 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().bg(Color::Green)),
+        (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+        (2..=2, Style::new().fg(Color::Red)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 1)
 //
-//     let result = vec![(0..=10, Style::new().fg(Color::Red).bg(Color::Blue))];
-//     let mask: Vec<_> = mask.into_iter().collect();
+// ii. y' > x && y' < y:
+//    ───────────
+//    x         y
+// ────────
+// x'     y'
+#[test]
+fn mask_add_intersection_1ii() {
+    let mask = mask_to_vec(mask!(
+        1..=3 => Style::new().fg(Color::Red),
+        0..=2 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().bg(Color::Green)),
+        (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+        (3..=3, Style::new().fg(Color::Red)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 1)
 //
-//     assert_eq!(mask, result);
-// }
+// iii. y' = y:
+//    ───────────
+//    x         y
+// ──────────────
+// x'           y'
+#[test]
+fn mask_add_intersection_1iii() {
+    let mask = mask_to_vec(mask!(
+        1..=3 => Style::new().fg(Color::Red),
+        0..=3 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().bg(Color::Green)),
+        (1..=3, Style::new().fg(Color::Red).bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 1)
 //
-// // ─────────────
-// // x           y
-// // ───────────────
-// // x'            y'
-// #[test]
-// fn change_mask_overlapping_2() {
-//     let mut mask = Mask::new();
+// iv. y' > y:
+//    ───────────
+//    x         y
+// ──────────────────
+// x'               y'
+#[test]
+fn mask_add_intersection_1iv() {
+    let mask = mask_to_vec(mask!(
+        1..=3 => Style::new().fg(Color::Red),
+        0..=4 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().bg(Color::Green)),
+        (1..=3, Style::new().fg(Color::Red).bg(Color::Green)),
+        (4..=4, Style::new().bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 2) x' = x
 //
-//     mask.add(0..=10, Style::new().fg(Color::Red));
-//     mask.add(0..=15, Style::new().bg(Color::Blue));
+// i. y' = x
 //
-//     let result = vec![
-//         (0..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (11..=15, Style::new().bg(Color::Blue)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
+// ──────────
+// x        y
+// •
+// x' = y'
+#[test]
+fn mask_add_intersection_2i() {
+    let mask = mask_to_vec(mask!(
+        0..=2 => Style::new().fg(Color::Red),
+        0..=0 => Style::new().bg(Color::Green)
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red).bg(Color::Green)),
+        (1..=2, Style::new().fg(Color::Red)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 2)
 //
-//     assert_eq!(mask, result);
-// }
+// ii. y' < y:
+// ──────────
+// x        y
+// ───────
+// x'    y'
+#[test]
+fn mask_add_intersection_2ii() {
+    let mask = mask_to_vec(mask!(
+        0..=2 => Style::new().fg(Color::Red),
+        0..=1 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+        (2..=2, Style::new().fg(Color::Red)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 2)
 //
-// // ─────────────
-// // x           y
-// //   ────────
-// //   x'     y'
-// #[test]
-// fn change_mask_overlapping_3() {
-//     let mut mask = Mask::new();
+// iii. y' = y:
+// ──────────
+// x        y
+// ──────────
+// x'       y'
+#[test]
+fn mask_add_intersection_2iii() {
+    let mask = mask_to_vec(mask!(
+        0..=1 => Style::new().fg(Color::Red),
+        0..=1 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![(0..=1, Style::new().fg(Color::Red).bg(Color::Green))];
+
+    assert_eq!(mask, result);
+}
+
+// 2)
 //
-//     mask.add(0..=10, Style::new().fg(Color::Red));
-//     mask.add(3..=5, Style::new().bg(Color::Blue));
+// iv. y' > y:
+// ──────────
+// x        y
+// ─────────────
+// x'          y'
+#[test]
+fn mask_add_intersection_2iv() {
+    let mask = mask_to_vec(mask!(
+        0..=1 => Style::new().fg(Color::Red),
+        0..=2 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+        (2..=2, Style::new().bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 3) x' > x && x' < y
 //
-//     let result = vec![
-//         (0..=2, Style::new().fg(Color::Red)),
-//         (3..=5, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (6..=10, Style::new().fg(Color::Red)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
+// i. y' = x'
+// ──────────
+// x        y
+//     •
+//     x' = y'
+#[test]
+fn mask_add_intersection_3i() {
+    let mask = mask_to_vec(mask!(
+        0..=2 => Style::new().fg(Color::Red),
+        1..=1 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red)),
+        (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+        (2..=2, Style::new().fg(Color::Red)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
 //
-//     assert_eq!(mask, result);
-// }
+// ii. y' < y
+// ──────────
+// x        y
+//    ────
+//    x' y'
+#[test]
+fn mask_add_intersection_3ii() {
+    let mask = mask_to_vec(mask!(
+        0..=3 => Style::new().fg(Color::Red),
+        1..=2 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red)),
+        (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+        (3..=3, Style::new().fg(Color::Red)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 3)
 //
-// // // ─────────────
-// // // x           y
-// // //    ──────────
-// // //    x'     y'
-// #[test]
-// fn change_mask_overlapping_4() {
-//     let mut mask = Mask::new();
+// iii. y' = y
+// ──────────
+// x        y
+//    ───────
+//    x'    y'
+#[test]
+fn mask_add_intersection_3iii() {
+    let mask = mask_to_vec(mask!(
+        0..=2 => Style::new().fg(Color::Red),
+        1..=2 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red)),
+        (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 3)
 //
-//     mask.add(0..=10, Style::new().fg(Color::Red));
-//     mask.add(3..=10, Style::new().bg(Color::Blue));
+// iv. y' > y
+// ──────────
+// x        y
+//    ──────────
+//    x'       y'
+#[test]
+fn mask_add_intersection_3iv() {
+    let mask = mask_to_vec(mask!(
+        0..=2 => Style::new().fg(Color::Red),
+        1..=3 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red)),
+        (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+        (3..=3, Style::new().bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 4) x' = y
 //
-//     let result = vec![
-//         (0..=2, Style::new().fg(Color::Red)),
-//         (3..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
+// i. y' = y
 //
-//     assert_eq!(mask, result);
-// }
+// ──────────
+// x        y
+//          •
+//          x' = y'
+#[test]
+fn mask_add_intersection_4i() {
+    let mask = mask_to_vec(mask!(
+        0..=1 => Style::new().fg(Color::Red),
+        1..=1 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red)),
+        (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+// 4)
 //
-// // ─────────────
-// // x           y
-// //    ────────────
-// //    x'         y'
-// #[test]
-// fn change_mask_overlapping_5() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(0..=10, Style::new().fg(Color::Red));
-//     mask.add(3..=15, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=2, Style::new().fg(Color::Red)),
-//         (3..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (11..=15, Style::new().bg(Color::Blue)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
-//
-// //
-// //      ─────────────
-// //      x           y
-// // ──────
-// // x'   y'
-// #[test]
-// fn change_mask_overlapping_6() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(4..=10, Style::new().fg(Color::Red));
-//     mask.add(0..=4, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=3, Style::new().bg(Color::Blue)),
-//         (4..=4, Style::new().bg(Color::Blue).fg(Color::Red)),
-//         (5..=10, Style::new().fg(Color::Red)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
-//
-// //
-// //      ─────────────
-// //      x           y
-// // ──────────
-// // x'       y'
-// #[test]
-// fn change_mask_overlapping_7() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(4..=10, Style::new().fg(Color::Red));
-//     mask.add(0..=7, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=3, Style::new().bg(Color::Blue)),
-//         (4..=7, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (8..=10, Style::new().fg(Color::Red)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
-//
-// //
-// //      ─────────────
-// //      x           y
-// // ──────────────────
-// // x'               y'
-// #[test]
-// fn change_mask_overlapping_8() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(4..=10, Style::new().fg(Color::Red));
-//     mask.add(0..=10, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=3, Style::new().bg(Color::Blue)),
-//         (4..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
-//
-// //
-// //      ─────────────
-// //      x           y
-// // ──────────────────────
-// // x'                   y'
-// #[test]
-// fn change_mask_overlapping_9() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(4..=10, Style::new().fg(Color::Red));
-//     mask.add(0..=15, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (0..=3, Style::new().bg(Color::Blue)),
-//         (4..=10, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (11..=15, Style::new().bg(Color::Blue)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
-//
-// //
-// //      ─────────────
-// //      x           y
-// //         ─────
-// //         x'  y'
-// #[test]
-// fn change_mask_overlapping_10() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(4..=10, Style::new().fg(Color::Red));
-//     mask.add(7..=9, Style::new().bg(Color::Blue));
-//
-//     let result = vec![
-//         (4..=6, Style::new().fg(Color::Red)),
-//         (7..=9, Style::new().fg(Color::Red).bg(Color::Blue)),
-//         (10..=10, Style::new().fg(Color::Red)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
+// ii. y' > y
+// ──────────
+// x        y
+//          ──────────
+//          x'       y'
+#[test]
+fn mask_add_intersection_4ii() {
+    let mask = mask_to_vec(mask!(
+        0..=1 => Style::new().fg(Color::Red),
+        1..=2 => Style::new().bg(Color::Green),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red)),
+        (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+        (2..=2, Style::new().bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
 //
 // //  ───────     ─────
 // //  x''  y''    x'  y'
