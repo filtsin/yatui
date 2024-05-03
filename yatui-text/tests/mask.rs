@@ -348,72 +348,48 @@ fn mask_add_intersection_4ii() {
     assert_eq!(mask, result);
 }
 
-//
-// //  ───────     ─────
-// //  x''  y''    x'  y'
-// //  ───────────────────
-// //  x               y
-// #[test]
-// fn change_mask_overlapping_11() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(0..=3, Style::new().fg(Color::Red));
-//     mask.add(5..=10, Style::new().bg(Color::Red));
-//     mask.add(0..=12, Style::new().modifier(Modifier::BOLD));
-//
-//     let result = vec![
-//         (0..=3, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
-//         (4..=4, Style::new().modifier(Modifier::BOLD)),
-//         (5..=10, Style::new().bg(Color::Red).modifier(Modifier::BOLD)),
-//         (11..=12, Style::new().modifier(Modifier::BOLD)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
-//
-// //  ───────     ─────
-// //  x''  y''    x'  y'
-// //  ──────────────
-// //  x            y
-// #[test]
-// fn change_mask_overlapping_12() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(0..=3, Style::new().fg(Color::Red));
-//     mask.add(5..=10, Style::new().bg(Color::Red));
-//     mask.add(0..=8, Style::new().modifier(Modifier::BOLD));
-//
-//     let result = vec![
-//         (0..=3, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
-//         (4..=4, Style::new().modifier(Modifier::BOLD)),
-//         (5..=8, Style::new().bg(Color::Red).modifier(Modifier::BOLD)),
-//         (9..=10, Style::new().bg(Color::Red)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
-//
-// //  ───── ───── ─────
-// //  ──────────────
-// //  x            y
-// #[test]
-// fn change_mask_overlapping_13() {
-//     let mut mask = Mask::new();
-//
-//     mask.add(0..=3, Style::new().fg(Color::Red));
-//     mask.add(4..=7, Style::new().fg(Color::Green));
-//     mask.add(8..=10, Style::new().bg(Color::Red));
-//     mask.add(0..=8, Style::new().modifier(Modifier::BOLD));
-//
-//     let result = vec![
-//         (0..=3, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
-//         (4..=7, Style::new().fg(Color::Green).modifier(Modifier::BOLD)),
-//         (8..=8, Style::new().bg(Color::Red).modifier(Modifier::BOLD)),
-//         (9..=10, Style::new().bg(Color::Red)),
-//     ];
-//     let mask: Vec<_> = mask.into_iter().collect();
-//
-//     assert_eq!(mask, result);
-// }
+// ──────────  ──────────
+// x1      y1  x2       y2
+//      ──────────
+//      x'       y'
+#[test]
+fn mask_add_intersection_third_partial() {
+    let mask = mask_to_vec(mask!(
+        0..=2 => Style::new().fg(Color::Red),
+        4..=6 => Style::new().bg(Color::Green),
+        1..=5 => Style::new().modifier(Modifier::BOLD),
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().fg(Color::Red)),
+        (1..=2, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
+        (3..=3, Style::new().modifier(Modifier::BOLD)),
+        (4..=5, Style::new().bg(Color::Green).modifier(Modifier::BOLD)),
+        (6..=6, Style::new().bg(Color::Green)),
+    ];
+
+    assert_eq!(mask, result);
+}
+
+//     ──────────  ──────────
+//     x1      y1  x2       y2
+//   ────────────────────────────
+//   x'                         y'
+#[test]
+fn mask_add_intersection_third_full() {
+    let mask = mask_to_vec(mask!(
+        1..=2 => Style::new().fg(Color::Red),
+        4..=5 => Style::new().bg(Color::Green),
+        0..=6 => Style::new().modifier(Modifier::BOLD)
+    ));
+
+    let result = vec![
+        (0..=0, Style::new().modifier(Modifier::BOLD)),
+        (1..=2, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
+        (3..=3, Style::new().modifier(Modifier::BOLD)),
+        (4..=5, Style::new().bg(Color::Green).modifier(Modifier::BOLD)),
+        (6..=6, Style::new().modifier(Modifier::BOLD)),
+    ];
+
+    assert_eq!(mask, result);
+}
