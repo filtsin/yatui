@@ -131,7 +131,6 @@ impl RangeBounds<usize> for &IdxRange {
     }
 }
 
-/// It is not an public api. Do not use it
 #[doc(hidden)]
 impl btree_range_map::AsRange for IdxRange {
     type Item = usize;

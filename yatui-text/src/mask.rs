@@ -4,14 +4,18 @@ use btree_range_map::{
     AnyRange, DefaultMapContainer as MapSlab, RangeMap,
 };
 use std::{
+    borrow::Borrow,
     iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator},
+    num::NonZeroU8,
     ops::Index,
 };
 
 /// [`Mask`] saves [`styles`] for specified ranges of graphemes.
 ///
+/// TODO: Avoid memory allocation on empty mask
+///
 /// [`styles`]: Style
-#[derive(Debug, Clone, Default, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Mask {
     map: RangeMap<usize, Style>,
 }
@@ -42,16 +46,15 @@ pub struct IntoIter {
 }
 
 impl Mask {
-    /// Create empty `Mask`.
+    /// Create empty [`Mask`].
     pub fn new() -> Self {
-        Self::default()
+        // TODO: Replace RangeMap [maybe to Cow<Style>] to avoid memory allocation on empty mask
+        let mut map = RangeMap::new();
+        map.insert(0.., Style::default());
+        Self { map }
     }
 
     /// Add `style` for specified `range`. It merges all styles for overlapping ranges.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `start_bound` of range > `end_bound`
     ///
     /// # Examples
     ///
@@ -108,6 +111,12 @@ impl<R: Into<IdxRange>> FromIterator<(R, Style)> for Mask {
         let mut mask = Mask::default();
         mask.extend(iter);
         mask
+    }
+}
+
+impl Default for Mask {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,6 +1,8 @@
 use std::ops::RangeInclusive;
 
-use yatui_text::{mask, Color, IdxRange, Mask, Modifier, Style};
+use yatui_text::{mask, Color, Mask, Modifier, Style};
+
+const MAX: usize = usize::MAX;
 
 fn mask_to_vec(mask: Mask) -> Vec<(RangeInclusive<usize>, Style)> {
     mask.into_iter().map(|(range, style)| (range.start..=range.end, style)).collect()
@@ -53,6 +55,7 @@ fn mask_add_intersection_1i() {
         (0..=0, Style::new().bg(Color::Green)),
         (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
         (2..=2, Style::new().fg(Color::Red)),
+        (3..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -76,6 +79,7 @@ fn mask_add_intersection_1ii() {
         (0..=0, Style::new().bg(Color::Green)),
         (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
         (3..=3, Style::new().fg(Color::Red)),
+        (4..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -98,6 +102,7 @@ fn mask_add_intersection_1iii() {
     let result = vec![
         (0..=0, Style::new().bg(Color::Green)),
         (1..=3, Style::new().fg(Color::Red).bg(Color::Green)),
+        (4..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -121,6 +126,7 @@ fn mask_add_intersection_1iv() {
         (0..=0, Style::new().bg(Color::Green)),
         (1..=3, Style::new().fg(Color::Red).bg(Color::Green)),
         (4..=4, Style::new().bg(Color::Green)),
+        (5..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -144,6 +150,7 @@ fn mask_add_intersection_2i() {
     let result = vec![
         (0..=0, Style::new().fg(Color::Red).bg(Color::Green)),
         (1..=2, Style::new().fg(Color::Red)),
+        (3..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -166,6 +173,7 @@ fn mask_add_intersection_2ii() {
     let result = vec![
         (0..=1, Style::new().fg(Color::Red).bg(Color::Green)),
         (2..=2, Style::new().fg(Color::Red)),
+        (3..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -185,7 +193,8 @@ fn mask_add_intersection_2iii() {
         0..=1 => Style::new().bg(Color::Green),
     ));
 
-    let result = vec![(0..=1, Style::new().fg(Color::Red).bg(Color::Green))];
+    let result =
+        vec![(0..=1, Style::new().fg(Color::Red).bg(Color::Green)), (2..=MAX, Style::default())];
 
     assert_eq!(mask, result);
 }
@@ -207,6 +216,7 @@ fn mask_add_intersection_2iv() {
     let result = vec![
         (0..=1, Style::new().fg(Color::Red).bg(Color::Green)),
         (2..=2, Style::new().bg(Color::Green)),
+        (3..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -230,6 +240,7 @@ fn mask_add_intersection_3i() {
         (0..=0, Style::new().fg(Color::Red)),
         (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
         (2..=2, Style::new().fg(Color::Red)),
+        (3..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -252,6 +263,7 @@ fn mask_add_intersection_3ii() {
         (0..=0, Style::new().fg(Color::Red)),
         (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
         (3..=3, Style::new().fg(Color::Red)),
+        (4..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -274,6 +286,7 @@ fn mask_add_intersection_3iii() {
     let result = vec![
         (0..=0, Style::new().fg(Color::Red)),
         (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+        (3..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -297,6 +310,7 @@ fn mask_add_intersection_3iv() {
         (0..=0, Style::new().fg(Color::Red)),
         (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
         (3..=3, Style::new().bg(Color::Green)),
+        (4..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -320,6 +334,7 @@ fn mask_add_intersection_4i() {
     let result = vec![
         (0..=0, Style::new().fg(Color::Red)),
         (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+        (2..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -343,6 +358,7 @@ fn mask_add_intersection_4ii() {
         (0..=0, Style::new().fg(Color::Red)),
         (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
         (2..=2, Style::new().bg(Color::Green)),
+        (3..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -366,6 +382,7 @@ fn mask_add_intersection_third_partial() {
         (3..=3, Style::new().modifier(Modifier::BOLD)),
         (4..=5, Style::new().bg(Color::Green).modifier(Modifier::BOLD)),
         (6..=6, Style::new().bg(Color::Green)),
+        (7..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
@@ -389,6 +406,7 @@ fn mask_add_intersection_third_full() {
         (3..=3, Style::new().modifier(Modifier::BOLD)),
         (4..=5, Style::new().bg(Color::Green).modifier(Modifier::BOLD)),
         (6..=6, Style::new().modifier(Modifier::BOLD)),
+        (7..=MAX, Style::default()),
     ];
 
     assert_eq!(mask, result);
