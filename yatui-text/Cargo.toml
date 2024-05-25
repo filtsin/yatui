@@ -10,3 +10,7 @@ unicode-segmentation = "1.10"
 unicode-width = "0.1"
 bitflags = "2.4"
 btree-range-map = "0.7"
+
+[dev-dependencies]
+rstest = "0.19"
+pretty_assertions = "1.4"

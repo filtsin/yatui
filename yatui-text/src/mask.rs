@@ -14,6 +14,7 @@ use std::{
 ///
 /// TODO: Avoid memory allocation on empty mask
 ///
+///
 /// [`styles`]: Style
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Mask {
@@ -48,13 +49,13 @@ pub struct IntoIter {
 impl Mask {
     /// Create empty [`Mask`].
     pub fn new() -> Self {
-        // TODO: Replace RangeMap [maybe to Cow<Style>] to avoid memory allocation on empty mask
+        // TODO: Replace RangeMap to avoid memory allocation on empty mask
         let mut map = RangeMap::new();
         map.insert(0.., Style::default());
         Self { map }
     }
 
-    /// Add `style` for specified `range`. It merges all styles for overlapping ranges.
+    /// Add `style` for specified `range`. Merges all styles for intersecting ranges.
     ///
     /// # Examples
     ///
@@ -75,6 +76,8 @@ impl Mask {
 
     /// Insert tuple of [`IdxRange`] and [`Style`] into `Mask`. Iternally it calls [`add`] method.
     /// See its documentation for more.
+    ///
+    /// // TODO: Doc use case with iterators
     ///
     /// [`add`]: Mask::add
     pub fn insert(&mut self, (range, style): (IdxRange, Style)) {
@@ -101,7 +104,7 @@ impl<R: Into<IdxRange>> Extend<(R, Style)> for Mask {
 impl<'a, R: Into<IdxRange>> Extend<(R, &'a Style)> for Mask {
     fn extend<T: IntoIterator<Item = (R, &'a Style)>>(&mut self, iter: T) {
         for (range, style) in iter.into_iter() {
-            self.add(range.into(), style.clone())
+            self.add(range.into(), *style)
         }
     }
 }
@@ -249,4 +252,302 @@ macro_rules! mask {
         )*
         mask
     }};
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{mask, Color, Modifier};
+    use pretty_assertions::assert_eq;
+    use rstest::rstest;
+    use std::ops::RangeInclusive;
+
+    const MAX: usize = usize::MAX;
+
+    #[rstest]
+    #[case::non_intersecting(
+        mask!(
+            ..2 => Style::new().fg(Color::Red),
+            2..5 => Style::new().fg(Color::Blue),
+            5..=6 => Style::new().fg(Color::Green),
+            7.. => Style::new().fg(Color::Yellow),
+        ),
+        vec![
+            (0..=1, Style::new().fg(Color::Red)),
+            (2..=4, Style::new().fg(Color::Blue)),
+            (5..=6, Style::new().fg(Color::Green)),
+            (7..=MAX, Style::new().fg(Color::Yellow)),
+        ]
+    )]
+    //   ───
+    //   1 2
+    // ───
+    // 0 1
+    #[case::intersecting_before_left_to_left_point(
+        mask!(
+            1..=2 => Style::new().fg(Color::Red),
+            0..=1 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().bg(Color::Green)),
+            (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+            (2..=2, Style::new().fg(Color::Red)),
+            (3..=MAX, Style::default()),
+        ]
+    )]
+    //   ─────
+    //   1   3
+    // ─────
+    // 0   2
+    #[case::intersecting_before_left_to_middle_point(
+        mask!(
+            1..=3 => Style::new().fg(Color::Red),
+            0..=2 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().bg(Color::Green)),
+            (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+            (3..=3, Style::new().fg(Color::Red)),
+            (4..=MAX, Style::default()),
+        ]
+    )]
+    //   ─────
+    //   1   3
+    // ───────
+    // 0     3
+    #[case::intersecting_before_left_to_right_point(
+        mask!(
+            1..=3 => Style::new().fg(Color::Red),
+            0..=3 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().bg(Color::Green)),
+            (1..=3, Style::new().fg(Color::Red).bg(Color::Green)),
+            (4..=MAX, Style::default()),
+        ]
+    )]
+    //   ─────
+    //   1   3
+    // ─────────
+    // 0       4
+    #[case::intersecting_before_left_to_after_right_point(
+        mask!(
+            1..=3 => Style::new().fg(Color::Red),
+            0..=4 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().bg(Color::Green)),
+            (1..=3, Style::new().fg(Color::Red).bg(Color::Green)),
+            (4..=4, Style::new().bg(Color::Green)),
+            (5..=MAX, Style::default()),
+        ]
+    )]
+    // ─────
+    // 0   2
+    // •
+    // 0
+    #[case::intersecting_left_single_point(
+        mask!(
+            0..=2 => Style::new().fg(Color::Red),
+            0..=0 => Style::new().bg(Color::Green)
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red).bg(Color::Green)),
+            (1..=2, Style::new().fg(Color::Red)),
+            (3..=MAX, Style::default()),
+        ]
+    )]
+    // ─────
+    // 0   2
+    // ───
+    // 0 1
+    #[case::intersecting_left_to_middle_point(
+        mask!(
+            0..=2 => Style::new().fg(Color::Red),
+            0..=1 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+            (2..=2, Style::new().fg(Color::Red)),
+            (3..=MAX, Style::default()),
+        ]
+    )]
+    // ───
+    // 0 1
+    // ───
+    // 0 1
+    #[case::intersecting_left_to_right_point(
+        mask!(
+            0..=1 => Style::new().fg(Color::Red),
+            0..=1 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+            (2..=MAX, Style::default())
+        ]
+    )]
+    // ───
+    // 0 1
+    // ─────
+    // 0   2
+    #[case::intersecting_left_to_after_right_point(
+        mask!(
+            0..=1 => Style::new().fg(Color::Red),
+            0..=2 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+            (2..=2, Style::new().bg(Color::Green)),
+            (3..=MAX, Style::default()),
+        ]
+    )]
+    // ─────
+    // 0   2
+    //   •
+    //   1
+    #[case::intersecting_middle_single_point(
+        mask!(
+            0..=2 => Style::new().fg(Color::Red),
+            1..=1 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red)),
+            (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+            (2..=2, Style::new().fg(Color::Red)),
+            (3..=MAX, Style::default()),
+        ]
+    )]
+    // ───────
+    // 0     3
+    //   ───
+    //   1 2
+    #[case::intersecting_middle_to_middle_point(
+        mask!(
+            0..=3 => Style::new().fg(Color::Red),
+            1..=2 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red)),
+            (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+            (3..=3, Style::new().fg(Color::Red)),
+            (4..=MAX, Style::default()),
+        ]
+    )]
+    // ─────
+    // 0   2
+    //   ───
+    //   1 2
+    #[case::intersecting_middle_to_right_point(
+        mask!(
+            0..=2 => Style::new().fg(Color::Red),
+            1..=2 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red)),
+            (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+            (3..=MAX, Style::default()),
+        ]
+    )]
+    // ─────
+    // 0   2
+    //   ─────
+    //   1   3
+    #[case::intersecting_middle_to_after_right_point(
+        mask!(
+            0..=2 => Style::new().fg(Color::Red),
+            1..=3 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red)),
+            (1..=2, Style::new().fg(Color::Red).bg(Color::Green)),
+            (3..=3, Style::new().bg(Color::Green)),
+            (4..=MAX, Style::default()),
+        ]
+    )]
+    // ───
+    // 0 1
+    //   •
+    //   1
+    #[case::intersecting_right_single_point(
+        mask!(
+            0..=1 => Style::new().fg(Color::Red),
+            1..=1 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red)),
+            (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+            (2..=MAX, Style::default()),
+        ]
+    )]
+    // ───
+    // 0 1
+    //   ───
+    //   1 2
+    #[case::intersecting_right_to_after_right_point(
+        mask!(
+            0..=1 => Style::new().fg(Color::Red),
+            1..=2 => Style::new().bg(Color::Green),
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red)),
+            (1..=1, Style::new().fg(Color::Red).bg(Color::Green)),
+            (2..=2, Style::new().bg(Color::Green)),
+            (3..=MAX, Style::default()),
+        ]
+    )]
+    // ─────   ─────
+    // 0   2   4   6
+    //   ─────────
+    //   1       5
+    #[case::intersecting_two_ranges_with_smaller(
+        mask!(
+            0..=2 => Style::new().fg(Color::Red),
+            4..=6 => Style::new().bg(Color::Green),
+            1..=5 => Style::new().modifier(Modifier::BOLD),
+        ),
+        vec![
+            (0..=0, Style::new().fg(Color::Red)),
+            (1..=2, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
+            (3..=3, Style::new().modifier(Modifier::BOLD)),
+            (4..=5, Style::new().bg(Color::Green).modifier(Modifier::BOLD)),
+            (6..=6, Style::new().bg(Color::Green)),
+            (7..=MAX, Style::default()),
+        ]
+    )]
+    //   ───   ───
+    //   1 2   4 5
+    // ─────────────
+    // 0           6
+    #[case::intersecting_two_ranges_with_bigger(
+        mask!(
+            1..=2 => Style::new().fg(Color::Red),
+            4..=5 => Style::new().bg(Color::Green),
+            0..=6 => Style::new().modifier(Modifier::BOLD)
+        ),
+        vec![
+            (0..=0, Style::new().modifier(Modifier::BOLD)),
+            (1..=2, Style::new().fg(Color::Red).modifier(Modifier::BOLD)),
+            (3..=3, Style::new().modifier(Modifier::BOLD)),
+            (4..=5, Style::new().bg(Color::Green).modifier(Modifier::BOLD)),
+            (6..=6, Style::new().modifier(Modifier::BOLD)),
+            (7..=MAX, Style::default()),
+        ]
+    )]
+    fn multiple_styles_in_mask(
+        #[case] mask: Mask,
+        #[case] expected: Vec<(RangeInclusive<usize>, Style)>,
+    ) {
+        let mask_vec: Vec<_> =
+            mask.into_iter().map(|(range, style)| (range.start..=range.end, style)).collect();
+        assert_eq!(mask_vec, expected);
+    }
+
+    #[test]
+    fn index_mask() {
+        let mask: Mask = [(0..=1, Style::new().fg(Color::Red))].into();
+
+        assert_eq!(mask[0], mask[1]);
+        assert_eq!(mask[0], Style::new().fg(Color::Red));
+        assert_eq!(mask[2], Style::default());
+    }
 }

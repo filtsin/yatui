@@ -5,7 +5,7 @@ use std::{
 };
 
 /// Wrapper about inclusive range \[`start`;`end`\]. `IdxRange` used by [`Mask`] to specify
-/// a range of graphemes indexes. `IdxRange` can be constructed from any range from std library.
+/// a range of graphemes indexes. `IdxRange` can be constructed from any range of std library.
 ///
 /// [`Mask`]: crate::Mask
 #[derive(Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Clone, Copy)]
@@ -40,10 +40,11 @@ impl IdxRange {
     /// ```
     /// # use yatui_text::IdxRange;
     /// # use std::ops::Bound;
-    /// assert_eq!(IdxRange::from_bounds((Bound::Included(0), Bound::Excluded(2))),
-    ///            IdxRange::new(0, 1));
+    /// assert_eq!(
+    ///     IdxRange::from_bounds((Bound::Included(0), Bound::Excluded(2))),
+    ///     IdxRange::new(0, 1)
+    /// );
     /// ```
-    ///
     pub fn from_bounds(range: impl RangeBounds<usize>) -> Self {
         utils::range_bounds_to_idx_range(range)
     }
@@ -57,6 +58,9 @@ impl IdxRange {
     /// assert!(IdxRange::new(0, 1).contains(1));
     /// assert!(IdxRange::new(0, 3).contains(2));
     /// assert!(!IdxRange::new(0, 3).contains(4));
+    ///
+    /// // Empty range does not contain any value
+    /// assert!(!IdxRange::new(5, 1).contains(4));
     /// ```
     pub const fn contains(&self, idx: usize) -> bool {
         self.start <= idx && idx <= self.end
@@ -97,11 +101,7 @@ impl IdxRange {
     /// assert_eq!(IdxRange::new(1, 0).len(), 0);
     /// ```
     pub const fn len(&self) -> usize {
-        if self.is_empty() {
-            0
-        } else {
-            self.end - self.start + 1
-        }
+        if self.is_empty() { 0 } else { self.end - self.start + 1 }
     }
 }
 
@@ -234,6 +234,7 @@ mod utils {
         }
 
         #[test]
+        #[allow(clippy::reversed_empty_ranges)]
         fn bound_to_inclusive_without_overflow_decreasing() {
             assert_eq!(range_bounds_to_idx_range((Excluded(5), Excluded(1))), 4..=2);
             assert_eq!(range_bounds_to_idx_range((Included(5), Excluded(1))), 5..=2);
