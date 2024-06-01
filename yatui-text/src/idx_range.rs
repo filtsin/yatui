@@ -32,7 +32,6 @@ impl IdxRange {
     /// # Panics
     ///
     /// Panics if overflow happened on calculation `start` or `end` for [`Excluded`] bounds.
-    /// Panics if both ends are [`Excluded`] and equal.
     ///
     /// [`Excluded`]: Bound::Excluded
     ///
@@ -47,38 +46,20 @@ impl IdxRange {
     /// );
     /// ```
     pub fn from_bounds(range: impl RangeBounds<usize>) -> Self {
-        fn try_bound_to_usize(bound: Bound<&usize>) -> Option<usize> {
-            match bound {
-                Bound::Included(&v) | Bound::Excluded(&v) => Some(v),
-                Bound::Unbounded => None,
-            }
-        }
-
-        match (range.start_bound(), range.end_bound()) {
-            #[cold]
-            (Bound::Excluded(s), Bound::Excluded(e)) if s == e => {
-                panic!("Can't construct IdxRange from Excluded and equal bounds: {s} = {e}")
-            }
-            _ => {}
-        }
-
-        let start = try_bound_to_usize(range.start_bound()).unwrap_or(0);
-        let end = try_bound_to_usize(range.end_bound()).unwrap_or(usize::MAX);
-
         let start = match range.start_bound() {
-            Bound::Excluded(s) => {
-                if start <= end { start.checked_add(1) } else { start.checked_sub(1) }
-                    .expect("There is no support for excluded and overflowed start_bound")
-            }
-            _ => start,
+            Bound::Included(s) => *s,
+            Bound::Excluded(s) => s
+                .checked_add(1)
+                .expect("There is no support for excluded and overflowed start_bound"),
+            Bound::Unbounded => 0,
         };
 
         let end = match range.end_bound() {
-            Bound::Excluded(_) => {
-                if start <= end { end.checked_sub(1) } else { end.checked_add(1) }
-                    .expect("There is no support for excluded and overflowed end_bound")
+            Bound::Included(s) => *s,
+            Bound::Excluded(s) => {
+                s.checked_sub(1).expect("There is no support for excluded and overflowed end_bound")
             }
-            _ => end,
+            Bound::Unbounded => usize::MAX,
         };
 
         IdxRange::new(start, end)
@@ -179,6 +160,13 @@ impl btree_range_map::AsRange for IdxRange {
     }
 }
 
+#[doc(hidden)]
+impl btree_range_map::IntoRange for IdxRange {
+    fn into_range(self) -> btree_range_map::AnyRange<Self::Item> {
+        btree_range_map::AnyRange::from(self)
+    }
+}
+
 impl IntoIterator for IdxRange {
     type Item = usize;
     type IntoIter = RangeInclusive<usize>;
@@ -229,7 +217,7 @@ mod tests {
 
     #[rstest]
     #[case::std_range_increasing(IdxRange::from(1..3), IdxRange::new(1, 2))]
-    #[case::std_range_decreasing(IdxRange::from(3..1), IdxRange::new(3, 2))]
+    #[case::std_range_decreasing(IdxRange::from(3..1), IdxRange::new(3, 0))]
     #[case::std_range_from(IdxRange::from(1..), IdxRange::new(1, usize::MAX))]
     #[case::std_range_full(IdxRange::from(..), IdxRange::new(0, usize::MAX))]
     #[case::std_range_inclusive_increasing(IdxRange::from(1..=3), IdxRange::new(1, 3))]
@@ -242,7 +230,7 @@ mod tests {
     ]
     #[case::excluded_start_decreasing(
         IdxRange::from_bounds((Excluded(3), Included(1))),
-        IdxRange::new(2, 1))
+        IdxRange::new(4, 1))
     ]
     #[case::excluded_both_ends(
         IdxRange::from_bounds((Excluded(1), Excluded(2))),

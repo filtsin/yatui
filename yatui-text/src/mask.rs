@@ -64,6 +64,7 @@ impl Mask {
     /// let mut mask = Mask::new();
     /// mask.add(0..=1, Style::new().fg(Color::Yellow));
     /// mask.add(0..2, Style::new().bg(Color::Green));
+    /// //TODO: Check
     /// ```
     pub fn add(&mut self, range: impl Into<IdxRange>, style: Style) {
         self.map.update(range.into(), |styles| {
@@ -72,6 +73,21 @@ impl Mask {
                 None => style,
             })
         })
+    }
+
+    /// Replace `style` for specified `range`. All styles in the `range` are erased before
+    /// insert the new `style`. If you wan't to save existed styles, try to use [`add`] method.
+    ///
+    /// # Examples
+    /// TODO
+    ///
+    /// ```
+    /// # use yatui_text::{Mask, Style, Color};
+    /// ```
+    ///
+    /// [`add`]: Self::add
+    pub fn replace(&mut self, range: impl Into<IdxRange>, style: Style) {
+        self.map.insert(range.into(), style);
     }
 
     /// Insert tuple of [`IdxRange`] and [`Style`] into `Mask`. Iternally it calls [`add`] method.
@@ -83,6 +99,12 @@ impl Mask {
     pub fn insert(&mut self, (range, style): (IdxRange, Style)) {
         self.add(range, style)
     }
+
+    /// Remove styles for specified `range`. Internally it calls [`reset`] with [`default`] styles.
+    ///
+    /// [`reset`]: Self::replace
+    /// [`default`]: crate::Color::default
+    pub fn remove(&mut self, range: impl Into<IdxRange>) {}
 
     /// Gets an iterator over all pairs of ranges and their styles. It returns non intersecting
     /// ranges in ascending order with style info.
