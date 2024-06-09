@@ -1,8 +1,11 @@
-use crate::{IdxRange, Style};
+mod idx_range;
+
+use crate::Style;
 use btree_range_map::{
     generic::map::{IntoIter as MapIntoIter, Iter as MapIter},
     AnyRange, DefaultMapContainer as MapSlab, RangeMap,
 };
+pub use idx_range::IdxRange;
 use std::{
     borrow::Borrow,
     iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator},
