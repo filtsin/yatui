@@ -149,3 +149,14 @@ impl Style {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_style_sizeof() {
+        assert_eq!(std::mem::size_of::<Color>(), 4);
+        assert_eq!(std::mem::size_of::<Style>(), 10);
+    }
+}

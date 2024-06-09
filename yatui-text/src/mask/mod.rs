@@ -1,3 +1,4 @@
+mod cow;
 mod idx_range;
 
 use crate::Style;
