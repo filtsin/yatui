@@ -119,6 +119,11 @@ impl IdxRange {
     pub const fn len(&self) -> usize {
         if self.is_empty() { 0 } else { self.end - self.start + 1 }
     }
+
+    /// Returns `true` if `self` contains all values in `[0; usize::MAX]`.
+    pub const fn is_full(&self) -> bool {
+        self.start == 0 && self.end == usize::MAX
+    }
 }
 
 impl Display for IdxRange {

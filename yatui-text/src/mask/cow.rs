@@ -1,3 +1,5 @@
+use std::{iter::FusedIterator, ops::RangeBounds};
+
 use btree_range_map::{
     generic::map::{IntoIter, Iter},
     AnyRange, DefaultMapContainer, RangeMap,
@@ -5,27 +7,28 @@ use btree_range_map::{
 
 use crate::{IdxRange, Style};
 
-/// It is a smart variant for `Mask` content.
+/// It is a smart enum for `Mask` content.
 /// Simply, it has two options:
 /// 1. Single - Single style for one unbounded range (.. from std).
 /// 2. Multiple - Multiple styles for different ranges.
-/// The type is designed to avoid memory allocation for the most common case when all Text's
-/// graphemes should have single style.
-/// When mutation of styles needed, it convert `Single` variant to `Multiple` (like std::Cow).
-#[derive(Clone, Eq, PartialEq, Hash)]
+/// The struct is designed to avoid memory allocation for the most common case when all Text's
+/// graphemes should have single style (Also default mask also have single style Style::default).
+/// When mutation of styles needed, it converts `Single` variant to `Multiple` (like std::Cow).
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub(super) enum Cow {
     Single(Style),
     Multiple(RangeMap<usize, Style>),
 }
 
-pub(super) enum CowIter<'a> {
-    Single(Option<Style>),
-    Multiple(Iter<'a, usize, Style, DefaultMapContainer<usize, Style>>),
-}
+pub(super) type CowIter<'a> =
+    CowIterCommon<Iter<'a, usize, Style, DefaultMapContainer<usize, Style>>>;
+
+pub(super) type CowIntoIter =
+    CowIterCommon<IntoIter<usize, Style, DefaultMapContainer<usize, Style>>>;
 
 impl Cow {
     pub(super) fn new() -> Self {
-        Self::default()
+        Self::Single(Style::default())
     }
 
     pub(super) fn to_mut(&mut self) -> &mut RangeMap<usize, Style> {
@@ -41,6 +44,30 @@ impl Cow {
         }
     }
 
+    pub(super) fn add_style(&mut self, range: impl Into<IdxRange>, style: Style) {
+        let range = range.into();
+        match self {
+            Cow::Single(s) if range.is_full() => {
+                *s = style;
+            }
+            _ => self.to_mut().insert(range, style),
+        }
+    }
+
+    pub(super) fn iter(&self) -> CowIter<'_> {
+        match self {
+            Cow::Single(s) => CowIter::Single(Some(*s)),
+            Cow::Multiple(m) => CowIter::Multiple(m.iter()),
+        }
+    }
+
+    pub(super) fn into_iter(self) -> CowIntoIter {
+        match self {
+            Cow::Single(s) => CowIntoIter::Single(Some(s)),
+            Cow::Multiple(m) => CowIntoIter::Multiple(m.into_iter()),
+        }
+    }
+
     /// Returns `true` if it had allocated memory.
     pub(super) fn is_owned(&self) -> bool {
         match *self {
@@ -50,19 +77,144 @@ impl Cow {
     }
 }
 
-// impl CowIter {
-//     fn consume_single(&mut self) -> Option<<Self as Iterator>::Item> {
-//         let Self::Single(style) = self else { unreachable!() };
-//         style.take().map(|style| (IdxRange::from(..), style))
-//     }
-// }
-
-fn convert_any_range_to_idx_range<S>((range, style): (AnyRange<usize>, S)) -> (IdxRange, S) {
-    (IdxRange::from_bounds(range), style)
-}
-
 impl Default for Cow {
     fn default() -> Self {
-        Self::Single(Style::default())
+        Self::new()
+    }
+}
+
+// Common iterator type for owned and borrowed iterator type of btree_range_map::RangeMap
+pub(super) enum CowIterCommon<I> {
+    Single(Option<Style>),
+    Multiple(I),
+}
+
+fn map_multiple_item(
+    (range, style): (impl RangeBounds<usize>, impl Into<Style>),
+) -> (IdxRange, Style) {
+    (IdxRange::from_bounds(range), style.into())
+}
+
+impl<I, R, S> Iterator for CowIterCommon<I>
+where
+    I: Iterator<Item = (R, S)>,
+    R: RangeBounds<usize>,
+    S: Into<Style>,
+{
+    type Item = (IdxRange, Style);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            CowIterCommon::Single(s) => s.take().map(|style| (IdxRange::from_bounds(..), style)),
+            CowIterCommon::Multiple(m) => m.next().map(map_multiple_item),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            CowIterCommon::Single(s) if s.is_some() => (1, Some(1)),
+            CowIterCommon::Single(_) => (0, Some(0)),
+            CowIterCommon::Multiple(m) => m.size_hint(),
+        }
+    }
+}
+
+impl<I, R, S> DoubleEndedIterator for CowIterCommon<I>
+where
+    I: DoubleEndedIterator<Item = (R, S)>,
+    R: RangeBounds<usize>,
+    S: Into<Style>,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self {
+            CowIterCommon::Single(_) => self.next(),
+            CowIterCommon::Multiple(m) => m.next_back().map(map_multiple_item),
+        }
+    }
+}
+
+impl<I, R, S> ExactSizeIterator for CowIterCommon<I>
+where
+    I: Iterator<Item = (R, S)> + ExactSizeIterator,
+    R: RangeBounds<usize>,
+    S: Into<Style>,
+{
+}
+
+impl<I, R, S> FusedIterator for CowIterCommon<I>
+where
+    I: Iterator<Item = (R, S)> + FusedIterator,
+    R: RangeBounds<usize>,
+    S: Into<Style>,
+{
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Color;
+    use rstest::rstest;
+
+    // No macro in btree_range_map crate :(
+    macro_rules! range_map {
+        ($($range:expr => $style:expr),+ ,) => {{
+            let mut map = RangeMap::new();
+            $(
+                map.insert($range, $style);
+            )*
+            map
+        }}
+    }
+
+    #[test]
+    fn single_cow_is_not_owned() {
+        assert_eq!(Cow::default(), Cow::Single(Style::default()));
+        assert!(!Cow::default().is_owned());
+        assert!(!Cow::Single(Style::new().fg(Color::Green)).is_owned());
+    }
+
+    #[test]
+    fn multiple_cow_is_owned() {
+        assert!(Cow::Multiple(RangeMap::new()).is_owned());
+    }
+
+    #[test]
+    fn cow_single_to_mut() {
+        let mut cow = Cow::Single(Style::new().fg(Color::Red));
+        cow.to_mut();
+        assert_eq!(cow, Cow::Multiple(range_map!(0..=usize::MAX => Style::new().fg(Color::Red),)));
+    }
+
+    #[rstest]
+    #[case::full_single(
+        vec![(IdxRange::from(..), Style::new().fg(Color::Red))],
+        Cow::Single(Style::new().fg(Color::Red))
+    )]
+    #[case::partial_single(
+        vec![(IdxRange::from(5..), Style::new().fg(Color::Red))],
+        Cow::Multiple(range_map!(
+            0..=4 => Style::default(),
+            5.. => Style::new().fg(Color::Red),
+        ))
+    )]
+    #[case::multiple_styles(
+        vec![
+            (IdxRange::from(1..=2), Style::new().fg(Color::Red)),
+            (IdxRange::from(6..=8), Style::new().fg(Color::Green))
+        ],
+        Cow::Multiple(range_map!(
+            0..=0 => Style::default(),
+            1..=2 => Style::new().fg(Color::Red),
+            3..6 => Style::default(),
+            6..=8 => Style::new().fg(Color::Green),
+            9.. => Style::default(),
+        ))
+    )]
+    fn cow_add_styles(#[case] styles: Vec<(IdxRange, Style)>, #[case] expected: Cow) {
+        let mut cow = Cow::default();
+        for (range, style) in styles {
+            cow.add_style(range, style);
+        }
+        assert_eq!(cow, expected);
     }
 }
