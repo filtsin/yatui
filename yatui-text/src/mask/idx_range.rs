@@ -211,8 +211,22 @@ impl_traits_std_range!([
     std::ops::RangeFull,
     std::ops::RangeInclusive<usize>,
     std::ops::RangeTo<usize>,
-    std::ops::RangeToInclusive<usize>
+    std::ops::RangeToInclusive<usize>,
 ]);
+
+#[doc(hidden)]
+impl From<btree_range_map::AnyRange<usize>> for IdxRange {
+    fn from(value: btree_range_map::AnyRange<usize>) -> Self {
+        Self::from_bounds(value)
+    }
+}
+
+#[doc(hidden)]
+impl From<&btree_range_map::AnyRange<usize>> for IdxRange {
+    fn from(value: &btree_range_map::AnyRange<usize>) -> Self {
+        Self::from_bounds(*value)
+    }
+}
 
 #[cfg(test)]
 mod tests {

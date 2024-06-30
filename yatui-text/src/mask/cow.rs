@@ -21,10 +21,10 @@ pub(super) enum Cow {
 }
 
 pub(super) type CowIter<'a> =
-    CowIterCommon<Iter<'a, usize, Style, DefaultMapContainer<usize, Style>>>;
+    CowIterCommon<&'a Style, Iter<'a, usize, Style, DefaultMapContainer<usize, Style>>>;
 
 pub(super) type CowIntoIter =
-    CowIterCommon<IntoIter<usize, Style, DefaultMapContainer<usize, Style>>>;
+    CowIterCommon<Style, IntoIter<usize, Style, DefaultMapContainer<usize, Style>>>;
 
 impl Cow {
     pub(super) fn new() -> Self {
@@ -50,13 +50,28 @@ impl Cow {
             Cow::Single(s) if range.is_full() => {
                 *s = style;
             }
+            _ => self.to_mut().update(range, |styles| {
+                Some(match styles {
+                    Some(cur_style) => cur_style.merge(style),
+                    None => style,
+                })
+            }),
+        }
+    }
+
+    pub(super) fn replace_style(&mut self, range: impl Into<IdxRange>, style: Style) {
+        let range = range.into();
+        match self {
+            Cow::Single(s) if range.is_full() => {
+                *s = style;
+            }
             _ => self.to_mut().insert(range, style),
         }
     }
 
     pub(super) fn iter(&self) -> CowIter<'_> {
         match self {
-            Cow::Single(s) => CowIter::Single(Some(*s)),
+            Cow::Single(s) => CowIter::Single(Some(s)),
             Cow::Multiple(m) => CowIter::Multiple(m.iter()),
         }
     }
@@ -83,25 +98,24 @@ impl Default for Cow {
     }
 }
 
-// Common iterator type for owned and borrowed iterator type of btree_range_map::RangeMap
-pub(super) enum CowIterCommon<I> {
-    Single(Option<Style>),
+// Common iterator type for cow for owned and borrowed types
+// S - it is style type: owned (Style) or borrowed (&Style)
+// I - it is iterator of btree_range_map dependency: owned (IntoIter) or borrowed (Iter)
+pub(super) enum CowIterCommon<S, I> {
+    Single(Option<S>),
     Multiple(I),
 }
 
-fn map_multiple_item(
-    (range, style): (impl RangeBounds<usize>, impl Into<Style>),
-) -> (IdxRange, Style) {
-    (IdxRange::from_bounds(range), style.into())
+fn map_multiple_item<S>((range, style): (impl Into<IdxRange>, S)) -> (IdxRange, S) {
+    (range.into(), style)
 }
 
-impl<I, R, S> Iterator for CowIterCommon<I>
+impl<I, R, S> Iterator for CowIterCommon<S, I>
 where
     I: Iterator<Item = (R, S)>,
-    R: RangeBounds<usize>,
-    S: Into<Style>,
+    R: Into<IdxRange>,
 {
-    type Item = (IdxRange, Style);
+    type Item = (IdxRange, S);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -119,11 +133,10 @@ where
     }
 }
 
-impl<I, R, S> DoubleEndedIterator for CowIterCommon<I>
+impl<I, R, S> DoubleEndedIterator for CowIterCommon<S, I>
 where
     I: DoubleEndedIterator<Item = (R, S)>,
-    R: RangeBounds<usize>,
-    S: Into<Style>,
+    R: Into<IdxRange>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         match self {
@@ -133,19 +146,17 @@ where
     }
 }
 
-impl<I, R, S> ExactSizeIterator for CowIterCommon<I>
+impl<I, R, S> ExactSizeIterator for CowIterCommon<S, I>
 where
     I: Iterator<Item = (R, S)> + ExactSizeIterator,
-    R: RangeBounds<usize>,
-    S: Into<Style>,
+    R: Into<IdxRange>,
 {
 }
 
-impl<I, R, S> FusedIterator for CowIterCommon<I>
+impl<I, R, S> FusedIterator for CowIterCommon<S, I>
 where
     I: Iterator<Item = (R, S)> + FusedIterator,
-    R: RangeBounds<usize>,
-    S: Into<Style>,
+    R: Into<IdxRange>,
 {
 }
 
@@ -187,11 +198,15 @@ mod tests {
 
     #[rstest]
     #[case::full_single(
-        vec![(IdxRange::from(..), Style::new().fg(Color::Red))],
+        vec![
+            (IdxRange::from(..), Style::new().fg(Color::Red))
+        ],
         Cow::Single(Style::new().fg(Color::Red))
     )]
     #[case::partial_single(
-        vec![(IdxRange::from(5..), Style::new().fg(Color::Red))],
+        vec![
+            (IdxRange::from(5..), Style::new().fg(Color::Red))
+        ],
         Cow::Multiple(range_map!(
             0..=4 => Style::default(),
             5.. => Style::new().fg(Color::Red),
@@ -216,5 +231,21 @@ mod tests {
             cow.add_style(range, style);
         }
         assert_eq!(cow, expected);
+    }
+
+    #[test]
+    fn cow_check_iter_traits() {
+        fn check_iter<I, S>(i: I)
+        where
+            I: Iterator<Item = (IdxRange, S)>
+                + DoubleEndedIterator<Item = (IdxRange, S)>
+                + FusedIterator
+                + ExactSizeIterator,
+        {
+        }
+
+        let cow = Cow::default();
+        check_iter(cow.iter());
+        check_iter(cow.into_iter());
     }
 }
