@@ -25,7 +25,7 @@ pub(super) struct Raw {
 /// 3) Why cache `graphemes`? For `DoubleEndedIterator` by graphemes :)
 ///
 /// ```text
-///
+/// 
 /// 1\n2 - 2 lines
 /// 1\n2\r\n3 - 3 lines
 /// 1\n2\r\n3\n - 3 lines too
@@ -132,7 +132,7 @@ mod tests {
         let control_string = "\n";
         let one_unicode_point_string = "\u{00fd}"; // it is Latin Small Letter Y with Acute "ý"
         let two_unicode_point_string = "y\u{0301}"; // it is Latin Small Letter Y with Combining
-                                                    // Acute Accent "◌́"
+        // Acute Accent "◌́"
 
         assert_eq!(Size::compute(empty_string), Size { width: 0, height: 0, graphemes: 0 });
         assert_eq!(Size::compute(ascii_string), Size { width: 1, height: 1, graphemes: 1 });

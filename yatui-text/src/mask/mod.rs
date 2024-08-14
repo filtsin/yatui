@@ -6,23 +6,22 @@ use btree_range_map::{
     generic::map::{IntoIter as MapIntoIter, Iter as MapIter},
     AnyRange, DefaultMapContainer as MapSlab, RangeMap,
 };
+use cow::Cow;
 pub use idx_range::IdxRange;
 use std::{
     borrow::Borrow,
     iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator},
-    num::NonZeroU8,
-    ops::Index,
+    ops::{Index, RangeInclusive},
 };
+
+use self::cow::{CowIntoIter, CowIter};
 
 /// [`Mask`] saves [`styles`] for specified ranges of graphemes.
 ///
-/// TODO: Avoid memory allocation on empty mask
-///
-///
 /// [`styles`]: Style
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Mask {
-    map: RangeMap<usize, Style>,
+    cow: Cow,
 }
 
 /// An iterator over the items of [`Mask`].
@@ -35,7 +34,7 @@ pub struct Mask {
 /// [`iter`]: Mask::iter
 #[must_use = "Iterators are lazy and do nothing unless consumed"]
 pub struct Iter<'a> {
-    inner: MapIter<'a, usize, Style, MapSlab<usize, Style>>,
+    inner: CowIter<'a>,
 }
 
 /// An owning iterator over the items of [`Mask`].
@@ -47,16 +46,13 @@ pub struct Iter<'a> {
 /// [`into_iter`]: IntoIterator::into_iter
 #[must_use = "Iterators are lazy and do nothing unless consumed"]
 pub struct IntoIter {
-    inner: MapIntoIter<usize, Style, MapSlab<usize, Style>>,
+    inner: CowIntoIter,
 }
 
 impl Mask {
     /// Create empty [`Mask`].
     pub fn new() -> Self {
-        // TODO: Replace RangeMap to avoid memory allocation on empty mask
-        let mut map = RangeMap::new();
-        map.insert(0.., Style::default());
-        Self { map }
+        Self::default()
     }
 
     /// Add `style` for specified `range`. Merges all styles for intersecting ranges.
@@ -68,54 +64,54 @@ impl Mask {
     /// let mut mask = Mask::new();
     /// mask.add(0..=1, Style::new().fg(Color::Yellow));
     /// mask.add(0..2, Style::new().bg(Color::Green));
-    /// //TODO: Check
+    /// assert_eq!(mask[0], Style::new().fg(Color::Yellow).bg(Color::Green));
     /// ```
     pub fn add(&mut self, range: impl Into<IdxRange>, style: Style) {
-        self.map.update(range.into(), |styles| {
-            Some(match styles {
-                Some(cur_style) => cur_style.merge(style),
-                None => style,
-            })
-        })
+        self.cow.add_style(range, style);
     }
 
     /// Replace `style` for specified `range`. All styles in the `range` are erased before
     /// insert the new `style`. If you wan't to save existed styles, try to use [`add`] method.
     ///
     /// # Examples
-    /// TODO
     ///
     /// ```
     /// # use yatui_text::{Mask, Style, Color};
+    /// let mut mask = Mask::new();
+    /// mask.add(0..=1, Style::new().fg(Color::Yellow));
+    /// mask.replace(0..2, Style::new().bg(Color::Green));
+    /// assert_eq!(mask[0], Style::new().bg(Color::Green));
     /// ```
     ///
     /// [`add`]: Self::add
     pub fn replace(&mut self, range: impl Into<IdxRange>, style: Style) {
-        self.map.insert(range.into(), style);
+        self.cow.replace_style(range, style);
     }
 
-    /// Insert tuple of [`IdxRange`] and [`Style`] into `Mask`. Iternally it calls [`add`] method.
-    /// See its documentation for more.
+    /// Remove styles for specified `range`. Internally it calls [`replace`] with [`default`] styles.
     ///
-    /// // TODO: Doc use case with iterators
+    /// # Examples
     ///
-    /// [`add`]: Mask::add
-    pub fn insert(&mut self, (range, style): (IdxRange, Style)) {
-        self.add(range, style)
-    }
-
-    /// Remove styles for specified `range`. Internally it calls [`reset`] with [`default`] styles.
+    /// ```
+    /// # use yatui_text::{Mask, Style, Color};
+    /// let mut mask = Mask::new();
+    /// mask.add(0..=0, Style::new().fg(Color::Yellow));
+    /// mask.remove(0..=0);
+    /// assert_eq!(mask[0], Style::default());
+    /// ```
     ///
-    /// [`reset`]: Self::replace
+    /// [`replace`]: Self::replace
     /// [`default`]: crate::Color::default
-    pub fn remove(&mut self, range: impl Into<IdxRange>) {}
+    pub fn remove(&mut self, range: impl Into<IdxRange>) {
+        self.cow.replace_style(range, Style::default());
+    }
 
     /// Gets an iterator over all pairs of ranges and their styles. It returns non intersecting
     /// ranges in ascending order with style info.
     ///
     /// The iterator element type is ([`IdxRange`], &'a [`Style`]).
     pub fn iter(&self) -> Iter<'_> {
-        Iter { inner: self.map.iter() }
+        Iter { inner: self.cow.iter() }
     }
 }
 
@@ -140,12 +136,6 @@ impl<R: Into<IdxRange>> FromIterator<(R, Style)> for Mask {
         let mut mask = Mask::default();
         mask.extend(iter);
         mask
-    }
-}
-
-impl Default for Mask {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -181,8 +171,12 @@ impl Index<usize> for Mask {
     /// assert_eq!(mask[0], Style::new().fg(Color::Green));
     /// ```
     fn index(&self, index: usize) -> &Self::Output {
-        static DEFAULT_STYLE: Style = Style::new();
-        self.map.get(index).unwrap_or(&DEFAULT_STYLE)
+        match &self.cow {
+            Cow::Single(s) => s,
+            Cow::Multiple(m) => {
+                m.get(index).expect("Multiple map always contains styles for every idx")
+            }
+        }
     }
 }
 
@@ -190,10 +184,10 @@ impl std::iter::IntoIterator for Mask {
     type Item = (IdxRange, Style);
     type IntoIter = IntoIter;
 
+    /// Gets an owned iterator over all pairs of ranges and their styles. It returns non
+    /// intersecting ranges in ascending order with style info.
     fn into_iter(self) -> Self::IntoIter {
-        /// Gets an owned iterator over all pairs of ranges and their styles. It returns non
-        /// intersecting ranges in ascending order with style info.
-        Self::IntoIter { inner: self.map.into_iter() }
+        Self::IntoIter { inner: self.cow.into_iter() }
     }
 }
 
@@ -206,19 +200,11 @@ impl<'a> std::iter::IntoIterator for &'a Mask {
     }
 }
 
-fn convert_any_range_to_idx_range<S>((range, style): (AnyRange<usize>, S)) -> (IdxRange, S) {
-    (IdxRange::from_bounds(range), style)
-}
-
-fn convert_any_range_to_idx_range_ref<S>((range, style): (&AnyRange<usize>, S)) -> (IdxRange, S) {
-    convert_any_range_to_idx_range((*range, style))
-}
-
 impl<'a> Iterator for Iter<'a> {
     type Item = (IdxRange, &'a Style);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(convert_any_range_to_idx_range_ref)
+        self.inner.next()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -228,7 +214,7 @@ impl<'a> Iterator for Iter<'a> {
 
 impl<'a> DoubleEndedIterator for Iter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.inner.next_back().map(convert_any_range_to_idx_range_ref)
+        self.inner.next_back()
     }
 }
 
@@ -244,20 +230,18 @@ impl Iterator for IntoIter {
     type Item = (IdxRange, Style);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(convert_any_range_to_idx_range)
+        self.inner.next()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.inner.size_hint()
     }
 }
-
 impl DoubleEndedIterator for IntoIter {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.inner.next_back().map(convert_any_range_to_idx_range)
+        self.inner.next_back()
     }
 }
-
 impl ExactSizeIterator for IntoIter {
     fn len(&self) -> usize {
         self.inner.len()
@@ -265,6 +249,37 @@ impl ExactSizeIterator for IntoIter {
 }
 impl FusedIterator for IntoIter {}
 
+/// Creates a [`Mask`] containing styles for specified ranges.
+///
+/// This macro is similar to `vec!` macro from `std` library. It allows you to define mask
+/// with multiple styles. All styles for overlaping ranges will be merged. Internally
+/// macro calls [`add`] for all arguments in order.
+///
+/// # Examples
+///
+/// ```
+/// # use yatui_text::{mask, Style, Color, Mask};
+/// let mask = mask!(
+///     // You can specifiy any type of range
+///     ..2 => Style::new().fg(Color::Green),
+///     3..4 => Style::new().fg(Color::Black),
+///     4..=5 => Style::new().bg(Color::Yellow),
+///     6.. => Style::new().bg(Color::Green),
+/// );
+/// ```
+///
+/// ```
+/// # use yatui_text::{mask, Style, Color, Mask};
+/// let mask = mask!(
+///     // Styles will be merged for overlaping ranges.
+///     1..3 => Style::new().fg(Color::Green),
+///     2..4 => Style::new().bg(Color::Yellow),
+/// );
+/// assert_eq!(mask[2], Style::new().fg(Color::Green).bg(Color::Yellow));
+/// ```
+///
+/// [`add`]: Mask::add
+/// );
 #[macro_export]
 macro_rules! mask {
     () => {
@@ -576,4 +591,6 @@ mod tests {
         assert_eq!(mask[0], Style::new().fg(Color::Red));
         assert_eq!(mask[2], Style::default());
     }
+
+    fn iter_mask() {}
 }

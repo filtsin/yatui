@@ -117,7 +117,11 @@ impl IdxRange {
     /// assert_eq!(IdxRange::new(1, 0).len(), 0);
     /// ```
     pub const fn len(&self) -> usize {
-        if self.is_empty() { 0 } else { self.end - self.start + 1 }
+        if self.is_empty() {
+            0
+        } else {
+            self.end - self.start + 1
+        }
     }
 
     /// Returns `true` if `self` contains all values in `[0; usize::MAX]`.

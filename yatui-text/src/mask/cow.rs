@@ -9,11 +9,12 @@ use crate::{IdxRange, Style};
 
 /// It is a smart enum for `Mask` content.
 /// Simply, it has two options:
-/// 1. Single - Single style for one unbounded range (.. from std).
+/// 1. Single - Single style for one unbounded range (0..=usize::MAX strictly speaking).
 /// 2. Multiple - Multiple styles for different ranges.
+///
 /// The struct is designed to avoid memory allocation for the most common case when all Text's
-/// graphemes should have single style (Also default mask also have single style Style::default).
-/// When mutation of styles needed, it converts `Single` variant to `Multiple` (like std::Cow).
+///     graphemes should have single style (Also default mask also have single style Style::default).
+///     When mutation of styles needed, it converts `Single` variant to `Multiple` (like std::Cow).
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub(super) enum Cow {
     Single(Style),
@@ -31,6 +32,8 @@ impl Cow {
         Self::Single(Style::default())
     }
 
+    /// Always converts `single` variant of cow to `multiple` with memory allocation if cow is
+    /// not `multiple` already
     pub(super) fn to_mut(&mut self) -> &mut RangeMap<usize, Style> {
         match *self {
             Self::Single(s) => {
@@ -47,9 +50,7 @@ impl Cow {
     pub(super) fn add_style(&mut self, range: impl Into<IdxRange>, style: Style) {
         let range = range.into();
         match self {
-            Cow::Single(s) if range.is_full() => {
-                *s = style;
-            }
+            Cow::Single(s) if range.is_full() => *s = s.merge(style),
             _ => self.to_mut().update(range, |styles| {
                 Some(match styles {
                     Some(cur_style) => cur_style.merge(style),
@@ -76,13 +77,6 @@ impl Cow {
         }
     }
 
-    pub(super) fn into_iter(self) -> CowIntoIter {
-        match self {
-            Cow::Single(s) => CowIntoIter::Single(Some(s)),
-            Cow::Multiple(m) => CowIntoIter::Multiple(m.into_iter()),
-        }
-    }
-
     /// Returns `true` if it had allocated memory.
     pub(super) fn is_owned(&self) -> bool {
         match *self {
@@ -95,6 +89,18 @@ impl Cow {
 impl Default for Cow {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl IntoIterator for Cow {
+    type Item = <CowIntoIter as Iterator>::Item;
+    type IntoIter = CowIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Cow::Single(s) => CowIntoIter::Single(Some(s)),
+            Cow::Multiple(m) => CowIntoIter::Multiple(m.into_iter()),
+        }
     }
 }
 
@@ -164,7 +170,9 @@ where
 mod tests {
     use super::*;
     use crate::Color;
+    use pretty_assertions::assert_eq;
     use rstest::rstest;
+    use rstest_reuse::{self, *};
 
     // No macro in btree_range_map crate :(
     macro_rules! range_map {
@@ -196,6 +204,7 @@ mod tests {
         assert_eq!(cow, Cow::Multiple(range_map!(0..=usize::MAX => Style::new().fg(Color::Red),)));
     }
 
+    #[template]
     #[rstest]
     #[case::full_single(
         vec![
@@ -225,10 +234,61 @@ mod tests {
             9.. => Style::default(),
         ))
     )]
+    fn styles_mutation(#[case] styles: Vec<(IdxRange, Style)>, #[case] expected: Cow) {}
+
+    #[apply(styles_mutation)]
+    #[case::full_single_merge_styles(
+        vec![
+            (IdxRange::from(..), Style::new().fg(Color::Red)),
+            (IdxRange::from(..), Style::new().bg(Color::Green))
+        ],
+        Cow::Single(Style::new().fg(Color::Red).bg(Color::Green))
+    )]
+    #[case::multiple_merge_styles(
+        vec![
+            (IdxRange::from(1..=2), Style::new().fg(Color::Red)),
+            (IdxRange::from(2..4), Style::new().bg(Color::Green))
+        ],
+        Cow::Multiple(range_map!(
+            0..=0 => Style::default(),
+            1..=1 => Style::new().fg(Color::Red),
+            2..=2 => Style::new().fg(Color::Red).bg(Color::Green),
+            3..4 => Style::new().bg(Color::Green),
+            4.. => Style::default(),
+        ))
+    )]
     fn cow_add_styles(#[case] styles: Vec<(IdxRange, Style)>, #[case] expected: Cow) {
         let mut cow = Cow::default();
         for (range, style) in styles {
             cow.add_style(range, style);
+        }
+        assert_eq!(cow, expected);
+    }
+
+    #[apply(styles_mutation)]
+    #[case::full_single_replace_styles(
+        vec![
+            (IdxRange::from(..), Style::new().fg(Color::Red)),
+            (IdxRange::from(..), Style::new().bg(Color::Green))
+        ],
+        Cow::Single(Style::new().bg(Color::Green))
+    )]
+    #[case::multiple_replace_styles(
+        vec![
+            (IdxRange::from(1..=2), Style::new().fg(Color::Red)),
+            (IdxRange::from(2..4), Style::new().bg(Color::Green))
+        ],
+        Cow::Multiple(range_map!(
+            0..=0 => Style::default(),
+            1..=1 => Style::new().fg(Color::Red),
+            2..4 => Style::new().bg(Color::Green),
+            4.. => Style::default(),
+        ))
+    )]
+    fn cow_replace_styles(#[case] styles: Vec<(IdxRange, Style)>, #[case] expected: Cow) {
+        let mut cow = Cow::default();
+        for (range, style) in styles {
+            cow.replace_style(range, style);
         }
         assert_eq!(cow, expected);
     }

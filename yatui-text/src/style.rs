@@ -79,6 +79,7 @@ impl Style {
     /// let style = Style::new().fg(Color::Green);
     /// assert_eq!(style.fg, Some(Color::Green));
     /// ```
+    #[must_use = "`Style` object is immutable. All mutation methods return new object"]
     pub const fn fg(mut self, fg: Color) -> Self {
         self.fg = Some(fg);
         self
@@ -93,6 +94,7 @@ impl Style {
     /// let style = Style::new().bg(Color::Green);
     /// assert_eq!(style.bg, Some(Color::Green));
     /// ```
+    #[must_use = "`Style` object is immutable. All mutation methods return new object"]
     pub fn bg(mut self, bg: Color) -> Self {
         self.bg = Some(bg);
         self
@@ -107,6 +109,7 @@ impl Style {
     /// let style = Style::new().modifier(Modifier::BOLD | Modifier::ITALIC);
     /// assert_eq!(style.modifier, Modifier::BOLD | Modifier::ITALIC);
     /// ```
+    #[must_use = "`Style` object is immutable. All mutation methods return new object"]
     pub fn modifier(mut self, modifier: Modifier) -> Self {
         self.modifier = modifier;
         self
@@ -136,6 +139,7 @@ impl Style {
     /// let style1 = Style::new().modifier(Modifier::BOLD);
     /// let style2 = Style::new().modifier(Modifier::ITALIC);
     /// assert_eq!(style1.merge(style2), Style::new().modifier(Modifier::BOLD | Modifier::ITALIC));
+    #[must_use = "`Style` object is immutable. All mutation methods return new object"]
     pub fn merge(mut self, rhs: Style) -> Self {
         if let Some(fg) = rhs.fg {
             self.fg = Some(fg);
