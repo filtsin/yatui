@@ -2,6 +2,7 @@
 #![allow(unused)] // TODO: dev stage
 
 pub mod mask;
+pub mod raw;
 pub mod style;
 
 pub use mask::{IdxRange, Mask};

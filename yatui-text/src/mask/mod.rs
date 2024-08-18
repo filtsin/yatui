@@ -88,7 +88,8 @@ impl Mask {
         self.cow.replace_style(range, style);
     }
 
-    /// Remove styles for specified `range`. Internally it calls [`replace`] with [`default`] styles.
+    /// Remove all styles for specified `range`. Internally it calls [`replace`] with
+    /// [`default`] styles.
     ///
     /// # Examples
     ///
