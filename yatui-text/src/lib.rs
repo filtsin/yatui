@@ -2,8 +2,10 @@
 #![allow(unused)] // TODO: dev stage
 
 pub mod mask;
-pub mod raw;
+mod raw;
 pub mod style;
+pub mod text;
 
 pub use mask::{IdxRange, Mask};
 pub use style::{Color, Modifier, Style};
+pub use text::Text;

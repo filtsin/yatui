@@ -3,7 +3,7 @@ use std::{borrow::Cow, cell::Cell};
 use unicode_width::UnicodeWidthStr;
 
 /// Wrapper about string.
-/// The only responsobility of this struct is cache size of string and invalidate it when string
+/// The only responsibility of this struct is cache size of string and invalidate it when string
 /// is changed.
 #[derive(Debug, Default)]
 pub(super) struct Raw {
@@ -16,16 +16,19 @@ pub(super) struct Raw {
 /// You should know:
 ///
 /// 1) Not every grapheme have width=1. For example, cjk symbols: "す" have width=2.
-///     This means that you need two terminal columns to display it.
+///    This means that you need two terminal columns to display it.
 ///
 /// 2) `Height` is count of lines in terminal way. Line delimiter is "\n" or "\r\n".
+///     Last `line delimiter` after the actual content is always optional and do not create
+///     an empty line.
 ///
 /// ```text
-/// 1 - 1 line
-/// \n - 1 line too (empty)
-/// 1\n2 - 2 lines
-/// 1\n2\r\n3 - 3 lines
-/// 1\n2\r\n3\n - 4 lines
+/// "" - 0 lines
+/// "1" - 1 line
+/// "\n" - 1 line too
+/// "1\n2" - 2 lines
+/// "1\n2\r\n3" - 3 lines
+/// "1\n2\r\n3\n" - 3 lines too
 /// ```
 #[derive(Debug, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Copy)]
 struct Size {
@@ -81,6 +84,18 @@ impl AsRef<str> for Raw {
     }
 }
 
+impl From<&'static str> for Raw {
+    fn from(value: &'static str) -> Self {
+        Self { data: value.into(), size: Cell::default() }
+    }
+}
+
+impl From<String> for Raw {
+    fn from(value: String) -> Self {
+        Self { data: value.into(), size: Cell::default() }
+    }
+}
+
 impl<'a> From<&'a str> for Size {
     fn from(s: &'a str) -> Self {
         let mut size = s.split_inclusive('\n').fold(Size::default(), |mut size, line| {
@@ -89,9 +104,6 @@ impl<'a> From<&'a str> for Size {
             size.height += 1;
             size
         });
-        if s.ends_with('\n') || s.ends_with("\r\n") {
-            size.height += 1;
-        }
         size
     }
 }
@@ -113,7 +125,7 @@ mod tests {
 
     #[rstest]
     #[case::empty("", Size { width: 0, height: 0 })]
-    #[case::empty_newline("\n", Size { width: 0, height: 2 })]
+    #[case::empty_newline("\n", Size { width: 0, height: 1 })]
     #[case::ascii_line("hello", Size { width: 5, height: 1 })]
     #[case::ascii_two_lines("hello\nbiggest", Size { width: 7, height: 2 })]
     #[case::japan_line("老", Size { width: 2, height: 1 })]
@@ -124,7 +136,7 @@ mod tests {
     #[case::one_unicode_point("\u{00fd}", Size { width: 1, height: 1 })]
     // it is Latin Small Letter Y with Combinin Acute Accent "◌́"
     #[case::two_unicode_points("y\u{0301}", Size { width: 1, height: 1 })]
-    #[case::constrol_symbols("\n\t\r\n", Size { width: 0, height: 3 })]
+    #[case::constrol_symbols("\n\t\r\n", Size { width: 0, height: 2 })]
     fn compute_size(#[case] string: &str, #[case] expected: Size) {
         let actual = Size::from(string);
         assert_eq!(actual, expected);
