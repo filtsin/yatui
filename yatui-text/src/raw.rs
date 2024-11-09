@@ -98,13 +98,12 @@ impl From<String> for Raw {
 
 impl<'a> From<&'a str> for Size {
     fn from(s: &'a str) -> Self {
-        let mut size = s.split_inclusive('\n').fold(Size::default(), |mut size, line| {
+        s.split_inclusive('\n').fold(Size::default(), |mut size, line| {
             let width = UnicodeWidthStr::width(line);
             size.width = size.width.max(width);
             size.height += 1;
             size
-        });
-        size
+        })
     }
 }
 
