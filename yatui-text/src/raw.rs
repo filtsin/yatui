@@ -19,8 +19,8 @@ pub(super) struct Raw {
 ///    This means that you need two terminal columns to display it.
 ///
 /// 2) `Height` is count of lines in terminal way. Line delimiter is "\n" or "\r\n".
-///     Last `line delimiter` after the actual content is always optional and do not create
-///     an empty line.
+///    Last `line delimiter` after the actual content is always optional and do not create
+///    an empty line.
 ///
 /// ```text
 /// "" - 0 lines
@@ -96,6 +96,14 @@ impl From<String> for Raw {
     }
 }
 
+impl std::ops::Deref for Raw {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.data.as_ref()
+    }
+}
+
 impl<'a> From<&'a str> for Size {
     fn from(s: &'a str) -> Self {
         s.split_inclusive('\n').fold(Size::default(), |mut size, line| {
@@ -133,9 +141,9 @@ mod tests {
     #[case::russian_lines("большая\nстрока", Size { width: 7, height: 2 })]
     // it is Latin Small Letter Y with Acute "ý"
     #[case::one_unicode_point("\u{00fd}", Size { width: 1, height: 1 })]
-    // it is Latin Small Letter Y with Combinin Acute Accent "◌́"
+    // it is Latin Small Letter Y with Combining Acute Accent "◌́"
     #[case::two_unicode_points("y\u{0301}", Size { width: 1, height: 1 })]
-    #[case::constrol_symbols("\n\t\r\n", Size { width: 0, height: 2 })]
+    #[case::control_symbols("\n\t\r\n", Size { width: 0, height: 2 })]
     fn compute_size(#[case] string: &str, #[case] expected: Size) {
         let actual = Size::from(string);
         assert_eq!(actual, expected);

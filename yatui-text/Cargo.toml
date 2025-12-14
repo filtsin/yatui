@@ -12,6 +12,6 @@ bitflags = "2.4"
 btree-range-map = "0.7"
 
 [dev-dependencies]
-rstest = "0.22"
+rstest = "0.25"
 rstest_reuse ="0.7"
 pretty_assertions = "1.4"

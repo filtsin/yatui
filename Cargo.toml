@@ -1,5 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    "yatui-text"
+    "yatui-text",
+    "yatui-core",
+    "yatui-terminal",
+    "yatui-copy-state"
 ]

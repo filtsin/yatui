@@ -1,8 +1,8 @@
-use std::{iter::FusedIterator, ops::RangeBounds};
+use std::{hint, iter::FusedIterator, ops::RangeBounds};
 
 use btree_range_map::{
-    generic::map::{IntoIter, Iter},
     AnyRange, DefaultMapContainer, RangeMap,
+    generic::map::{IntoIter, Iter},
 };
 
 use crate::{IdxRange, Style};
@@ -13,8 +13,8 @@ use crate::{IdxRange, Style};
 /// 2. Multiple - Multiple styles for different ranges.
 ///
 /// The struct is designed to avoid memory allocation for the most common case when all Text's
-///     graphemes should have single style (Also default mask also have single style Style::default).
-///     When mutation of styles needed, it converts `Single` variant to `Multiple` (like std::Cow).
+/// graphemes should have single style (Also default mask also have single style Style::default).
+/// When mutation of styles needed, it converts `Single` variant to `Multiple` (like std::Cow).
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub(super) enum Cow {
     Single(Style),

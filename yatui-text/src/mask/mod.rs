@@ -3,8 +3,8 @@ mod idx_range;
 
 use crate::Style;
 use btree_range_map::{
-    generic::map::{IntoIter as MapIntoIter, Iter as MapIter},
     AnyRange, DefaultMapContainer as MapSlab, RangeMap,
+    generic::map::{IntoIter as MapIntoIter, Iter as MapIter},
 };
 use cow::Cow;
 pub use idx_range::IdxRange;
@@ -253,7 +253,7 @@ impl FusedIterator for IntoIter {}
 /// Creates a [`Mask`] containing styles for specified ranges.
 ///
 /// This macro is similar to `vec!` macro from `std` library. It allows you to define mask
-/// with multiple styles. All styles for overlaping ranges will be merged. Internally
+/// with multiple styles. All styles for overlapping ranges will be merged. Internally
 /// macro calls [`add`] for all arguments in order.
 ///
 /// # Examples
@@ -261,7 +261,7 @@ impl FusedIterator for IntoIter {}
 /// ```
 /// # use yatui_text::{mask, Style, Color, Mask};
 /// let mask = mask!(
-///     // You can specifiy any type of range
+///     // You can specify any type of range
 ///     ..2 => Style::new().fg(Color::Green),
 ///     3..4 => Style::new().fg(Color::Black),
 ///     4..=5 => Style::new().bg(Color::Yellow),
@@ -272,7 +272,7 @@ impl FusedIterator for IntoIter {}
 /// ```
 /// # use yatui_text::{mask, Style, Color, Mask};
 /// let mask = mask!(
-///     // Styles will be merged for overlaping ranges.
+///     // Styles will be merged for overlapping ranges.
 ///     1..3 => Style::new().fg(Color::Green),
 ///     2..4 => Style::new().bg(Color::Yellow),
 /// );
@@ -299,7 +299,7 @@ macro_rules! mask {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{mask, Color, Modifier};
+    use crate::{Color, Modifier, mask};
     use pretty_assertions::assert_eq;
     use rstest::rstest;
     use std::ops::RangeInclusive;
